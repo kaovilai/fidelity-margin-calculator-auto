@@ -55,15 +55,15 @@ POST https://digital.fidelity.com/ftgw/digital/margincalcex/api/graphql?op=GetTr
 - `priceList[]` — current positions with prices for recalculation
 
 **Key Response Fields:**
-- `balance.marginCreditDebit` — positive = credit (good), negative = debit (interest charged). When positive, this is the cash you can withdraw without touching margin. When negative, you're paying interest on this amount.
+- `balance.marginCreditDebit` — positive = credit (no margin loan), negative = debit (interest charged). Reflects net cash owed to/from you after trade execution in a margin account.
 - `balance.coreCash` — cash in core position (e.g. FDRXX/SPAXX money market)
 - `balance.marginBuyingPower` — remaining margin buying power
 - `balance.nonMarginBuyingPower` — buying power without using margin
-- `balance.avlToTradeWithoutMarginImpact` — max trade size with no margin impact
+- `balance.avlToTradeWithoutMarginImpact` — max dollar amount you can trade (or withdraw) without creating a margin debit. Per [Fidelity's glossary](https://www.fidelity.com/webcontent/ap002390-mlo-content/19.09/help/help_definition_a.shtml), this is the cash-only buying power that avoids margin interest.
 - `balance.totalAccountValue` — total account value
 - `balance.marginEquityPct` — margin equity percentage
 
-**Cash available to withdraw without margin** = projected `marginCreditDebit` (if positive). This tells you how much cash you can pull out after the trade settles without going into margin debit. If `marginCreditDebit` goes negative, any withdrawal would increase margin debit and interest charges.
+**Cash available to withdraw without margin** = projected `avlToTradeWithoutMarginImpact`. Per Fidelity's definition, this is the maximum dollar amount available without creating a margin debit. Note: `marginCreditDebit` is a separate concept — it shows whether you currently owe money (debit) or have a credit balance after trade execution, but it is NOT the same as how much you can safely withdraw.
 
 ## DOM Selectors
 
@@ -147,9 +147,9 @@ fidelity-margin-calculator-auto/
 2. Implement `margin-api.js` — build GraphQL request from trade parameters, call API using `fetch` (same-origin cookies auto-attached)
 3. Implement `margin-calc.js` — parse response, extract balance fields, compute:
    - Current vs projected margin credit/debit
-   - Wiggle room = `marginCreditDebit` (projected) if positive, or how far into debit
+   - Wiggle room = projected `avlToTradeWithoutMarginImpact`, or how far into debit if `marginCreditDebit` < 0
    - Whether trade triggers margin interest
-   - Cash available to withdraw without margin after settlement
+   - Cash available to withdraw without margin = projected `avlToTradeWithoutMarginImpact`
 
 ### Phase 2: Trade Ticket Detection
 4. Implement `detector.js` — MutationObserver on Fidelity pages to detect:

@@ -183,7 +183,7 @@ No automated tests exist. Phase 1 acceptance should include:
 
 4. **XSRF tokens might be needed**: The sample cURL shows `MARGIN-CALCULATOR-XSRF-TOKEN` and `XSRF-TOKEN` cookies. The fetch API will attach all cookies automatically via `credentials: 'include'`, but some endpoints additionally require the XSRF token as a custom header (anti-CSRF pattern). If we get 403 errors in testing, we'll need to read `document.cookie` for the XSRF token value and add it as an `X-XSRF-TOKEN` header.
 
-5. **Cash withdrawable definition is well-founded**: Per the README and CLAUDE.md, "cash withdrawable without margin" = projected `marginCreditDebit` when positive. This makes intuitive sense: if marginCreditDebit is $1,203.99 (as in the sample response), you can withdraw up to that amount without creating a margin debit. If it goes negative, any withdrawal increases your margin debit and interest charges.
+5. **Cash withdrawable definition corrected**: Per Fidelity's glossary, "cash withdrawable without margin" = projected `avlToTradeWithoutMarginImpact` — this is the max dollar amount you can withdraw without creating a margin debit. Note: `marginCreditDebit` is a separate concept showing net cash owed to/from you after trade execution, NOT the safe withdrawal amount.
 
 6. **Response data is rich**: Even with the simplified query (balance only), we get 18 balance fields including `marginEquityPct` (100% in the sample = fully equity-funded), `totalSecurityRequirements` ($1,408.61), `totalOptionRequirements` ($24,275.50). These could be displayed in an expanded view later.
 
