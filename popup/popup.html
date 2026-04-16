@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <div class="popup-header">
+      <span class="popup-title">Margin Calculator</span>
+      <span class="popup-version" id="version"></span>
+    </div>
+
+    <!-- Status Section -->
+    <div class="popup-section">
+      <div class="status-row">
+        <span class="status-label">Status</span>
+        <span class="status-dot" id="status-dot"></span>
+        <span class="status-text" id="status-text">Unknown</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Account</span>
+        <span class="status-text" id="status-account">--</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Last Calc</span>
+        <span class="status-text" id="status-last-calc">--</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">API Calls</span>
+        <span class="status-text" id="status-api-calls">0</span>
+      </div>
+      <div class="status-row" id="status-error-row" style="display: none;">
+        <span class="status-label">Error</span>
+        <span class="status-text status-error-text" id="status-error">--</span>
+      </div>
+    </div>
+
+    <!-- Settings Section -->
+    <div class="popup-section">
+      <div class="section-header" id="settings-toggle">
+        <span>Settings</span>
+        <span class="toggle-arrow" id="settings-arrow">&#9662;</span>
+      </div>
+      <div class="settings-body" id="settings-body">
+        <div class="setting-row">
+          <span class="setting-label">Enabled</span>
+          <label class="switch">
+            <input type="checkbox" id="setting-enabled" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Warning threshold ($)</span>
+          <input type="number" id="setting-threshold" class="setting-input" value="500" min="0" step="50">
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Debounce</span>
+          <select id="setting-debounce" class="setting-select">
+            <option value="200">Fast (200ms)</option>
+            <option value="500" selected>Normal (500ms)</option>
+            <option value="1000">Conservative (1s)</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Auto-refresh baseline</span>
+          <label class="switch">
+            <input type="checkbox" id="setting-auto-refresh" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="popup-footer">
+      <button class="btn-refresh" id="btn-refresh">Force Recalculate</button>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

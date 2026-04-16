@@ -1,0 +1,11 @@
+# Sample files with potentially sensitive data (cookies, account numbers)
+*.sample
+*.example
+
+# Chrome extension generated files
+_metadata/
+
+# One-off test scripts and temp files
+test-*.js
+tmp-*.json
+.playwright-mcp
