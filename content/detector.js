@@ -1,0 +1,389 @@
+// TradeDetector — detects trade ticket presence and extracts trade parameters
+// Supports: options (single + multi-leg) and equity tickets, popup + dedicated page
+const TradeDetector = (() => {
+
+  const ACTION_MAP = {
+    'Buy To Open': 'BO',
+    'Sell To Open': 'SO',
+    'Buy To Close': 'BC',
+    'Sell To Close': 'SC',
+    'Buy': 'B',
+    'Sell': 'S',
+    'Sell Short': 'SS',
+    'Buy to Cover': 'BC'
+  };
+
+  const MONTH_MAP = {
+    'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
+    'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
+    'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+  };
+
+  // --- Page context detection ---
+
+  // Returns 'popup-options' | 'popup-equity' | 'dedicated-options' | null
+  function detectPageContext() {
+    // Dedicated options page (full page, no popup shell)
+    if (document.body.classList.contains('option-trade-ticket')) {
+      return 'dedicated-options';
+    }
+    // Floating popup
+    const shell = document.getElementById('trade-container-shell');
+    if (shell && shell.style.display === 'block') {
+      const optDiv = document.getElementById('float_trade_O');
+      if (optDiv && optDiv.style.display === 'block') return 'popup-options';
+      const eqDiv = document.getElementById('float_trade_SE');
+      if (eqDiv && eqDiv.style.display === 'block') return 'popup-equity';
+    }
+    return null;
+  }
+
+  function isTradeTicketVisible() {
+    return detectPageContext() !== null;
+  }
+
+  function isOptionsTicket() {
+    const ctx = detectPageContext();
+    return ctx === 'popup-options' || ctx === 'dedicated-options';
+  }
+
+  function isEquityTicket() {
+    return detectPageContext() === 'popup-equity';
+  }
+
+  // --- Helpers ---
+
+  function getDropdownValue(selector) {
+    const el = document.querySelector(selector);
+    if (!el) return '';
+    return el.textContent.trim();
+  }
+
+  function getInputValue(selector) {
+    const el = document.querySelector(selector);
+    if (!el) return '';
+    return el.value || '';
+  }
+
+  // --- Account number ---
+
+  function getAccountNumber() {
+    const ctx = detectPageContext();
+    if (ctx === 'popup-equity') {
+      return getEquityAccountNumber();
+    }
+    // Options ticket (popup or dedicated) — same selector
+    const el = document.querySelector('ott-account-dropdown .binding-val .accountNum');
+    if (!el) return null;
+    return el.textContent.trim().replace(/[()]/g, '');
+  }
+
+  function getEquityAccountNumber() {
+    // Equity ticket stores account as " Individual (X12345678) " in a .truncate div
+    const el = document.querySelector('#float_trade_SE .selected-account-dropdown-label');
+    if (!el) {
+      const alt = document.querySelector('#float_trade_SE #dest-acct-dropdown');
+      if (!alt) return null;
+      const match = alt.textContent.match(/\(([A-Z0-9]+)\)/);
+      return match ? match[1] : null;
+    }
+    const match = el.textContent.match(/\(([A-Z0-9]+)\)/);
+    return match ? match[1] : null;
+  }
+
+  // --- Call/Put for leg N ---
+
+  function getCallPut(legIndex) {
+    const callRadio = document.getElementById(`call-put-${legIndex}-call`);
+    if (callRadio && callRadio.getAttribute('aria-checked') === 'true') return 'C';
+    const putRadio = document.getElementById(`call-put-${legIndex}-put`);
+    if (putRadio && putRadio.getAttribute('aria-checked') === 'true') return 'P';
+    return '';
+  }
+
+  // --- Expiration / Strike parsing ---
+
+  // "May 22, 2026" -> "260522"
+  function parseExpiration(expStr) {
+    if (!expStr) return '';
+    const match = expStr.match(/(\w+)\s+(\d+),\s+(\d{4})/);
+    if (!match) return '';
+    const [, month, day, year] = match;
+    const mm = MONTH_MAP[month];
+    if (!mm) return '';
+    const yy = year.slice(2);
+    const dd = day.padStart(2, '0');
+    return yy + mm + dd;
+  }
+
+  // "370.00" -> "370", "16.50" -> "16.5"
+  function formatStrike(strikeStr) {
+    if (!strikeStr) return '';
+    const num = parseFloat(strikeStr);
+    if (isNaN(num)) return '';
+    return num.toString();
+  }
+
+  // Builds option symbol: -AVGO260522P370
+  function buildOrderSymbol(symbol, expiration, callPut, strike) {
+    if (!symbol || !expiration || !callPut || !strike) return '';
+    const expCode = parseExpiration(expiration);
+    const strikeCode = formatStrike(strike);
+    if (!expCode || !strikeCode) return '';
+    return `-${symbol}${expCode}${callPut}${strikeCode}`;
+  }
+
+  function mapAction(actionText) {
+    return ACTION_MAP[actionText] || '';
+  }
+
+  // --- Multi-leg options extraction ---
+
+  function getLegCount() {
+    let count = 0;
+    while (document.getElementById(`leg-row-${count}`)) {
+      count++;
+    }
+    return Math.max(count, 1); // at least 1 leg even if leg-row-0 missing
+  }
+
+  function getLegParams(legIndex) {
+    return {
+      action: getDropdownValue(`#action_dropdown-${legIndex} .binding-val`),
+      quantity: getInputValue(`#quantity-${legIndex}`),
+      callPut: getCallPut(legIndex),
+      expiration: getDropdownValue(`#exp_dropdown-${legIndex} .binding-val`),
+      strike: getDropdownValue(`#strike_dropdown-${legIndex} .binding-val`)
+    };
+  }
+
+  function isLegComplete(leg) {
+    return !!(leg.action && leg.quantity && leg.callPut && leg.expiration && leg.strike);
+  }
+
+  // --- Options trade params (all legs) ---
+
+  function getOptionsTradeParams() {
+    const symbol = getInputValue('#symbol_search');
+    const limitPrice = getInputValue('#dest-limitPrice');
+    const orderType = getDropdownValue('#ordertype-dropdown .binding-val');
+    const tradeType = getDropdownValue('#tradeType_dropdown .binding-val');
+    const legCount = getLegCount();
+
+    const legs = [];
+    for (let i = 0; i < legCount; i++) {
+      const leg = getLegParams(i);
+      leg.legIndex = i;
+      legs.push(leg);
+    }
+
+    return { symbol, limitPrice, orderType, tradeType, legs };
+  }
+
+  // --- Equity trade params ---
+
+  function getEquityTradeParams() {
+    const container = '#float_trade_SE';
+    const symbol = getInputValue(`${container} #eq-ticket-dest-symbol`);
+    const action = getDropdownValue(`${container} #dest-dropdownlist-button-action .selected-dropdown-item`) ||
+                   getDropdownValue(`${container} #selected-dropdown-itemaction`);
+    const quantity = getInputValue(`${container} #eqt-shared-quantity`);
+    const orderType = getDropdownValue(`${container} #dest-dropdownlist-button-ordertype .selected-dropdown-item`) ||
+                      getDropdownValue(`${container} #selected-dropdown-itemordertype`);
+    const limitPrice = getInputValue(`${container} #eqt-shared-limit-price`) ||
+                       getInputValue(`${container} #dest-limitPrice`);
+
+    return {
+      symbol: symbol.toUpperCase(),
+      action,
+      quantity,
+      orderType,
+      limitPrice,
+      legs: [{ action, quantity }]
+    };
+  }
+
+  // --- Unified getTradeParams ---
+
+  function getTradeParams() {
+    const ctx = detectPageContext();
+    if (ctx === 'popup-equity') return getEquityTradeParams();
+    if (ctx === 'popup-options' || ctx === 'dedicated-options') return getOptionsTradeParams();
+    return null;
+  }
+
+  // --- Build API orders ---
+
+  function buildOrders() {
+    const ctx = detectPageContext();
+    if (ctx === 'popup-equity') return buildEquityOrders();
+    return buildOptionsOrders();
+  }
+
+  function buildOptionsOrders() {
+    const params = getOptionsTradeParams();
+    const price = parseFloat(params.limitPrice);
+    if (isNaN(price)) return [];
+
+    const orders = [];
+    for (const leg of params.legs) {
+      const orderAction = mapAction(leg.action);
+      const qty = parseInt(leg.quantity, 10);
+      if (!orderAction || !qty) continue;
+
+      const orderSymbol = buildOrderSymbol(
+        params.symbol, leg.expiration, leg.callPut, leg.strike
+      );
+      if (!orderSymbol) continue;
+
+      orders.push({
+        orderSymbol,
+        orderType: 'O',
+        orderAction,
+        orderQty: qty,
+        price
+      });
+    }
+    return orders;
+  }
+
+  function buildEquityOrders() {
+    const params = getEquityTradeParams();
+    const orderAction = mapAction(params.action);
+    const qty = parseInt(params.quantity, 10);
+    const price = parseFloat(params.limitPrice);
+
+    if (!orderAction || !qty || !params.symbol) return [];
+    // Market orders may not have a price — use 0
+    const orderPrice = isNaN(price) ? 0 : price;
+
+    return [{
+      orderSymbol: params.symbol,
+      orderType: 'E',
+      orderAction,
+      orderQty: qty,
+      price: orderPrice
+    }];
+  }
+
+  // --- Completeness checks ---
+
+  function hasRequiredFields() {
+    const ctx = detectPageContext();
+    if (!ctx) return false;
+
+    if (ctx === 'popup-equity') {
+      const p = getEquityTradeParams();
+      return !!(p.symbol && p.action && p.quantity);
+    }
+
+    // Options — need symbol, price, and at least one complete leg
+    const p = getOptionsTradeParams();
+    if (!p.symbol || !p.limitPrice) return false;
+    return p.legs.some(isLegComplete);
+  }
+
+  // --- Fingerprinting for change detection ---
+
+  function getParamsFingerprint() {
+    const ctx = detectPageContext();
+    if (!ctx) return '';
+
+    if (ctx === 'popup-equity') {
+      const p = getEquityTradeParams();
+      return `EQ|${p.symbol}|${p.action}|${p.quantity}|${p.limitPrice}`;
+    }
+
+    const p = getOptionsTradeParams();
+    const legParts = p.legs.map(l =>
+      `${l.action}:${l.quantity}:${l.callPut}:${l.expiration}:${l.strike}`
+    ).join('|');
+    return `OPT|${p.symbol}|${legParts}|${p.limitPrice}`;
+  }
+
+  // --- Observer ---
+
+  let observer = null;
+  let debounceTimer = null;
+
+  function observe(callback, debounceMs = 500) {
+    if (observer) observer.disconnect();
+
+    let lastFingerprint = '';
+
+    function check() {
+      const ctx = detectPageContext();
+      if (!ctx) {
+        callback({ type: 'closed' });
+        return;
+      }
+
+      if (!hasRequiredFields()) {
+        callback({ type: 'incomplete' });
+        return;
+      }
+
+      const fp = getParamsFingerprint();
+      if (fp === lastFingerprint) return;
+      lastFingerprint = fp;
+
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        callback({
+          type: 'ready',
+          context: ctx,
+          accountNum: getAccountNumber(),
+          orders: buildOrders()
+        });
+      }, debounceMs);
+    }
+
+    observer = new MutationObserver(() => check());
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['style', 'aria-checked', 'value', 'class']
+    });
+
+    // Listen for input events on trade fields (options + equity)
+    document.addEventListener('input', (e) => {
+      const id = e.target.id || '';
+      if (id.startsWith('quantity-') ||
+          id === 'dest-limitPrice' ||
+          id === 'eqt-shared-quantity' ||
+          id === 'eqt-shared-limit-price' ||
+          id === 'eq-ticket-dest-symbol' ||
+          id === 'symbol_search') {
+        check();
+      }
+    }, true);
+
+    // Initial check
+    check();
+  }
+
+  function disconnect() {
+    if (observer) {
+      observer.disconnect();
+      observer = null;
+    }
+    clearTimeout(debounceTimer);
+  }
+
+  return {
+    detectPageContext,
+    isTradeTicketVisible,
+    isOptionsTicket,
+    isEquityTicket,
+    getAccountNumber,
+    getTradeParams,
+    buildOrders,
+    buildOrderSymbol,
+    mapAction,
+    hasRequiredFields,
+    getParamsFingerprint,
+    observe,
+    disconnect
+  };
+})();

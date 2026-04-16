@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://digital.fidelity.com/ftgw/digital/margincalcex/"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "digital.fidelity.com/ftgw/digital/margincalcex/api/graphql",
+      "resourceTypes": ["xmlhttprequest"]
+    }
+  }
+]

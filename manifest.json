@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Fidelity Margin Calculator Auto",
+  "version": "0.1.0",
+  "description": "Automatically shows margin impact when entering trades on Fidelity",
+  "host_permissions": [
+    "*://digital.fidelity.com/*"
+  ],
+  "permissions": [
+    "storage",
+    "declarativeNetRequest"
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "referer_rules",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://digital.fidelity.com/ftgw/digital/*"],
+      "js": [
+        "lib/positions.js",
+        "lib/margin-api.js",
+        "lib/margin-calc.js",
+        "lib/rate-limiter.js",
+        "content/detector.js",
+        "content/injector.js",
+        "content/main.js"
+      ],
+      "css": ["content/styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html"
+  },
+  "icons": {}
+}
