@@ -2,6 +2,9 @@
 
 Chrome extension that overlays margin impact information on Fidelity trade pages. When you're entering a trade, it automatically calculates whether the trade will result in a margin debit or credit, and how much room you have before incurring margin interest.
 
+<img width="1094" height="395" alt="image" src="https://github.com/user-attachments/assets/30045ce1-9308-4e96-bde8-e165a2d5a0da" />
+
+
 ## Problem
 
 Fidelity's trade ticket shows "available to trade" but doesn't clearly show:
