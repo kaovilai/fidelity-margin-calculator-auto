@@ -132,8 +132,8 @@ const target = document.querySelector('ott-max-gain-loss .max-gain-loss-containe
 |-------|--------|---------|
 | Projected Margin Credit/Debit | `balance.marginCreditDebit` | Dollar amount, green if positive (credit), red if negative (debit) |
 | Delta from Current | Computed: projected minus current `marginCreditDebit` | "+$X" or "-$X" with directional color |
-| Wiggle Room | If credit: equals `marginCreditDebit`; if debit: shows how far into debit | Dollar amount with status indicator |
-| Cash Withdrawable | `marginCreditDebit` when positive, else $0 | Dollar amount — how much cash can be withdrawn post-settlement without incurring interest |
+| Wiggle Room | `avlToTradeWithoutMarginImpact`; if debit: shows how far into debit | Dollar amount with status indicator |
+| Cash Withdrawable | `avlToTradeWithoutMarginImpact` | Dollar amount — max you can withdraw without creating margin debit |
 | Credit/Debit Status | Sign of `marginCreditDebit` | Text label "CREDIT" or "DEBIT" with color coding |
 
 ### 4. Color Coding Strategy
