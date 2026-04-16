@@ -18,6 +18,7 @@
     console.log(LOG_PREFIX, ...args);
     if (typeof MarginInjector !== 'undefined' && MarginInjector.addDebugLog) {
       MarginInjector.addDebugLog(args.map(function(a) {
+        if (a instanceof Error) return a.message + (a.stack ? '\n' + a.stack : '');
         return typeof a === 'object' ? JSON.stringify(a) : String(a);
       }).join(' '));
     }
@@ -25,7 +26,7 @@
 
   // --- Settings ---
   function loadSettings() {
-    if (!chrome.storage) return;
+    if (!chrome.storage || !chrome.storage.sync) return;
     chrome.storage.sync.get('fmc_settings', (result) => {
       if (result.fmc_settings) {
         settings = Object.assign(settings, result.fmc_settings);
@@ -35,7 +36,7 @@
 
   // --- Status reporting ---
   function reportStatus(state, extra) {
-    if (!chrome.storage) return;
+    if (!chrome.storage || !chrome.storage.local) return;
     const status = {
       state,
       accountNum: lastAccountNum,
