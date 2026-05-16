@@ -17,7 +17,7 @@
   function log(...args) {
     console.log(LOG_PREFIX, ...args);
     if (typeof MarginInjector !== 'undefined' && MarginInjector.addDebugLog) {
-      MarginInjector.addDebugLog(args.map(function(a) {
+      MarginInjector.addDebugLog(args.map(a => {
         if (a instanceof Error) return a.message + (a.stack ? '\n' + a.stack : '');
         return typeof a === 'object' ? JSON.stringify(a) : String(a);
       }).join(' '));
@@ -84,24 +84,23 @@
 
   // --- Cache ---
   async function getCached(key) {
-    var bgResult = await sendToBackground('CACHE_GET', { key: key });
+    const bgResult = await sendToBackground('CACHE_GET', { key });
     if (!bgResult.fallback && bgResult.hit) return bgResult.data;
-    var entry = fallbackCache[key];
+    const entry = fallbackCache[key];
     if (entry && Date.now() < entry.expires) return entry.data;
     return null;
   }
 
   async function setCache(key, data, ttl) {
-    fallbackCache[key] = { data: data, expires: Date.now() + ttl };
-    await sendToBackground('CACHE_SET', { key: key, data: data, ttl: ttl });
+    fallbackCache[key] = { data, expires: Date.now() + ttl };
+    await sendToBackground('CACHE_SET', { key, data, ttl });
   }
 
   async function invalidateCache(pattern) {
-    var keys = Object.keys(fallbackCache);
-    for (var i = 0; i < keys.length; i++) {
-      if (keys[i].indexOf(pattern) === 0) delete fallbackCache[keys[i]];
+    for (const key of Object.keys(fallbackCache)) {
+      if (key.startsWith(pattern)) delete fallbackCache[key];
     }
-    await sendToBackground('CACHE_INVALIDATE', { pattern: pattern });
+    await sendToBackground('CACHE_INVALIDATE', { pattern });
   }
 
   // --- Orders hash ---
@@ -118,7 +117,7 @@
 
     lastAccountNum = accountNum;
     lastOrders = orders;
-    var requestId = ++currentRequest;
+    const requestId = ++currentRequest;
 
     if (!MarginInjector.getPanel()) {
       if (!MarginInjector.inject()) {
@@ -130,20 +129,20 @@
     try {
       // Rate limiter (content-side token bucket)
       if (typeof RateLimiter !== 'undefined') {
-        var rl = await RateLimiter.acquire();
+        const rl = await RateLimiter.acquire();
         if (rl.cancelled) return;
       }
 
       // Also check background rate limit (advisory)
-      var rateCheck = await sendToBackground('LOG_API_CALL', { accountNum: accountNum });
+      const rateCheck = await sendToBackground('LOG_API_CALL', { accountNum });
       if (!rateCheck.fallback && rateCheck.rateLimited) {
-        await new Promise(function(r) { setTimeout(r, rateCheck.retryAfter); });
+        await new Promise(r => setTimeout(r, rateCheck.retryAfter));
         if (requestId !== currentRequest) return;
       }
 
       // Fetch priceList from portfolio API (cached)
-      var priceListKey = 'pricelist:' + accountNum;
-      var priceList = await getCached(priceListKey);
+      const priceListKey = 'pricelist:' + accountNum;
+      let priceList = await getCached(priceListKey);
       if (!priceList) {
         log('Fetching positions for', accountNum);
         priceList = await PositionsAPI.fetchPriceList(accountNum);
@@ -156,12 +155,12 @@
       }
 
       // Fetch projected margin (cached by orders hash)
-      var projectedKey = 'projected:' + accountNum + ':' + hashOrders(orders);
-      var projectedData = await getCached(projectedKey);
+      const projectedKey = 'projected:' + accountNum + ':' + hashOrders(orders);
+      let projectedData = await getCached(projectedKey);
       if (!projectedData) {
         log('Fetching projected margin for', orders);
         apiCallCount++;
-        projectedData = await MarginAPI.fetchMarginCalc(accountNum, orders, function(attempt, max, delay) {
+        projectedData = await MarginAPI.fetchMarginCalc(accountNum, orders, (attempt, max, delay) => {
           MarginInjector.showLoading();
           log('Projected retry ' + attempt + '/' + max + ' in ' + delay + 'ms');
         }, priceList);
@@ -170,7 +169,7 @@
       }
 
       // Compute impact — use lastResult as baseline for delta if available
-      var impact = MarginCalc.computeImpact(projectedData, lastResult);
+      const impact = MarginCalc.computeImpact(projectedData, lastResult);
       if (!impact) {
         MarginInjector.showError('No margin data available for this account.', false);
         reportStatus('error', { lastError: 'No margin data' });
@@ -189,11 +188,11 @@
       if (requestId !== currentRequest) return;
       log('Error:', err);
 
-      var errType = err.type || 'UNKNOWN';
-      var isSessionError = errType === 'SESSION_EXPIRED' ||
-        (err.message && err.message.indexOf('Session expired') !== -1);
+      const errType = err.type || 'UNKNOWN';
+      const isSessionError = errType === 'SESSION_EXPIRED' ||
+        (err.message && err.message.includes('Session expired'));
 
-      var msg;
+      let msg;
       if (isSessionError) {
         msg = 'Session expired. Please refresh the page.';
         setBadge('!', '#f5a623');
@@ -245,14 +244,14 @@
 
     var previousAccountNum = null;
 
-    TradeDetector.observe(function(event) {
+    TradeDetector.observe((event) => {
       switch (event.type) {
         case 'ready':
           if (event.accountNum && event.orders.length > 0) {
             if (previousAccountNum && previousAccountNum !== event.accountNum) {
               sendToBackground('ACCOUNT_CHANGED', {
                 accountNum: event.accountNum,
-                previousAccountNum: previousAccountNum
+                previousAccountNum
               });
               invalidateCache('pricelist:' + previousAccountNum);
               invalidateCache('projected:' + previousAccountNum);
