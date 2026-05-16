@@ -83,7 +83,7 @@
     tabAccounts.set(tabId, accountNum);
     if (previousAccountNum && previousAccountNum !== accountNum) {
       // Invalidate cache for old account
-      cacheInvalidate(null, `baseline:${previousAccountNum}`);
+      cacheInvalidate(null, `pricelist:${previousAccountNum}`);
       cacheInvalidate(null, `projected:${previousAccountNum}`);
       log('Account switched', previousAccountNum, '->', accountNum, '- cache cleared');
     }
@@ -94,7 +94,7 @@
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!msg || !msg._fmc) return false;
 
-    const tabId = sender.tab ? sender.tab.id : -1;
+    const tabId = sender.tab?.id;
 
     switch (msg.type) {
       case 'CACHE_GET':
@@ -125,15 +125,17 @@
         });
         return false;
 
-      case 'SET_BADGE':
+      case 'SET_BADGE': {
+        const badgeTarget = tabId !== undefined ? { tabId } : {};
         if (msg.payload.text) {
-          chrome.action.setBadgeText({ text: msg.payload.text, tabId });
-          chrome.action.setBadgeBackgroundColor({ color: msg.payload.color || '#c41200', tabId });
+          chrome.action.setBadgeText({ text: msg.payload.text, ...badgeTarget });
+          chrome.action.setBadgeBackgroundColor({ color: msg.payload.color || '#c41200', ...badgeTarget });
         } else {
-          chrome.action.setBadgeText({ text: '', tabId });
+          chrome.action.setBadgeText({ text: '', ...badgeTarget });
         }
         sendResponse({ ok: true });
         return false;
+      }
 
       case 'HEARTBEAT':
         sendResponse({ ok: true });

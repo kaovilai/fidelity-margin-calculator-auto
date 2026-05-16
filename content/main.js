@@ -31,7 +31,9 @@
       return;
     }
     chrome.storage.sync.get('fmc_settings', (result) => {
-      if (result.fmc_settings) {
+      if (chrome.runtime.lastError) {
+        log('Warning: could not load settings:', chrome.runtime.lastError.message);
+      } else if (result.fmc_settings) {
         settings = Object.assign(settings, result.fmc_settings);
       }
       MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
