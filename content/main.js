@@ -26,7 +26,7 @@
 
   // --- Settings ---
   function loadSettings(onLoaded) {
-    if (!chrome.storage || !chrome.storage.sync) {
+    if (!chrome.storage?.sync) {
       if (onLoaded) onLoaded();
       return;
     }
@@ -43,7 +43,7 @@
 
   // --- Status reporting ---
   function reportStatus(state, extra) {
-    if (!chrome.storage || !chrome.storage.local) return;
+    if (!chrome.storage?.local) return;
     const status = {
       state,
       accountNum: lastAccountNum,
@@ -62,7 +62,7 @@
   // --- Background message helper ---
   function sendToBackground(type, payload, timeoutMs = 3000) {
     return new Promise((resolve) => {
-      if (!chrome.runtime || !chrome.runtime.sendMessage) {
+      if (!chrome.runtime?.sendMessage) {
         resolve({ error: 'no runtime', fallback: true });
         return;
       }
@@ -223,7 +223,7 @@
     });
 
     // Listen for force-recalc from popup
-    if (chrome.runtime && chrome.runtime.onMessage) {
+    if (chrome.runtime?.onMessage) {
       chrome.runtime.onMessage.addListener(function(msg) {
         if (msg && msg._fmc && msg.type === 'FORCE_RECALC') {
           fallbackCache = {};
@@ -238,7 +238,7 @@
     }
 
     // Listen for settings changes
-    if (chrome.storage && chrome.storage.onChanged) {
+    if (chrome.storage?.onChanged) {
       chrome.storage.onChanged.addListener(function(changes, area) {
         if (area === 'sync' && changes.fmc_settings?.newValue) {
           settings = Object.assign(settings, changes.fmc_settings.newValue);
