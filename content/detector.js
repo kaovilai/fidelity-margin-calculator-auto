@@ -29,11 +29,11 @@ const TradeDetector = (() => {
     }
     // Floating popup
     const shell = document.getElementById('trade-container-shell');
-    if (shell && shell.style.display === 'block') {
+    if (shell?.style.display === 'block') {
       const optDiv = document.getElementById('float_trade_O');
-      if (optDiv && optDiv.style.display === 'block') return 'popup-options';
+      if (optDiv?.style.display === 'block') return 'popup-options';
       const eqDiv = document.getElementById('float_trade_SE');
-      if (eqDiv && eqDiv.style.display === 'block') return 'popup-equity';
+      if (eqDiv?.style.display === 'block') return 'popup-equity';
     }
     return null;
   }
