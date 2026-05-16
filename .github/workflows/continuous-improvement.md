@@ -45,9 +45,9 @@ This is a Chrome extension (Manifest V3) that automatically calculates margin re
 
 ## Step 1: Check Existing Issues and PRs
 
-1. Search for all open issues with the `improvement` label
-2. Search for all open PRs with the `improvement` label
-3. **Do NOT create duplicates.** If an existing issue or PR already covers the same topic, stop.
+1. **One PR at a time.** Search for all open PRs with the `improvement` or `automation` label. If one exists, do NOT create another PR. Instead, create an issue describing the next improvement you'd make, and stop.
+2. Search for all open issues with the `improvement` label. Do NOT create duplicates. If an existing issue already covers the same topic, call `noop` instead.
+3. Check open PRs (even without the label) to understand in-flight changes. Do not touch files or topics already covered by an open PR.
 
 ## Step 2: Scan for Improvements
 
