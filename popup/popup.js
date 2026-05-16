@@ -33,25 +33,23 @@
     const errEl = document.getElementById('status-error');
 
     if (!status) {
-      textEl.textContent = 'Not connected';
-      dotEl.className = 'status-dot inactive';
+      if (textEl) textEl.textContent = 'Not connected';
+      if (dotEl) dotEl.className = 'status-dot inactive';
       return;
     }
 
-    textEl.textContent = status.state === 'active' ? 'Active' :
-                         status.state === 'error' ? 'Error' : 'Inactive';
-    dotEl.className = 'status-dot ' + (status.state || 'inactive');
-
-    acctEl.textContent = maskAccount(status.accountNum);
-    calcEl.textContent = timeAgo(status.lastCalcTime);
-    callsEl.textContent = status.apiCallCount || 0;
-
-    if (status.lastError) {
-      errRow.style.display = '';
-      errEl.textContent = status.lastError;
-    } else {
-      errRow.style.display = 'none';
+    if (textEl) {
+      textEl.textContent = status.state === 'active' ? 'Active' :
+                           status.state === 'error' ? 'Error' : 'Inactive';
     }
+    if (dotEl) dotEl.className = 'status-dot ' + (status.state || 'inactive');
+
+    if (acctEl) acctEl.textContent = maskAccount(status.accountNum);
+    if (calcEl) calcEl.textContent = timeAgo(status.lastCalcTime);
+    if (callsEl) callsEl.textContent = status.apiCallCount || 0;
+
+    if (errRow) errRow.style.display = status.lastError ? '' : 'none';
+    if (errEl && status.lastError) errEl.textContent = status.lastError;
   }
 
   // --- Settings ---
