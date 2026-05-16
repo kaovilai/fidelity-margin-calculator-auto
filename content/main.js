@@ -34,6 +34,7 @@
       if (result.fmc_settings) {
         settings = Object.assign(settings, result.fmc_settings);
       }
+      MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
       if (onLoaded) onLoaded();
     });
   }
@@ -239,6 +240,7 @@
       chrome.storage.onChanged.addListener(function(changes, area) {
         if (area === 'sync' && changes.fmc_settings?.newValue) {
           settings = Object.assign(settings, changes.fmc_settings.newValue);
+          MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
           log('Settings updated:', settings);
         }
       });

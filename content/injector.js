@@ -1,7 +1,8 @@
 // MarginInjector — injects margin impact panel into trade ticket DOM
 const MarginInjector = (() => {
   const PANEL_ID = 'fmc-margin-panel';
-  const WARNING_THRESHOLD = 500; // amber when credit < this
+  const DEFAULT_WARNING_THRESHOLD = 500; // amber when credit < this
+  let warningThreshold = DEFAULT_WARNING_THRESHOLD;
 
   let retryCallback = null;
   let debugLog = []; // ring buffer of debug entries
@@ -24,7 +25,7 @@ const MarginInjector = (() => {
   // Returns 'credit' | 'warning' | 'debit' based on projected value
   function getStatus(projectedCreditDebit) {
     if (projectedCreditDebit <= 0) return 'debit';
-    if (projectedCreditDebit <= WARNING_THRESHOLD) return 'warning';
+    if (projectedCreditDebit <= warningThreshold) return 'warning';
     return 'credit';
   }
 
@@ -221,5 +222,10 @@ const MarginInjector = (() => {
     debugLog = [];
   }
 
-  return { inject, remove, showLoading, showError, updatePanel, getPanel, setRetryCallback, addDebugLog, clearDebugLog };
+  function setWarningThreshold(val) {
+    const parsed = Number(val);
+    warningThreshold = isFinite(parsed) ? parsed : DEFAULT_WARNING_THRESHOLD;
+  }
+
+  return { inject, remove, showLoading, showError, updatePanel, getPanel, setRetryCallback, addDebugLog, clearDebugLog, setWarningThreshold };
 })();
