@@ -25,12 +25,16 @@
   }
 
   // --- Settings ---
-  function loadSettings() {
-    if (!chrome.storage || !chrome.storage.sync) return;
+  function loadSettings(onLoaded) {
+    if (!chrome.storage || !chrome.storage.sync) {
+      if (onLoaded) onLoaded();
+      return;
+    }
     chrome.storage.sync.get('fmc_settings', (result) => {
       if (result.fmc_settings) {
         settings = Object.assign(settings, result.fmc_settings);
       }
+      if (onLoaded) onLoaded();
     });
   }
 
@@ -207,7 +211,6 @@
 
   function init() {
     log('Initializing...');
-    loadSettings();
 
     // Wire retry button
     MarginInjector.setRetryCallback(function() {
@@ -241,34 +244,37 @@
       });
     }
 
-    let previousAccountNum = null;
+    // Load settings first so TradeDetector.observe uses the correct debounceMs
+    loadSettings(() => {
+      let previousAccountNum = null;
 
-    TradeDetector.observe((event) => {
-      switch (event.type) {
-        case 'ready':
-          if (event.accountNum && event.orders.length > 0) {
-            if (previousAccountNum && previousAccountNum !== event.accountNum) {
-              sendToBackground('ACCOUNT_CHANGED', {
-                accountNum: event.accountNum,
-                previousAccountNum
-              });
-              invalidateCache('pricelist:' + previousAccountNum);
-              invalidateCache('projected:' + previousAccountNum);
-              lastResult = null;
+      TradeDetector.observe((event) => {
+        switch (event.type) {
+          case 'ready':
+            if (event.accountNum && event.orders.length > 0) {
+              if (previousAccountNum && previousAccountNum !== event.accountNum) {
+                sendToBackground('ACCOUNT_CHANGED', {
+                  accountNum: event.accountNum,
+                  previousAccountNum
+                });
+                invalidateCache('pricelist:' + previousAccountNum);
+                invalidateCache('projected:' + previousAccountNum);
+                lastResult = null;
+              }
+              previousAccountNum = event.accountNum;
+              handleTradeReady(event.accountNum, event.orders);
             }
-            previousAccountNum = event.accountNum;
-            handleTradeReady(event.accountNum, event.orders);
-          }
-          break;
+            break;
 
-        case 'closed':
-          MarginInjector.remove();
-          break;
+          case 'closed':
+            MarginInjector.remove();
+            break;
 
-        case 'incomplete':
-          break;
-      }
-    }, settings.debounceMs);
+          case 'incomplete':
+            break;
+        }
+      }, settings.debounceMs);
+    });
   }
 
   if (document.readyState === 'loading') {

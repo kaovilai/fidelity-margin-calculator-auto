@@ -108,6 +108,7 @@ const MarginInjector = (() => {
     const panel = createPanel();
     // Append inside ott-max-gain-loss to stay within Angular component boundary
     const parent = mxregin.closest('ott-max-gain-loss') || mxregin.parentNode;
+    if (!parent) return false;
     parent.appendChild(panel);
     return true;
   }
