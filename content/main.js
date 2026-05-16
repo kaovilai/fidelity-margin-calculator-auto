@@ -53,8 +53,7 @@
   }
 
   // --- Background message helper ---
-  function sendToBackground(type, payload, timeoutMs) {
-    timeoutMs = timeoutMs || 3000;
+  function sendToBackground(type, payload, timeoutMs = 3000) {
     return new Promise((resolve) => {
       if (!chrome.runtime || !chrome.runtime.sendMessage) {
         resolve({ error: 'no runtime', fallback: true });
@@ -106,7 +105,7 @@
   // --- Orders hash ---
   function hashOrders(orders) {
     return orders
-      .map(function(o) { return o.orderSymbol + '|' + o.orderAction + '|' + o.orderQty + '|' + o.price; })
+      .map(o => `${o.orderSymbol}|${o.orderAction}|${o.orderQty}|${o.price}`)
       .sort()
       .join(';;');
   }
@@ -242,7 +241,7 @@
       });
     }
 
-    var previousAccountNum = null;
+    let previousAccountNum = null;
 
     TradeDetector.observe((event) => {
       switch (event.type) {
