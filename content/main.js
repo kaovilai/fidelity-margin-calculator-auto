@@ -193,7 +193,7 @@
 
       const errType = err.type || 'UNKNOWN';
       const isSessionError = errType === 'SESSION_EXPIRED' ||
-        (err.message && err.message.includes('Session expired'));
+        err.message?.includes('Session expired');
 
       let msg;
       if (isSessionError) {
@@ -237,7 +237,7 @@
     // Listen for settings changes
     if (chrome.storage && chrome.storage.onChanged) {
       chrome.storage.onChanged.addListener(function(changes, area) {
-        if (area === 'sync' && changes.fmc_settings) {
+        if (area === 'sync' && changes.fmc_settings?.newValue) {
           settings = Object.assign(settings, changes.fmc_settings.newValue);
           log('Settings updated:', settings);
         }
