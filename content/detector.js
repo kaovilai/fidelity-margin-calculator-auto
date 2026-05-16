@@ -305,9 +305,15 @@ const TradeDetector = (() => {
 
   let observer = null;
   let debounceTimer = null;
+  let inputListener = null;
 
   function observe(callback, debounceMs = 500) {
     if (observer) observer.disconnect();
+    // Remove previous input listener to avoid stacking listeners across re-init
+    if (inputListener) {
+      document.removeEventListener('input', inputListener, true);
+      inputListener = null;
+    }
 
     let lastFingerprint = '';
 
@@ -347,7 +353,7 @@ const TradeDetector = (() => {
     });
 
     // Listen for input events on trade fields (options + equity)
-    document.addEventListener('input', (e) => {
+    inputListener = (e) => {
       const id = e.target.id || '';
       if (id.startsWith('quantity-') ||
           id === 'dest-limitPrice' ||
@@ -357,7 +363,8 @@ const TradeDetector = (() => {
           id === 'symbol_search') {
         check();
       }
-    }, true);
+    };
+    document.addEventListener('input', inputListener, true);
 
     // Initial check
     check();
@@ -367,6 +374,10 @@ const TradeDetector = (() => {
     if (observer) {
       observer.disconnect();
       observer = null;
+    }
+    if (inputListener) {
+      document.removeEventListener('input', inputListener, true);
+      inputListener = null;
     }
     clearTimeout(debounceTimer);
   }
