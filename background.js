@@ -137,10 +137,10 @@ importScripts('/lib/constants.js');
       case 'SET_BADGE': {
         const badgeTarget = tabId !== undefined ? { tabId } : {};
         if (msg.payload?.text) {
-          chrome.action?.setBadgeText({ text: msg.payload.text, ...badgeTarget });
-          chrome.action?.setBadgeBackgroundColor({ color: msg.payload.color || FMC_CONSTANTS.BADGE_COLORS.ERROR, ...badgeTarget });
+          chrome.action?.setBadgeText({ text: msg.payload.text, ...badgeTarget })?.catch(() => {});
+          chrome.action?.setBadgeBackgroundColor({ color: msg.payload.color || FMC_CONSTANTS.BADGE_COLORS.ERROR, ...badgeTarget })?.catch(() => {});
         } else {
-          chrome.action?.setBadgeText({ text: '', ...badgeTarget });
+          chrome.action?.setBadgeText({ text: '', ...badgeTarget })?.catch(() => {});
         }
         sendResponse({ ok: true });
         return false;
@@ -198,6 +198,6 @@ importScripts('/lib/constants.js');
   chrome.runtime.onInstalled.addListener(() => {
     log('Extension installed/updated');
     // Clear any stale badge text left over from the previous version
-    chrome.action?.setBadgeText({ text: '' });
+    chrome.action?.setBadgeText({ text: '' }).catch(() => {});
   });
 })();
