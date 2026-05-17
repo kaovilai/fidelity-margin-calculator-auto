@@ -13,8 +13,8 @@
     PROJECTED: 'projected:'
   };
 
-  const STORAGE_KEY_SETTINGS = 'fmc_settings';
-  const STORAGE_KEY_STATUS = 'fmc_status';
+  const STORAGE_KEY_SETTINGS = FMC_CONSTANTS.STORAGE_KEY_SETTINGS;
+  const STORAGE_KEY_STATUS = FMC_CONSTANTS.STORAGE_KEY_STATUS;
   const MSG_SESSION_EXPIRED = 'Session expired. Please refresh the page.';
 
   let currentRequest = 0;
@@ -22,7 +22,7 @@
   let lastOrders = null;
   let lastResult = null; // cached previous result for delta computation
   let apiCallCount = 0;
-  let settings = { enabled: true, debitWarningThreshold: 500, debounceMs: 500 };
+  let settings = { ...FMC_CONSTANTS.DEFAULT_SETTINGS };
 
   // Fallback in-memory cache when background is unavailable
   let fallbackCache = {};

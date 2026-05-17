@@ -1,7 +1,7 @@
 // MarginInjector — injects margin impact panel into trade ticket DOM
 const MarginInjector = (() => {
   const PANEL_ID = 'fmc-margin-panel';
-  const DEFAULT_WARNING_THRESHOLD = 500; // amber when credit < this
+  const DEFAULT_WARNING_THRESHOLD = FMC_CONSTANTS.DEFAULT_SETTINGS.debitWarningThreshold;
   let warningThreshold = DEFAULT_WARNING_THRESHOLD;
 
   // data-fmc-state attribute values
