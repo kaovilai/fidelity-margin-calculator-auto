@@ -48,7 +48,8 @@
     if (typeof MarginInjector !== 'undefined' && MarginInjector.addDebugLog) {
       MarginInjector.addDebugLog(args.map(a => {
         if (a instanceof Error) return a.message + (a.stack ? '\n' + a.stack : '');
-        return typeof a === 'object' ? JSON.stringify(a) : String(a);
+        if (typeof a !== 'object') return String(a);
+        try { return JSON.stringify(a); } catch { return '[unserializable object]'; }
       }).join(' '));
     }
   }

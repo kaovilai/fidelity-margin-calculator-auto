@@ -189,8 +189,9 @@ const MarginInjector = (() => {
     if (!parent) return false;
     try {
       parent.appendChild(panel);
-    } catch {
+    } catch (e) {
       // Parent may have been removed from DOM by Angular re-render between detection and injection
+      console.warn('[FMC] Panel injection failed:', e?.message ?? e);
       return false;
     }
     return true;
