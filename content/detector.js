@@ -1,6 +1,7 @@
 // TradeDetector — detects trade ticket presence and extracts trade parameters
 // Supports: options (single + multi-leg) and equity tickets, popup + dedicated page
 const TradeDetector = (() => {
+  const warn = makeWarnLog('[FMC-DET]');
 
   // Page context identifiers returned by detectPageContext()
   const CTX = Object.freeze({
@@ -138,7 +139,7 @@ const TradeDetector = (() => {
     const [, month, day, year] = match;
     const mm = MONTH_MAP[month];
     if (!mm) {
-      console.warn('[FMC] Unrecognized month abbreviation in expiration — Fidelity may have changed format:', expStr);
+      warn('Unrecognized month abbreviation in expiration — Fidelity may have changed format: ' + expStr);
       return '';
     }
     const yy = year.slice(2);
@@ -166,7 +167,7 @@ const TradeDetector = (() => {
   function mapAction(actionText) {
     const mapped = ACTION_MAP[actionText];
     if (!mapped && actionText) {
-      console.warn('[FMC] Unrecognized trade action — Fidelity may have added a new action type:', actionText);
+      warn('Unrecognized trade action — Fidelity may have added a new action type: ' + actionText);
     }
     return mapped || '';
   }
@@ -266,7 +267,7 @@ const TradeDetector = (() => {
       // Only warn when the symbol is already set — unparseable price with a symbol present
       // likely means a limit price selector stopped matching after a Fidelity page update.
       if (params.symbol) {
-        console.warn('[FMC] Limit price is unparseable — selector may have changed:', params.limitPrice);
+        warn('Limit price is unparseable — selector may have changed: ' + params.limitPrice);
       }
       return [];
     }

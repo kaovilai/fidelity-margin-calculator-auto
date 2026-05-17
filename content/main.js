@@ -160,6 +160,15 @@
       .join(';;');
   }
 
+  // --- Helpers ---
+
+  // Ensures the panel is present then shows an error message.
+  // Use in contexts where the trade ticket is visible but the extension cannot calculate.
+  function showErrorInPanel(msg, canRetry) {
+    if (!MarginInjector.getPanel()) MarginInjector.inject();
+    MarginInjector.showError(msg, canRetry);
+  }
+
   // --- Main handler ---
   async function handleTradeReady(accountNum, orders) {
     if (!settings.enabled) return;
@@ -347,8 +356,7 @@
       switch (event.type) {
         case 'ready':
           if (!event.accountNum) {
-            if (!MarginInjector.getPanel()) MarginInjector.inject();
-            MarginInjector.showError('Could not detect account number — try refreshing the page.', false);
+            showErrorInPanel('Could not detect account number — try refreshing the page.', false);
             break;
           }
           if (event.orders.length > 0) {
@@ -368,8 +376,7 @@
             // (e.g. unparseable limit price or missing option symbol component).
             // Inject the panel and show a meaningful error so the user isn't left wondering.
             log('Warning: ready event with empty orders — trade form may be incomplete or in an unexpected format');
-            if (!MarginInjector.getPanel()) MarginInjector.inject();
-            MarginInjector.showError('Could not parse trade details — verify the form is filled in correctly.', false);
+            showErrorInPanel('Could not parse trade details — verify the form is filled in correctly.', false);
           }
           break;
 
