@@ -139,9 +139,11 @@ const TradeDetector = (() => {
 
   // --- Multi-leg options extraction ---
 
+  const MAX_LEGS = 8; // Fidelity supports up to 4 legs; 8 is a safe upper bound
+
   function getLegCount() {
     let count = 0;
-    while (document.getElementById(`leg-row-${count}`)) {
+    while (count < MAX_LEGS && document.getElementById(`leg-row-${count}`)) {
       count++;
     }
     return Math.max(count, 1); // at least 1 leg even if leg-row-0 missing
