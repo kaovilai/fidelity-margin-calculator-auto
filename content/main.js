@@ -363,8 +363,8 @@
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', () => init().catch(err => log('Fatal init error:', err)));
   } else {
-    init();
+    init().catch(err => log('Fatal init error:', err));
   }
 })();
