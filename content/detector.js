@@ -104,7 +104,7 @@ const TradeDetector = (() => {
     // Options ticket (popup or dedicated) — same selector
     const el = document.querySelector('ott-account-dropdown .binding-val .accountNum');
     if (!el) return null;
-    return el.textContent.trim().replace(/[()]/g, '');
+    return el.textContent.trim().replace(/[()]/g, '').trim();
   }
 
   function getEquityAccountNumber() {
@@ -112,10 +112,10 @@ const TradeDetector = (() => {
     const el = document.querySelector(DOM.EQUITY_CONTAINER + ' .selected-account-dropdown-label') ||
                document.querySelector(DOM.EQUITY_CONTAINER + ' #dest-acct-dropdown');
     if (!el) return null;
-    // Use [^)]+ to capture the full account identifier — avoids silent null returns
-    // if Fidelity account numbers ever contain lowercase letters or hyphens.
-    const match = el.textContent.match(/\(([^)]+)\)/);
-    return match ? match[1].trim() : null;
+    // Match the LAST parenthetical to avoid picking up account type labels
+    // that Fidelity sometimes prefixes, e.g. "Individual (non-retirement) (X12345678)".
+    const matches = [...el.textContent.matchAll(/\(([^)]+)\)/g)];
+    return matches.length ? matches[matches.length - 1][1].trim() : null;
   }
 
   // --- Call/Put for leg N ---
