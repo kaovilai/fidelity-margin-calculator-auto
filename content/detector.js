@@ -432,7 +432,10 @@ const TradeDetector = (() => {
       }, debounceMs);
     }
 
-    if (!document.body) return;
+    if (!document.body) {
+      console.warn('[FMC-DET] observe() called before document.body is available — no observers set up');
+      return;
+    }
 
     // Shared throttle: schedule a check() at most once per OBSERVER_THROTTLE_MS window.
     // Used by both the MutationObserver and the input listener so the throttle is shared

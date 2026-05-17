@@ -165,7 +165,13 @@
   // Ensures the panel is present then shows an error message.
   // Use in contexts where the trade ticket is visible but the extension cannot calculate.
   function showErrorInPanel(msg, canRetry) {
-    if (!MarginInjector.getPanel()) MarginInjector.inject();
+    if (!MarginInjector.getPanel()) {
+      if (!MarginInjector.inject()) {
+        // Injection target not found — panel cannot be shown. Log so it's not silent.
+        log('Warning: cannot show error panel — injection target not found. Error was:', msg);
+        return;
+      }
+    }
     MarginInjector.showError(msg, canRetry);
   }
 
