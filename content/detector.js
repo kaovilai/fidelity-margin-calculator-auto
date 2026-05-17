@@ -202,7 +202,7 @@ const TradeDetector = (() => {
   // --- Options trade params (all legs) ---
 
   function getOptionsTradeParams() {
-    const symbol = getInputValue('#symbol_search');
+    const symbol = getInputValue('#symbol_search').toUpperCase();
     const limitPrice = getInputValue('#dest-limitPrice');
     const orderType = getDropdownValue('#ordertype-dropdown .binding-val');
     const tradeType = getDropdownValue('#tradeType_dropdown .binding-val');
