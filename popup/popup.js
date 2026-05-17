@@ -32,15 +32,15 @@
 
     if (!status) {
       if (textEl) textEl.textContent = 'Not connected';
-      if (dotEl) dotEl.className = 'status-dot inactive';
+      if (dotEl) dotEl.className = `status-dot ${FMC_CONSTANTS.STATUS_STATE.INACTIVE}`;
       return;
     }
 
     if (textEl) {
-      textEl.textContent = status.state === 'active' ? 'Active' :
-                           status.state === 'error' ? 'Error' : 'Inactive';
+      textEl.textContent = status.state === FMC_CONSTANTS.STATUS_STATE.ACTIVE ? 'Active' :
+                           status.state === FMC_CONSTANTS.STATUS_STATE.ERROR ? 'Error' : 'Inactive';
     }
-    if (dotEl) dotEl.className = `status-dot ${status.state || 'inactive'}`;
+    if (dotEl) dotEl.className = `status-dot ${status.state || FMC_CONSTANTS.STATUS_STATE.INACTIVE}`;
 
     if (acctEl) acctEl.textContent = maskAccount(status.accountNum);
     if (calcEl) calcEl.textContent = timeAgo(status.lastCalcTime);
