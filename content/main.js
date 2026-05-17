@@ -127,7 +127,10 @@
 
     if (!MarginInjector.getPanel()) {
       if (!MarginInjector.inject()) {
-        log('Warning: injection target (#mxregin) not found in page DOM — Fidelity layout may have changed');
+        const injErrMsg = 'Injection target not found — Fidelity page layout may have changed';
+        log('Warning:', injErrMsg);
+        setBadge('!', '#c41200');
+        reportStatus('error', { lastError: injErrMsg });
         return;
       }
     }
@@ -174,6 +177,7 @@
             'No positions found for this account. Margin calculation requires at least one existing position.',
             false
           );
+          setBadge('!', '#c41200');
           reportStatus('error', { lastError: 'No positions found' });
           return;
         }
@@ -197,6 +201,7 @@
       const impact = MarginCalc.computeImpact(projectedData, lastResult);
       if (!impact) {
         MarginInjector.showError('No margin data available for this account.', false);
+        setBadge('!', '#c41200');
         reportStatus('error', { lastError: 'No margin data' });
         return;
       }
