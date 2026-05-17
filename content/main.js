@@ -17,6 +17,14 @@
   const STORAGE_KEY_STATUS = FMC_CONSTANTS.STORAGE_KEY_STATUS;
   const MSG_SESSION_EXPIRED = 'Session expired. Please refresh the page.';
 
+  // Clamp debounceMs to a safe minimum to prevent runaway polling
+  function clampDebounceMs(ms) {
+    if (typeof ms !== 'number' || !Number.isFinite(ms) || ms < FMC_CONSTANTS.MIN_DEBOUNCE_MS) {
+      return FMC_CONSTANTS.MIN_DEBOUNCE_MS;
+    }
+    return ms;
+  }
+
   let currentRequest = 0;
   let lastAccountNum = null;
   let lastOrders = null;
@@ -71,9 +79,7 @@
     }
     // Clamp debounceMs on load — same guard as in the onChanged listener.
     // Corrupted or pre-guard stored values would otherwise bypass MIN_DEBOUNCE_MS.
-    if (typeof settings.debounceMs !== 'number' || !Number.isFinite(settings.debounceMs) || settings.debounceMs < FMC_CONSTANTS.MIN_DEBOUNCE_MS) {
-      settings.debounceMs = FMC_CONSTANTS.MIN_DEBOUNCE_MS;
-    }
+    settings.debounceMs = clampDebounceMs(settings.debounceMs);
     MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
   }
 
@@ -317,9 +323,7 @@
           const prevDebounceMs = settings.debounceMs;
           settings = { ...settings, ...changes[STORAGE_KEY_SETTINGS].newValue };
           // Clamp debounceMs to a safe minimum to prevent runaway polling from corrupted storage
-          if (typeof settings.debounceMs !== 'number' || !Number.isFinite(settings.debounceMs) || settings.debounceMs < FMC_CONSTANTS.MIN_DEBOUNCE_MS) {
-            settings.debounceMs = FMC_CONSTANTS.MIN_DEBOUNCE_MS;
-          }
+          settings.debounceMs = clampDebounceMs(settings.debounceMs);
           MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
           log('Settings updated:', settings);
           // If the extension was just disabled, remove the panel immediately
