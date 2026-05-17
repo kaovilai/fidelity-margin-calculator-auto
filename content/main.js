@@ -6,6 +6,7 @@
   const PROJECTED_TTL = 30000;
   const BADGE_COLOR_ERROR = '#c41200';
   const BADGE_COLOR_WARNING = '#f5a623';
+  const BG_MESSAGE_TIMEOUT_MS = 3000;
 
   let currentRequest = 0;
   let lastAccountNum = null;
@@ -63,7 +64,7 @@
   }
 
   // --- Background message helper ---
-  function sendToBackground(type, payload, timeoutMs = 3000) {
+  function sendToBackground(type, payload, timeoutMs = BG_MESSAGE_TIMEOUT_MS) {
     return new Promise((resolve) => {
       if (!chrome.runtime?.sendMessage) {
         resolve({ error: 'no runtime', fallback: true });

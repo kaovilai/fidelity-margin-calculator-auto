@@ -150,6 +150,7 @@ const TradeDetector = (() => {
   // --- Multi-leg options extraction ---
 
   const MAX_LEGS = 8; // Fidelity supports up to 4 legs; 8 is a safe upper bound
+  const OBSERVER_THROTTLE_MS = 50; // throttle MutationObserver → check() to reduce DOM queries
 
   function getLegCount() {
     let count = 0;
@@ -322,7 +323,7 @@ const TradeDetector = (() => {
   let observer = null;
   let debounceTimer = null;
   let inputListener = null;
-  let throttleTimer = null; // throttles MutationObserver → check() to reduce DOM queries
+  let throttleTimer = null;
 
   function observe(callback, debounceMs = 500) {
     if (observer) observer.disconnect();
@@ -382,14 +383,14 @@ const TradeDetector = (() => {
     if (!document.body) return;
     // Throttle MutationObserver callbacks: Fidelity is an Angular SPA that
     // produces hundreds of mutations per second during navigation and rendering.
-    // Running check() on every mutation wastes CPU — 50ms throttle keeps the UI
-    // responsive while avoiding redundant DOM queries between mutations.
+    // Running check() on every mutation wastes CPU — OBSERVER_THROTTLE_MS throttle
+    // keeps the UI responsive while avoiding redundant DOM queries between mutations.
     observer = new MutationObserver(() => {
       if (throttleTimer) return;
       throttleTimer = setTimeout(() => {
         throttleTimer = null;
         check();
-      }, 50);
+      }, OBSERVER_THROTTLE_MS);
     });
     observer.observe(document.body, {
       childList: true,

@@ -6,6 +6,7 @@
   const MAX_CACHE_ENTRIES = 50;
   const DEFAULT_CACHE_TTL = 60000;
   const MIN_API_INTERVAL = 2000;
+  const CLEANUP_INTERVAL_MINUTES = 1;
 
   // --- In-memory cache (lost on service worker termination — by design) ---
   const cache = new Map(); // key -> { data, expires, lastAccess }
@@ -159,7 +160,7 @@
   // firing if the worker is woken frequently.
   const CLEANUP_ALARM = 'fmc-cache-cleanup';
   chrome.alarms.get(CLEANUP_ALARM).then(existing => {
-    if (!existing) chrome.alarms.create(CLEANUP_ALARM, { periodInMinutes: 1 });
+    if (!existing) chrome.alarms.create(CLEANUP_ALARM, { periodInMinutes: CLEANUP_INTERVAL_MINUTES });
   });
   chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name !== CLEANUP_ALARM) return;
