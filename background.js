@@ -100,22 +100,27 @@
 
     switch (msg.type) {
       case 'CACHE_GET':
+        if (!msg.payload?.key) { sendResponse({ hit: false, data: null, age: 0 }); return false; }
         sendResponse(cacheGet(msg.payload.key));
         return false;
 
       case 'CACHE_SET':
+        if (!msg.payload?.key) { sendResponse({ ok: false }); return false; }
         sendResponse(cacheSet(msg.payload.key, msg.payload.data, msg.payload.ttl || DEFAULT_CACHE_TTL));
         return false;
 
       case 'CACHE_INVALIDATE':
+        if (!msg.payload) { sendResponse({ ok: false, cleared: 0 }); return false; }
         sendResponse(cacheInvalidate(msg.payload.key, msg.payload.pattern));
         return false;
 
       case 'ACCOUNT_CHANGED':
+        if (!msg.payload?.accountNum) { sendResponse({ ok: false, error: 'missing accountNum' }); return false; }
         sendResponse(handleAccountChanged(tabId, msg.payload.accountNum, msg.payload.previousAccountNum));
         return false;
 
       case 'LOG_API_CALL':
+        if (!msg.payload?.accountNum) { sendResponse({ rateLimited: false }); return false; }
         sendResponse(checkRateLimit(msg.payload.accountNum));
         return false;
 
@@ -123,13 +128,13 @@
         sendResponse({
           activeAccount: tabId !== undefined ? (tabAccounts.get(tabId) || null) : null,
           cacheSize: cache.size,
-          lastApiCall: apiCallLog.get(msg.payload.accountNum) || 0
+          lastApiCall: apiCallLog.get(msg.payload?.accountNum) || 0
         });
         return false;
 
       case 'SET_BADGE': {
         const badgeTarget = tabId !== undefined ? { tabId } : {};
-        if (msg.payload.text) {
+        if (msg.payload?.text) {
           chrome.action?.setBadgeText({ text: msg.payload.text, ...badgeTarget });
           chrome.action?.setBadgeBackgroundColor({ color: msg.payload.color || '#c41200', ...badgeTarget });
         } else {

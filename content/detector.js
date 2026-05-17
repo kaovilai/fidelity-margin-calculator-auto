@@ -444,6 +444,7 @@ const TradeDetector = (() => {
       inputListener = null;
     }
     clearTimeout(debounceTimer);
+    debounceTimer = null;
     clearTimeout(throttleTimer);
     throttleTimer = null;
   }
