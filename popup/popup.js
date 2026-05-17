@@ -69,10 +69,12 @@
     const debounceEl = document.getElementById('setting-debounce');
     const autoRefreshEl = document.getElementById('setting-auto-refresh');
     if (!enabledEl || !thresholdEl || !debounceEl || !autoRefreshEl) return;
+    const threshold = parseInt(thresholdEl.value, 10);
+    const debounce = parseInt(debounceEl.value, 10);
     const settings = {
       enabled: enabledEl.checked,
-      debitWarningThreshold: parseInt(thresholdEl.value, 10) || 500,
-      debounceMs: parseInt(debounceEl.value, 10) || 500,
+      debitWarningThreshold: Number.isFinite(threshold) ? threshold : 500,
+      debounceMs: Number.isFinite(debounce) && debounce > 0 ? debounce : 500,
       autoRefreshBaseline: autoRefreshEl.checked
     };
     chrome.storage.sync.set({ fmc_settings: settings }).catch((err) => {
