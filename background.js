@@ -5,10 +5,10 @@ importScripts('/lib/constants.js');
 
 (() => {
   const LOG_PREFIX = '[FMC-BG]';
-  const MAX_CACHE_ENTRIES = 50;
-  const DEFAULT_CACHE_TTL = 60000;
-  const MIN_API_INTERVAL = 2000;
-  const CLEANUP_INTERVAL_MINUTES = 1;
+  const MAX_CACHE_ENTRIES = FMC_CONSTANTS.BG_CACHE.MAX_ENTRIES;
+  const DEFAULT_CACHE_TTL = FMC_CONSTANTS.BG_CACHE.DEFAULT_TTL_MS;
+  const MIN_API_INTERVAL = FMC_CONSTANTS.BG_CACHE.MIN_API_INTERVAL_MS;
+  const CLEANUP_INTERVAL_MINUTES = FMC_CONSTANTS.BG_CLEANUP_INTERVAL_MINUTES;
 
   // --- In-memory cache (lost on service worker termination — by design) ---
   const cache = new Map(); // key -> { data, expires, lastAccess }
