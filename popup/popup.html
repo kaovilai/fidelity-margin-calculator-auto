@@ -21,15 +21,15 @@
       </div>
       <div class="status-row">
         <span class="status-label">Account</span>
-        <span class="status-text" id="status-account">--</span>
+        <span class="status-text" id="status-account" aria-live="polite" aria-atomic="true">--</span>
       </div>
       <div class="status-row">
         <span class="status-label">Last Calc</span>
-        <span class="status-text" id="status-last-calc">--</span>
+        <span class="status-text" id="status-last-calc" aria-live="polite" aria-atomic="true">--</span>
       </div>
       <div class="status-row">
         <span class="status-label">API Calls</span>
-        <span class="status-text" id="status-api-calls">0</span>
+        <span class="status-text" id="status-api-calls" aria-live="polite" aria-atomic="true">0</span>
       </div>
       <div class="status-row" id="status-error-row" style="display: none;">
         <span class="status-label">Error</span>
@@ -68,7 +68,8 @@
     </div>
 
     <div class="popup-footer">
-      <button class="btn-refresh" id="btn-refresh">Force Recalculate</button>
+      <button class="btn-refresh" id="btn-refresh" aria-describedby="btn-refresh-status">Force Recalculate</button>
+      <span id="btn-refresh-status" aria-live="polite" aria-atomic="true" class="sr-only"></span>
     </div>
   </div>
   <script src="../lib/constants.js"></script>
