@@ -235,7 +235,7 @@
         msg = 'Session expired. Please refresh the page.';
         setBadge('!', BADGE_COLOR_WARNING);
       } else {
-        msg = err.message || 'Unable to calculate margin impact.';
+        msg = err.message ?? 'Unable to calculate margin impact.';
         setBadge('!', BADGE_COLOR_ERROR);
       }
 
