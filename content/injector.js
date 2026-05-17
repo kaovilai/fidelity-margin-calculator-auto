@@ -183,6 +183,10 @@ const MarginInjector = (() => {
     const mxregin = document.getElementById('mxregin');
     if (!mxregin) return false;
 
+    // Clear stale log entries from any previous panel so the debug view shows
+    // only entries relevant to the current trade ticket session.
+    clearDebugLog();
+
     const panel = createPanel();
     // Append inside ott-max-gain-loss to stay within Angular component boundary
     const parent = mxregin.closest('ott-max-gain-loss') || mxregin.parentNode;
