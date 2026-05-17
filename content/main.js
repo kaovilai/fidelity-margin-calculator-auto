@@ -311,6 +311,10 @@
           const wasEnabled = settings.enabled;
           const prevDebounceMs = settings.debounceMs;
           settings = { ...settings, ...changes[STORAGE_KEY_SETTINGS].newValue };
+          // Clamp debounceMs to a safe minimum to prevent runaway polling from corrupted storage
+          if (typeof settings.debounceMs !== 'number' || !Number.isFinite(settings.debounceMs) || settings.debounceMs < 100) {
+            settings.debounceMs = 100;
+          }
           MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
           log('Settings updated:', settings);
           // If the extension was just disabled, remove the panel immediately
