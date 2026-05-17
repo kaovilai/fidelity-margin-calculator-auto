@@ -32,7 +32,8 @@ const TradeDetector = (() => {
     'Buy': 'B',
     'Sell': 'S',
     'Sell Short': 'SS',
-    'Buy to Cover': 'BC'
+    'Buy to Cover': 'BC',   // lowercase 'to' — kept for backward compat
+    'Buy To Cover': 'BC'    // Title Case variant — Fidelity may display either form
   });
 
   const MONTH_MAP = Object.freeze({
@@ -446,7 +447,7 @@ const TradeDetector = (() => {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['style', 'aria-checked', 'value', 'class']
+      attributeFilter: ['style', 'aria-checked', 'class']
     });
 
     // Listen for input events on trade fields (options + equity)
