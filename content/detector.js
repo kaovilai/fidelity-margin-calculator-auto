@@ -450,7 +450,11 @@ const TradeDetector = (() => {
       attributeFilter: ['style', 'aria-checked', 'class']
     });
 
-    // Listen for input events on trade fields (options + equity)
+    // Listen for input events on trade fields (options + equity).
+    // Route through the same throttle as MutationObserver so that rapid typing
+    // (e.g. typing a quantity or limit price) doesn't fire multiple redundant
+    // check() calls within a single 50ms window. The debounce inside check()
+    // still guards the actual API call regardless.
     inputListener = (e) => {
       const id = e.target?.id ?? '';
       if (id.startsWith('quantity-') ||
@@ -459,7 +463,11 @@ const TradeDetector = (() => {
           id === 'eqt-shared-limit-price' ||
           id === 'eq-ticket-dest-symbol' ||
           id === 'symbol_search') {
-        check();
+        if (throttleTimer) return;
+        throttleTimer = setTimeout(() => {
+          throttleTimer = null;
+          check();
+        }, OBSERVER_THROTTLE_MS);
       }
     };
     document.addEventListener('input', inputListener, true);
