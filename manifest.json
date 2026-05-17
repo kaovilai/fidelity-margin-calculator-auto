@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Automatically shows margin impact when entering trades on Fidelity",
   "host_permissions": [
-    "*://digital.fidelity.com/*"
+    "https://digital.fidelity.com/*"
   ],
   "permissions": [
     "storage",
@@ -22,7 +22,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://digital.fidelity.com/ftgw/digital/*"],
+      "matches": ["https://digital.fidelity.com/ftgw/digital/*"],
       "js": [
         "lib/constants.js",
         "lib/debug.js",
