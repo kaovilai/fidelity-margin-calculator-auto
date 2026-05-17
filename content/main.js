@@ -34,7 +34,7 @@
       if (chrome.runtime.lastError) {
         log('Warning: could not load settings:', chrome.runtime.lastError.message);
       } else if (result.fmc_settings) {
-        settings = Object.assign(settings, result.fmc_settings);
+        settings = { ...settings, ...result.fmc_settings };
       }
       MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
       if (onLoaded) onLoaded();
@@ -71,7 +71,7 @@
       }, timeoutMs);
       try {
         chrome.runtime.sendMessage(
-          { type: type, payload: payload, _fmc: true, _ts: Date.now() },
+          { type, payload, _fmc: true, _ts: Date.now() },
           (response) => {
             clearTimeout(timer);
             if (chrome.runtime.lastError) {
@@ -147,7 +147,7 @@
       }
 
       // Fetch priceList from portfolio API (cached)
-      const priceListKey = 'pricelist:' + accountNum;
+      const priceListKey = `pricelist:${accountNum}`;
       let priceList = await getCached(priceListKey);
       if (!priceList) {
         log('Fetching positions for', accountNum);
@@ -161,7 +161,7 @@
       }
 
       // Fetch projected margin (cached by orders hash)
-      const projectedKey = 'projected:' + accountNum + ':' + hashOrders(orders);
+      const projectedKey = `projected:${accountNum}:${hashOrders(orders)}`;
       let projectedData = await getCached(projectedKey);
       if (!projectedData) {
         log('Fetching projected margin for', orders);
@@ -228,8 +228,8 @@
         if (msg && msg._fmc && msg.type === 'FORCE_RECALC') {
           fallbackCache = {};
           lastResult = null;
-          if (lastAccountNum) invalidateCache('pricelist:' + lastAccountNum);
-          if (lastAccountNum) invalidateCache('projected:' + lastAccountNum);
+          if (lastAccountNum) invalidateCache(`pricelist:${lastAccountNum}`);
+          if (lastAccountNum) invalidateCache(`projected:${lastAccountNum}`);
           if (lastAccountNum && lastOrders) {
             handleTradeReady(lastAccountNum, lastOrders);
           }
@@ -241,7 +241,7 @@
     if (chrome.storage && chrome.storage.onChanged) {
       chrome.storage.onChanged.addListener(function(changes, area) {
         if (area === 'sync' && changes.fmc_settings?.newValue) {
-          settings = Object.assign(settings, changes.fmc_settings.newValue);
+          settings = { ...settings, ...changes.fmc_settings.newValue };
           MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
           log('Settings updated:', settings);
         }
@@ -261,8 +261,8 @@
                   accountNum: event.accountNum,
                   previousAccountNum
                 });
-                invalidateCache('pricelist:' + previousAccountNum);
-                invalidateCache('projected:' + previousAccountNum);
+                invalidateCache(`pricelist:${previousAccountNum}`);
+                invalidateCache(`projected:${previousAccountNum}`);
                 lastResult = null;
               }
               previousAccountNum = event.accountNum;
