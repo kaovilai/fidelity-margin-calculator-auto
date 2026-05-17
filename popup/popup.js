@@ -53,14 +53,15 @@
   }
 
   // --- Settings ---
-  function loadSettings() {
-    chrome.storage.sync.get('fmc_settings').then((result) => {
+  async function loadSettings() {
+    try {
+      const result = await chrome.storage.sync.get('fmc_settings');
       const s = { ...DEFAULT_SETTINGS, ...result.fmc_settings };
       document.getElementById('setting-enabled').checked = s.enabled;
       document.getElementById('setting-threshold').value = s.debitWarningThreshold;
       document.getElementById('setting-debounce').value = String(s.debounceMs);
       document.getElementById('setting-auto-refresh').checked = s.autoRefreshBaseline;
-    }).catch(() => {}); // storage unavailable — keep HTML defaults
+    } catch { /* storage unavailable — keep HTML defaults */ }
   }
 
   function saveSettings() {
@@ -83,16 +84,17 @@
   }
 
   // --- Init ---
-  function init() {
+  async function init() {
     // Version
     const manifest = chrome.runtime.getManifest();
     const versionEl = document.getElementById('version');
     if (versionEl) versionEl.textContent = `v${manifest.version}`;
 
     // Load current status
-    chrome.storage.local.get('fmc_status').then((result) => {
+    try {
+      const result = await chrome.storage.local.get('fmc_status');
       updateStatus(result.fmc_status);
-    }).catch(() => {});
+    } catch { /* storage unavailable */ }
 
     // Live status updates
     chrome.storage.onChanged.addListener((changes, area) => {
@@ -102,7 +104,7 @@
     });
 
     // Load settings
-    loadSettings();
+    await loadSettings();
 
     // Settings change handlers
     const settingIds = ['setting-enabled', 'setting-threshold', 'setting-debounce', 'setting-auto-refresh'];
@@ -132,13 +134,14 @@
 
     // Force recalculate
     const refreshBtn = document.getElementById('btn-refresh');
-    if (refreshBtn) refreshBtn.addEventListener('click', () => {
-      chrome.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
+    if (refreshBtn) refreshBtn.addEventListener('click', async () => {
+      try {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
         if (tabs[0]) {
           chrome.tabs.sendMessage(tabs[0].id, { type: 'FORCE_RECALC', _fmc: true })
             .catch(() => {}); // Content script may not be loaded on this tab — ignore
         }
-      }).catch(() => {});
+      } catch { /* tabs API unavailable */ }
     });
   }
 
