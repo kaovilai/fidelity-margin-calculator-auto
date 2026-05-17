@@ -188,7 +188,7 @@
         const injErrMsg = 'Injection target not found — Fidelity page layout may have changed';
         log('Warning:', injErrMsg);
         setBadge('!', BADGE_COLOR_ERROR);
-        reportStatus('error', { lastError: injErrMsg });
+        reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: injErrMsg });
         return;
       }
     }
@@ -227,7 +227,7 @@
             : (posErr.message || 'Unable to fetch account positions.');
           MarginInjector.showError(msg, !isSessionErr);
           setBadge('!', isSessionErr ? BADGE_COLOR_WARNING : BADGE_COLOR_ERROR);
-          reportStatus('error', { lastError: msg });
+          reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: msg });
           return;
         }
         if (requestId !== currentRequest) return;
@@ -240,7 +240,7 @@
             false
           );
           setBadge('!', BADGE_COLOR_ERROR);
-          reportStatus('error', { lastError: 'No positions found' });
+          reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: 'No positions found' });
           return;
         }
       }
@@ -264,7 +264,7 @@
       if (!impact) {
         MarginInjector.showError('No margin data available for this account.', false);
         setBadge('!', BADGE_COLOR_ERROR);
-        reportStatus('error', { lastError: 'No margin data' });
+        reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: 'No margin data' });
         return;
       }
 
@@ -273,7 +273,7 @@
 
       log('Impact:', impact);
       MarginInjector.updatePanel(impact);
-      reportStatus('active');
+      reportStatus(FMC_CONSTANTS.STATUS_STATE.ACTIVE);
       setBadge('', null);
 
     } catch (err) {
@@ -294,7 +294,7 @@
       }
 
       MarginInjector.showError(msg, !isSessionError);
-      reportStatus('error', { lastError: msg });
+      reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: msg });
     }
   }
 
