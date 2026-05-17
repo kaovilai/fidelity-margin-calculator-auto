@@ -152,8 +152,15 @@
   // MV3 service workers are terminated after ~30s of inactivity, making setInterval
   // unreliable. chrome.alarms survives service worker restarts and runs the cleanup
   // even after the worker is restarted by a new message.
+  //
+  // Guard: only create the alarm if it doesn't already exist. Calling create()
+  // unconditionally resets the period timer every time the service worker is
+  // activated (e.g. by cache messages), which can prevent the alarm from ever
+  // firing if the worker is woken frequently.
   const CLEANUP_ALARM = 'fmc-cache-cleanup';
-  chrome.alarms.create(CLEANUP_ALARM, { periodInMinutes: 1 });
+  chrome.alarms.get(CLEANUP_ALARM).then(existing => {
+    if (!existing) chrome.alarms.create(CLEANUP_ALARM, { periodInMinutes: 1 });
+  });
   chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name !== CLEANUP_ALARM) return;
     const now = Date.now();
