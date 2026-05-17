@@ -49,7 +49,8 @@ importScripts('/lib/constants.js');
 
   function cacheSet(key, data, ttl) {
     const now = Date.now();
-    cache.set(key, { data, expires: now + ttl, ttl, lastAccess: now });
+    const safeTtl = (typeof ttl === 'number' && isFinite(ttl) && ttl > 0) ? ttl : DEFAULT_CACHE_TTL;
+    cache.set(key, { data, expires: now + safeTtl, ttl: safeTtl, lastAccess: now });
     evictIfNeeded();
     return { ok: true };
   }
@@ -97,6 +98,9 @@ importScripts('/lib/constants.js');
   // --- Message router ---
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!msg || !msg._fmc) return false;
+    // Only process messages from this extension's own scripts (content scripts, popup).
+    // Rejects messages from other extensions or external sources that somehow spoof _fmc.
+    if (sender.id !== chrome.runtime.id) return false;
 
     const tabId = sender.tab?.id;
 
