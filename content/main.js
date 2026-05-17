@@ -156,7 +156,13 @@
         if (priceList.length > 0) {
           await setCache(priceListKey, priceList, PRICELIST_TTL);
         } else {
-          log('Warning: no positions found, margin calc may fail');
+          log('Warning: no positions found — margin API requires existing positions');
+          MarginInjector.showError(
+            'No positions found for this account. Margin calculation requires at least one existing position.',
+            false
+          );
+          reportStatus('error', { lastError: 'No positions found' });
+          return;
         }
       }
 
@@ -255,7 +261,12 @@
       TradeDetector.observe((event) => {
         switch (event.type) {
           case 'ready':
-            if (event.accountNum && event.orders.length > 0) {
+            if (!event.accountNum) {
+              if (!MarginInjector.getPanel()) MarginInjector.inject();
+              MarginInjector.showError('Could not detect account number — try refreshing the page.', false);
+              break;
+            }
+            if (event.orders.length > 0) {
               if (previousAccountNum && previousAccountNum !== event.accountNum) {
                 sendToBackground('ACCOUNT_CHANGED', {
                   accountNum: event.accountNum,
