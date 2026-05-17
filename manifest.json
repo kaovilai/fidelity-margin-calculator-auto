@@ -8,6 +8,7 @@
   ],
   "permissions": [
     "storage",
+    "alarms",
     "declarativeNetRequest"
   ],
   "declarative_net_request": {

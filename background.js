@@ -148,14 +148,18 @@
   });
 
   // --- Periodic expired-entry cleanup ---
-  // LRU eviction only runs on overflow; this sweeps stale entries every minute
-  // so the cache doesn't slowly accumulate expired data in quiet sessions.
-  setInterval(() => {
+  // MV3 service workers are terminated after ~30s of inactivity, making setInterval
+  // unreliable. chrome.alarms survives service worker restarts and runs the cleanup
+  // even after the worker is restarted by a new message.
+  const CLEANUP_ALARM = 'fmc-cache-cleanup';
+  chrome.alarms.create(CLEANUP_ALARM, { periodInMinutes: 1 });
+  chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name !== CLEANUP_ALARM) return;
     const now = Date.now();
     for (const [key, entry] of cache) {
       if (now > entry.expires) cache.delete(key);
     }
-  }, 60000);
+  });
 
   // Clean up tab tracking when tabs close
   chrome.tabs.onRemoved.addListener((tabId) => {
