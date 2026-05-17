@@ -18,6 +18,20 @@ const MarginInjector = (() => {
     DEBIT: 'debit'
   };
 
+  // IDs for elements inside the panel — used in both the HTML template and querySelector calls
+  const EL_ID = {
+    CREDIT_DEBIT:            'fmc-credit-debit',
+    CREDIT_DEBIT_LABEL:      'fmc-credit-debit-label',
+    CASH_WITHDRAWABLE:       'fmc-cash-withdrawable',
+    CASH_WITHDRAWABLE_LABEL: 'fmc-cash-withdrawable-label',
+    BUYING_POWER:            'fmc-buying-power',
+    BUYING_POWER_LABEL:      'fmc-buying-power-label',
+    DELTA:                   'fmc-delta',
+    LOADING:                 'fmc-loading',
+    ERROR:                   'fmc-error',
+    DEBUG_LOG:               'fmc-debug-log'
+  };
+
   let retryCallback = null;
   let debugLog = []; // ring buffer of debug entries
   const MAX_LOG = 50;
@@ -53,32 +67,32 @@ const MarginInjector = (() => {
     panel.innerHTML = `
       <div class="fmc-panel-body">
         <div class="fmc-col">
-          <span class="fmc-label" id="fmc-credit-debit-label">Margin Credit/Debit</span>
-          <span class="fmc-value" id="fmc-credit-debit" aria-live="polite" aria-atomic="true" aria-labelledby="fmc-credit-debit-label">--</span>
-          <span class="fmc-sublabel" id="fmc-delta"></span>
+          <span class="fmc-label" id="${EL_ID.CREDIT_DEBIT_LABEL}">Margin Credit/Debit</span>
+          <span class="fmc-value" id="${EL_ID.CREDIT_DEBIT}" aria-live="polite" aria-atomic="true" aria-labelledby="${EL_ID.CREDIT_DEBIT_LABEL}">--</span>
+          <span class="fmc-sublabel" id="${EL_ID.DELTA}"></span>
         </div>
         <div class="fmc-col">
-          <span class="fmc-label" id="fmc-cash-withdrawable-label">Cash Withdrawable</span>
-          <span class="fmc-value" id="fmc-cash-withdrawable" aria-live="polite" aria-atomic="true" aria-labelledby="fmc-cash-withdrawable-label">--</span>
+          <span class="fmc-label" id="${EL_ID.CASH_WITHDRAWABLE_LABEL}">Cash Withdrawable</span>
+          <span class="fmc-value" id="${EL_ID.CASH_WITHDRAWABLE}" aria-live="polite" aria-atomic="true" aria-labelledby="${EL_ID.CASH_WITHDRAWABLE_LABEL}">--</span>
           <span class="fmc-sublabel">without margin interest</span>
         </div>
         <div class="fmc-col fmc-col-last">
-          <span class="fmc-label" id="fmc-buying-power-label">Buying Power</span>
-          <span class="fmc-value" id="fmc-buying-power" aria-live="polite" aria-atomic="true" aria-labelledby="fmc-buying-power-label">--</span>
+          <span class="fmc-label" id="${EL_ID.BUYING_POWER_LABEL}">Buying Power</span>
+          <span class="fmc-value" id="${EL_ID.BUYING_POWER}" aria-live="polite" aria-atomic="true" aria-labelledby="${EL_ID.BUYING_POWER_LABEL}">--</span>
           <span class="fmc-sublabel">margin buying power</span>
         </div>
       </div>
-      <div class="fmc-panel-loading" id="fmc-loading" role="status" aria-label="Calculating margin impact...">
+      <div class="fmc-panel-loading" id="${EL_ID.LOADING}" role="status" aria-label="Calculating margin impact...">
         <span class="fmc-spinner"></span>
         <span>Calculating margin impact...</span>
       </div>
-      <div class="fmc-panel-error" id="fmc-error" role="alert" style="display: none;">
+      <div class="fmc-panel-error" id="${EL_ID.ERROR}" role="alert" style="display: none;">
         <span class="fmc-error-icon" aria-hidden="true">&#9888;</span>
         <span class="fmc-error-text"></span>
         <button type="button" class="fmc-retry-btn" aria-label="Retry margin calculation" style="display: none;">Retry</button>
-        <button type="button" class="fmc-debug-btn" aria-label="Show debug log" aria-controls="fmc-debug-log" aria-expanded="false">Debug</button>
+        <button type="button" class="fmc-debug-btn" aria-label="Show debug log" aria-controls="${EL_ID.DEBUG_LOG}" aria-expanded="false">Debug</button>
       </div>
-      <div class="fmc-debug-log" id="fmc-debug-log" role="log" aria-label="Debug log" style="display: none;"></div>
+      <div class="fmc-debug-log" id="${EL_ID.DEBUG_LOG}" role="log" aria-label="Debug log" style="display: none;"></div>
       <div class="fmc-attribution">
         <span class="fmc-ext-badge">Margin Calc</span>
       </div>
@@ -94,7 +108,7 @@ const MarginInjector = (() => {
 
     // Wire debug button
     const debugBtn = panel.querySelector('.fmc-debug-btn');
-    const debugLogEl = panel.querySelector('#fmc-debug-log');
+    const debugLogEl = panel.querySelector('#' + EL_ID.DEBUG_LOG);
     if (debugBtn && debugLogEl) {
       debugBtn.addEventListener('click', () => {
         const visible = debugLogEl.style.display !== 'none';
@@ -123,8 +137,8 @@ const MarginInjector = (() => {
   function getPanelElements(panel) {
     return {
       body: panel.querySelector('.fmc-panel-body'),
-      loading: panel.querySelector('#fmc-loading'),
-      error: panel.querySelector('#fmc-error')
+      loading: panel.querySelector('#' + EL_ID.LOADING),
+      error: panel.querySelector('#' + EL_ID.ERROR)
     };
   }
 
@@ -197,9 +211,9 @@ const MarginInjector = (() => {
     panel.setAttribute('data-fmc-status', status);
 
     // Column 1: Margin Credit/Debit + delta sublabel
-    const creditDebitEl = panel.querySelector('#fmc-credit-debit');
-    const creditDebitLabel = panel.querySelector('#fmc-credit-debit-label');
-    const deltaEl = panel.querySelector('#fmc-delta');
+    const creditDebitEl = panel.querySelector('#' + EL_ID.CREDIT_DEBIT);
+    const creditDebitLabel = panel.querySelector('#' + EL_ID.CREDIT_DEBIT_LABEL);
+    const deltaEl = panel.querySelector('#' + EL_ID.DELTA);
     if (creditDebitLabel) {
       creditDebitLabel.textContent = impact.projectedCreditDebit >= 0 ? 'Margin Credit' : 'Margin Debit';
     }
@@ -219,7 +233,7 @@ const MarginInjector = (() => {
     }
 
     // Column 2: Cash Withdrawable
-    const cashEl = panel.querySelector('#fmc-cash-withdrawable');
+    const cashEl = panel.querySelector('#' + EL_ID.CASH_WITHDRAWABLE);
     if (cashEl) {
       cashEl.textContent = formatCurrency(impact.cashWithdrawable);
       cashEl.className = 'fmc-value ' +
@@ -227,7 +241,7 @@ const MarginInjector = (() => {
     }
 
     // Column 3: Buying Power
-    const bpEl = panel.querySelector('#fmc-buying-power');
+    const bpEl = panel.querySelector('#' + EL_ID.BUYING_POWER);
     if (bpEl) {
       bpEl.textContent = formatCurrency(impact.projectedBuyingPower);
       bpEl.className = 'fmc-value ' +
@@ -240,7 +254,7 @@ const MarginInjector = (() => {
     debugLog.push('[' + ts + '] ' + entry);
     if (debugLog.length > MAX_LOG) debugLog.shift();
     // Update visible log if open
-    const logEl = document.getElementById('fmc-debug-log');
+    const logEl = document.getElementById(EL_ID.DEBUG_LOG);
     if (logEl && logEl.style.display !== 'none') {
       logEl.textContent = debugLog.join('\n');
     }
