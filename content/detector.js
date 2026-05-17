@@ -374,6 +374,7 @@ const TradeDetector = (() => {
       }, debounceMs);
     }
 
+    if (!document.body) return;
     observer = new MutationObserver(() => check());
     observer.observe(document.body, {
       childList: true,
