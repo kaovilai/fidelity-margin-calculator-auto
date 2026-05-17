@@ -83,7 +83,7 @@ const MarginInjector = (() => {
         </div>
       </div>
       <div class="fmc-panel-loading" id="${EL_ID.LOADING}" role="status" aria-label="Calculating margin impact...">
-        <span class="fmc-spinner"></span>
+        <span class="fmc-spinner" aria-hidden="true"></span>
         <span>Calculating margin impact...</span>
       </div>
       <div class="fmc-panel-error" id="${EL_ID.ERROR}" role="alert" style="display: none;">
