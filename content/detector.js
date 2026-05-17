@@ -76,15 +76,11 @@ const TradeDetector = (() => {
   // --- Helpers ---
 
   function getDropdownValue(selector) {
-    const el = document.querySelector(selector);
-    if (!el) return '';
-    return el.textContent.trim();
+    return document.querySelector(selector)?.textContent.trim() ?? '';
   }
 
   function getInputValue(selector) {
-    const el = document.querySelector(selector);
-    if (!el) return '';
-    return el.value || '';
+    return document.querySelector(selector)?.value ?? '';
   }
 
   // --- Account number ---
