@@ -319,7 +319,7 @@
               lastResult = null;
             }
             previousAccountNum = event.accountNum;
-            handleTradeReady(event.accountNum, event.orders);
+            handleTradeReady(event.accountNum, event.orders).catch(err => log('Unhandled error in trade handler:', err));
           }
           break;
 

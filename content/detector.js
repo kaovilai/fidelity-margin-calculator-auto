@@ -348,7 +348,7 @@ const TradeDetector = (() => {
         lastFingerprint = '';
         if (lastEventType !== 'closed') {
           lastEventType = 'closed';
-          callback({ type: 'closed' });
+          try { callback({ type: 'closed' }); } catch { /* prevent observer from breaking */ }
         }
         return;
       }
@@ -356,7 +356,7 @@ const TradeDetector = (() => {
       if (!hasRequiredFields(ctx)) {
         if (lastEventType !== 'incomplete') {
           lastEventType = 'incomplete';
-          callback({ type: 'incomplete' });
+          try { callback({ type: 'incomplete' }); } catch { /* prevent observer from breaking */ }
         }
         return;
       }
@@ -368,12 +368,14 @@ const TradeDetector = (() => {
 
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
-        callback({
-          type: 'ready',
-          context: ctx,
-          accountNum: getAccountNumber(ctx),
-          orders: buildOrders(ctx)
-        });
+        try {
+          callback({
+            type: 'ready',
+            context: ctx,
+            accountNum: getAccountNumber(ctx),
+            orders: buildOrders(ctx)
+          });
+        } catch { /* prevent observer from breaking */ }
       }, debounceMs);
     }
 
