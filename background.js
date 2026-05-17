@@ -146,6 +146,16 @@
     }
   });
 
+  // --- Periodic expired-entry cleanup ---
+  // LRU eviction only runs on overflow; this sweeps stale entries every minute
+  // so the cache doesn't slowly accumulate expired data in quiet sessions.
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of cache) {
+      if (now > entry.expires) cache.delete(key);
+    }
+  }, 60000);
+
   // Clean up tab tracking when tabs close
   chrome.tabs.onRemoved.addListener((tabId) => {
     const accountNum = tabAccounts.get(tabId);
