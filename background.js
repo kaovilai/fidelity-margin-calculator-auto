@@ -39,8 +39,9 @@
       cache.delete(key);
       return { hit: false, data: null, age: 0 };
     }
-    entry.lastAccess = Date.now();
-    return { hit: true, data: entry.data, age: Date.now() - (entry.expires - entry.ttl) };
+    const now = Date.now();
+    entry.lastAccess = now;
+    return { hit: true, data: entry.data, age: now - (entry.expires - entry.ttl) };
   }
 
   function cacheSet(key, data, ttl) {

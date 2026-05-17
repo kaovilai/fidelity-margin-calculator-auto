@@ -379,7 +379,7 @@ const TradeDetector = (() => {
 
     // Listen for input events on trade fields (options + equity)
     inputListener = (e) => {
-      const id = e.target.id || '';
+      const id = e.target?.id ?? '';
       if (id.startsWith('quantity-') ||
           id === 'dest-limitPrice' ||
           id === 'eqt-shared-quantity' ||
