@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
+  <title>Margin Calculator</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -45,18 +46,18 @@
       </div>
       <div class="settings-body" id="settings-body">
         <div class="setting-row">
-          <span class="setting-label" id="label-enabled">Enabled</span>
+          <label class="setting-label" for="setting-enabled">Enabled</label>
           <label class="switch">
-            <input type="checkbox" id="setting-enabled" checked aria-labelledby="label-enabled">
+            <input type="checkbox" id="setting-enabled" checked>
             <span class="slider"></span>
           </label>
         </div>
         <div class="setting-row">
-          <span class="setting-label">Warning threshold ($)</span>
+          <label class="setting-label" for="setting-threshold">Warning threshold ($)</label>
           <input type="number" id="setting-threshold" class="setting-input" value="500" min="0" step="50">
         </div>
         <div class="setting-row">
-          <span class="setting-label">Debounce</span>
+          <label class="setting-label" for="setting-debounce">Debounce</label>
           <select id="setting-debounce" class="setting-select">
             <option value="200">Fast (200ms)</option>
             <option value="500" selected>Normal (500ms)</option>
@@ -64,9 +65,9 @@
           </select>
         </div>
         <div class="setting-row">
-          <span class="setting-label" id="label-auto-refresh">Auto-refresh baseline</span>
+          <label class="setting-label" for="setting-auto-refresh">Auto-refresh baseline</label>
           <label class="switch">
-            <input type="checkbox" id="setting-auto-refresh" checked aria-labelledby="label-auto-refresh">
+            <input type="checkbox" id="setting-auto-refresh" checked>
             <span class="slider"></span>
           </label>
         </div>
