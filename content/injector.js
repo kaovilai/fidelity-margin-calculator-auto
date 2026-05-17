@@ -32,6 +32,12 @@ const MarginInjector = (() => {
     DEBUG_LOG:               'fmc-debug-log'
   });
 
+  // WeakMap from panel element → cached inner element references.
+  // Populated once in createPanel(); avoids repeated querySelector calls on every
+  // showLoading / showError / updatePanel invocation. Entries are GC-eligible when
+  // the panel is removed from the document and no other references remain.
+  const panelRefs = new WeakMap();
+
   let retryCallback = null;
   let debugLog = []; // ring buffer of debug entries
   const MAX_LOG = 50;
@@ -135,6 +141,21 @@ const MarginInjector = (() => {
     panel.appendChild(debugLogDiv);
     panel.appendChild(attribution);
 
+    // Cache inner element references so showLoading/showError/updatePanel
+    // do not need to call querySelector on every invocation.
+    panelRefs.set(panel, {
+      body,
+      loading,
+      error: errorRow,
+      errorText:         errorRow.querySelector('.fmc-error-text'),
+      retryBtn:          errorRow.querySelector('.fmc-retry-btn'),
+      creditDebit:       body.querySelector(`#${EL_ID.CREDIT_DEBIT}`),
+      creditDebitLabel:  body.querySelector(`#${EL_ID.CREDIT_DEBIT_LABEL}`),
+      delta:             body.querySelector(`#${EL_ID.DELTA}`),
+      cash:              body.querySelector(`#${EL_ID.CASH_WITHDRAWABLE}`),
+      buyingPower:       body.querySelector(`#${EL_ID.BUYING_POWER}`)
+    });
+
     // Wire retry button
     const retryBtn = panel.querySelector('.fmc-retry-btn');
     if (retryBtn) {
@@ -172,11 +193,7 @@ const MarginInjector = (() => {
   }
 
   function getPanelElements(panel) {
-    return {
-      body: panel.querySelector('.fmc-panel-body'),
-      loading: panel.querySelector(`#${EL_ID.LOADING}`),
-      error: panel.querySelector(`#${EL_ID.ERROR}`)
-    };
+    return panelRefs.get(panel) ?? { body: null, loading: null, error: null };
   }
 
   function inject() {
@@ -235,14 +252,12 @@ const MarginInjector = (() => {
     if (!panel) return;
     panel.setAttribute('data-fmc-state', PANEL_STATE.ERROR);
     panel.setAttribute('aria-busy', 'false');
-    const { body, loading, error } = getPanelElements(panel);
+    const { body, loading, error, errorText, retryBtn } = getPanelElements(panel);
     if (body) body.style.display = 'none';
     if (loading) loading.style.display = 'none';
     if (error) {
       error.style.display = 'flex';
-      const textEl = error.querySelector('.fmc-error-text');
-      if (textEl) textEl.textContent = msg || 'Unknown error';
-      const retryBtn = error.querySelector('.fmc-retry-btn');
+      if (errorText) errorText.textContent = msg || 'Unknown error';
       if (retryBtn) retryBtn.style.display = canRetry ? 'inline-block' : 'none';
     }
   }
@@ -257,7 +272,7 @@ const MarginInjector = (() => {
     panel.setAttribute('data-fmc-state', PANEL_STATE.RESULT);
     panel.setAttribute('aria-busy', 'false');
 
-    const { body, loading, error } = getPanelElements(panel);
+    const { body, loading, error, creditDebit: creditDebitEl, creditDebitLabel, delta: deltaEl, cash: cashEl, buyingPower: bpEl } = getPanelElements(panel);
     if (body) { body.style.display = ''; body.style.opacity = ''; body.removeAttribute('aria-hidden'); }
     if (loading) loading.style.display = 'none';
     if (error) error.style.display = 'none';
@@ -266,9 +281,6 @@ const MarginInjector = (() => {
     panel.setAttribute('data-fmc-status', status);
 
     // Column 1: Margin Credit/Debit + delta sublabel
-    const creditDebitEl = panel.querySelector(`#${EL_ID.CREDIT_DEBIT}`);
-    const creditDebitLabel = panel.querySelector(`#${EL_ID.CREDIT_DEBIT_LABEL}`);
-    const deltaEl = panel.querySelector(`#${EL_ID.DELTA}`);
     if (creditDebitLabel) {
       creditDebitLabel.textContent = impact.projectedCreditDebit >= 0 ? 'Margin Credit' : 'Margin Debit';
     }
@@ -289,14 +301,12 @@ const MarginInjector = (() => {
     }
 
     // Column 2: Cash Withdrawable
-    const cashEl = panel.querySelector(`#${EL_ID.CASH_WITHDRAWABLE}`);
     if (cashEl) {
       cashEl.textContent = formatCurrency(impact.cashWithdrawable);
       cashEl.className = `fmc-value ${impact.cashWithdrawable > 0 ? `fmc-status-${STATUS.CREDIT}` : 'fmc-neutral'}`;
     }
 
     // Column 3: Buying Power
-    const bpEl = panel.querySelector(`#${EL_ID.BUYING_POWER}`);
     if (bpEl) {
       bpEl.textContent = formatCurrency(impact.projectedBuyingPower);
       bpEl.className = `fmc-value ${impact.projectedBuyingPower > 0 ? `fmc-status-${STATUS.CREDIT}` : `fmc-status-${STATUS.DEBIT}`}`;
