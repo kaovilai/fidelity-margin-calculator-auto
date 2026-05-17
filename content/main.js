@@ -46,7 +46,7 @@
 
   // --- Status reporting ---
   function reportStatus(state, extra) {
-    if (!chrome.storage || !chrome.storage.local) return;
+    if (!chrome.storage?.local) return;
     const status = {
       state,
       accountNum: lastAccountNum,
@@ -65,7 +65,7 @@
   // --- Background message helper ---
   function sendToBackground(type, payload, timeoutMs = 3000) {
     return new Promise((resolve) => {
-      if (!chrome.runtime || !chrome.runtime.sendMessage) {
+      if (!chrome.runtime?.sendMessage) {
         resolve({ error: 'no runtime', fallback: true });
         return;
       }
@@ -250,7 +250,7 @@
     });
 
     // Listen for force-recalc from popup
-    if (chrome.runtime && chrome.runtime.onMessage) {
+    if (chrome.runtime?.onMessage) {
       chrome.runtime.onMessage.addListener((msg) => {
         if (msg && msg._fmc && msg.type === 'FORCE_RECALC') {
           (async () => {
@@ -271,7 +271,7 @@
     }
 
     // Listen for settings changes
-    if (chrome.storage && chrome.storage.onChanged) {
+    if (chrome.storage?.onChanged) {
       chrome.storage.onChanged.addListener((changes, area) => {
         if (area === 'sync' && changes.fmc_settings?.newValue) {
           const wasEnabled = settings.enabled;

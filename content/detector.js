@@ -104,9 +104,9 @@ const TradeDetector = (() => {
 
   function getCallPut(legIndex) {
     const callRadio = document.getElementById(`call-put-${legIndex}-call`);
-    if (callRadio && callRadio.getAttribute('aria-checked') === 'true') return 'C';
+    if (callRadio?.getAttribute('aria-checked') === 'true') return 'C';
     const putRadio = document.getElementById(`call-put-${legIndex}-put`);
-    if (putRadio && putRadio.getAttribute('aria-checked') === 'true') return 'P';
+    if (putRadio?.getAttribute('aria-checked') === 'true') return 'P';
     return '';
   }
 
