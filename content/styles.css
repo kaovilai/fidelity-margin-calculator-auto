@@ -156,6 +156,10 @@
   background: #f5f5f5;
   border-color: #999;
 }
+.fmc-retry-btn:focus-visible {
+  outline: 2px solid #368727;
+  outline-offset: 2px;
+}
 
 .fmc-debug-btn {
   font-size: 11px;
@@ -171,6 +175,10 @@
   background: #f5f5f5;
   border-color: #999;
   color: #333;
+}
+.fmc-debug-btn:focus-visible {
+  outline: 2px solid #368727;
+  outline-offset: 2px;
 }
 
 /* Debug log */
