@@ -155,7 +155,7 @@
   // --- Orders hash ---
   function hashOrders(orders) {
     return orders
-      .map(o => `${o.orderSymbol}|${o.orderAction}|${o.orderQty}|${o.price}`)
+      .map(o => `${o.orderSymbol}|${o.orderType}|${o.orderAction}|${o.orderQty}|${o.price}`)
       .sort()
       .join(';;');
   }
@@ -295,8 +295,8 @@
 
     // Listen for force-recalc from popup
     if (chrome.runtime?.onMessage) {
-      chrome.runtime.onMessage.addListener((msg) => {
-        if (msg && msg._fmc && msg.type === 'FORCE_RECALC') {
+      chrome.runtime.onMessage.addListener((msg, sender) => {
+        if (msg && msg._fmc && msg.type === 'FORCE_RECALC' && sender.id === chrome.runtime.id) {
           (async () => {
             fallbackCache = {};
             lastResult = null;
