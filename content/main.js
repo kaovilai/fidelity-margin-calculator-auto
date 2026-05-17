@@ -55,7 +55,7 @@
       lastError: null,
       ...extra
     };
-    chrome.storage.local.set({ fmc_status: status });
+    chrome.storage.local.set({ fmc_status: status }).catch(() => {});
   }
 
   function setBadge(text, color) {
