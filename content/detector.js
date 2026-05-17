@@ -43,6 +43,15 @@ const TradeDetector = (() => {
 
   // --- Page context detection ---
 
+  // Returns true if an element has a non-hidden inline display style.
+  // Fidelity's Angular popup uses JS to set style.display directly; checking
+  // for 'block' only would break if they switch to 'flex' or 'inline-block'.
+  function isInlineVisible(el) {
+    if (!el) return false;
+    const d = el.style.display;
+    return d !== '' && d !== 'none';
+  }
+
   // Returns 'popup-options' | 'popup-equity' | 'dedicated-options' | null
   function detectPageContext() {
     // Dedicated options page (full page, no popup shell)
@@ -51,11 +60,11 @@ const TradeDetector = (() => {
     }
     // Floating popup
     const shell = document.getElementById(DOM.TRADE_SHELL);
-    if (shell?.style.display === 'block') {
+    if (isInlineVisible(shell)) {
       const optDiv = document.getElementById(DOM.FLOAT_OPTIONS);
-      if (optDiv?.style.display === 'block') return CTX.POPUP_OPTIONS;
+      if (isInlineVisible(optDiv)) return CTX.POPUP_OPTIONS;
       const eqDiv = document.getElementById(DOM.FLOAT_EQUITY);
-      if (eqDiv?.style.display === 'block') return CTX.POPUP_EQUITY;
+      if (isInlineVisible(eqDiv)) return CTX.POPUP_EQUITY;
     }
     return null;
   }
@@ -112,9 +121,9 @@ const TradeDetector = (() => {
 
   function getCallPut(legIndex) {
     const callRadio = document.getElementById(`call-put-${legIndex}-call`);
-    if (callRadio?.getAttribute('aria-checked') === 'true') return 'C';
+    if (callRadio?.getAttribute('aria-checked') === 'true' || callRadio?.checked) return 'C';
     const putRadio = document.getElementById(`call-put-${legIndex}-put`);
-    if (putRadio?.getAttribute('aria-checked') === 'true') return 'P';
+    if (putRadio?.getAttribute('aria-checked') === 'true' || putRadio?.checked) return 'P';
     return '';
   }
 
