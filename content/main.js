@@ -13,6 +13,10 @@
     PROJECTED: 'projected:'
   };
 
+  const STORAGE_KEY_SETTINGS = 'fmc_settings';
+  const STORAGE_KEY_STATUS = 'fmc_status';
+  const MSG_SESSION_EXPIRED = 'Session expired. Please refresh the page.';
+
   let currentRequest = 0;
   let lastAccountNum = null;
   let lastOrders = null;
@@ -56,9 +60,9 @@
       return;
     }
     try {
-      const result = await chrome.storage.sync.get('fmc_settings');
-      if (result.fmc_settings) {
-        settings = { ...settings, ...result.fmc_settings };
+      const result = await chrome.storage.sync.get(STORAGE_KEY_SETTINGS);
+      if (result[STORAGE_KEY_SETTINGS]) {
+        settings = { ...settings, ...result[STORAGE_KEY_SETTINGS] };
       }
     } catch (err) {
       log('Warning: could not load settings:', err.message);
@@ -77,7 +81,7 @@
       lastError: null,
       ...extra
     };
-    chrome.storage.local.set({ fmc_status: status }).catch(() => {});
+    chrome.storage.local.set({ [STORAGE_KEY_STATUS]: status }).catch(() => {});
   }
 
   function setBadge(text, color) {
@@ -191,7 +195,7 @@
           if (requestId !== currentRequest) return;
           const isSessionErr = posErr.type === 'SESSION_EXPIRED';
           const msg = isSessionErr
-            ? 'Session expired. Please refresh the page.'
+            ? MSG_SESSION_EXPIRED
             : (posErr.message || 'Unable to fetch account positions.');
           MarginInjector.showError(msg, !isSessionErr);
           setBadge('!', isSessionErr ? BADGE_COLOR_WARNING : BADGE_COLOR_ERROR);
@@ -254,7 +258,7 @@
 
       let msg;
       if (isSessionError) {
-        msg = 'Session expired. Please refresh the page.';
+        msg = MSG_SESSION_EXPIRED;
         setBadge('!', BADGE_COLOR_WARNING);
       } else {
         msg = err.message ?? 'Unable to calculate margin impact.';
@@ -301,10 +305,10 @@
     // Listen for settings changes
     if (chrome.storage?.onChanged) {
       chrome.storage.onChanged.addListener((changes, area) => {
-        if (area === 'sync' && changes.fmc_settings?.newValue) {
+        if (area === 'sync' && changes[STORAGE_KEY_SETTINGS]?.newValue) {
           const wasEnabled = settings.enabled;
           const prevDebounceMs = settings.debounceMs;
-          settings = { ...settings, ...changes.fmc_settings.newValue };
+          settings = { ...settings, ...changes[STORAGE_KEY_SETTINGS].newValue };
           MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
           log('Settings updated:', settings);
           // If the extension was just disabled, remove the panel immediately

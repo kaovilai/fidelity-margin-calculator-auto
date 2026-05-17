@@ -7,6 +7,9 @@
     autoRefreshBaseline: true
   };
 
+  const STORAGE_KEY_SETTINGS = 'fmc_settings';
+  const STORAGE_KEY_STATUS = 'fmc_status';
+
   // Mask account number for privacy: Z2...8273
   function maskAccount(acct) {
     if (!acct || acct.length < 6) return acct || '--';
@@ -55,8 +58,8 @@
   // --- Settings ---
   async function loadSettings() {
     try {
-      const result = await chrome.storage.sync.get('fmc_settings');
-      const s = { ...DEFAULT_SETTINGS, ...result.fmc_settings };
+      const result = await chrome.storage.sync.get(STORAGE_KEY_SETTINGS);
+      const s = { ...DEFAULT_SETTINGS, ...result[STORAGE_KEY_SETTINGS] };
       document.getElementById('setting-enabled').checked = s.enabled;
       document.getElementById('setting-threshold').value = s.debitWarningThreshold;
       document.getElementById('setting-debounce').value = String(s.debounceMs);
@@ -78,7 +81,7 @@
       debounceMs: Number.isFinite(debounce) && debounce > 0 ? debounce : 500,
       autoRefreshBaseline: autoRefreshEl.checked
     };
-    chrome.storage.sync.set({ fmc_settings: settings }).catch((err) => {
+    chrome.storage.sync.set({ [STORAGE_KEY_SETTINGS]: settings }).catch((err) => {
       console.warn('[FMC-Popup] Could not save settings:', err.message);
     });
   }
@@ -92,14 +95,14 @@
 
     // Load current status
     try {
-      const result = await chrome.storage.local.get('fmc_status');
-      updateStatus(result.fmc_status);
+      const result = await chrome.storage.local.get(STORAGE_KEY_STATUS);
+      updateStatus(result[STORAGE_KEY_STATUS]);
     } catch { /* storage unavailable */ }
 
     // Live status updates
     chrome.storage.onChanged.addListener((changes, area) => {
-      if (area === 'local' && changes.fmc_status) {
-        updateStatus(changes.fmc_status.newValue);
+      if (area === 'local' && changes[STORAGE_KEY_STATUS]) {
+        updateStatus(changes[STORAGE_KEY_STATUS].newValue);
       }
     });
 
