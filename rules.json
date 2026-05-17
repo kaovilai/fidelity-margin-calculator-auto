@@ -13,7 +13,7 @@
       ]
     },
     "condition": {
-      "urlFilter": "digital.fidelity.com/ftgw/digital/margincalcex/api/graphql",
+      "urlFilter": "|https://digital.fidelity.com/ftgw/digital/margincalcex/api/graphql",
       "resourceTypes": ["xmlhttprequest"]
     }
   }
