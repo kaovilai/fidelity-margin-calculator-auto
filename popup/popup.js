@@ -55,7 +55,7 @@
   // --- Settings ---
   function loadSettings() {
     chrome.storage.sync.get('fmc_settings').then((result) => {
-      const s = Object.assign({}, DEFAULT_SETTINGS, result.fmc_settings);
+      const s = { ...DEFAULT_SETTINGS, ...result.fmc_settings };
       document.getElementById('setting-enabled').checked = s.enabled;
       document.getElementById('setting-threshold').value = s.debitWarningThreshold;
       document.getElementById('setting-debounce').value = String(s.debounceMs);
