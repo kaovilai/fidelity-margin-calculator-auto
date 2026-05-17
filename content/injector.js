@@ -84,7 +84,7 @@ const MarginInjector = (() => {
     // Panel body — three data columns
     const body = mkEl('div', { className: 'fmc-panel-body' },
       mkEl('div', { className: 'fmc-col', role: 'group', 'aria-labelledby': EL_ID.CREDIT_DEBIT_LABEL },
-        mkEl('span', { className: 'fmc-label', id: EL_ID.CREDIT_DEBIT_LABEL, 'aria-live': 'polite', 'aria-atomic': 'true', textContent: 'Margin Credit/Debit' }),
+        mkEl('span', { className: 'fmc-label', id: EL_ID.CREDIT_DEBIT_LABEL, textContent: 'Margin Credit/Debit' }),
         mkEl('span', { className: 'fmc-value', id: EL_ID.CREDIT_DEBIT, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.CREDIT_DEBIT_LABEL, textContent: '--' }),
         mkEl('span', { className: 'fmc-sublabel', id: EL_ID.DELTA, 'aria-live': 'polite', 'aria-atomic': 'true' })
       ),
@@ -125,7 +125,7 @@ const MarginInjector = (() => {
     debugLogDiv.style.display = 'none';
 
     const attribution = mkEl('div', { className: 'fmc-attribution' },
-      mkEl('span', { className: 'fmc-ext-badge', textContent: 'Margin Calc' })
+      mkEl('span', { className: 'fmc-ext-badge', 'aria-hidden': 'true', textContent: 'Margin Calc' })
     );
 
     panel.appendChild(body);
