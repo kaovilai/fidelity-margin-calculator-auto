@@ -37,7 +37,7 @@ const TradeDetector = (() => {
   // Returns 'popup-options' | 'popup-equity' | 'dedicated-options' | null
   function detectPageContext() {
     // Dedicated options page (full page, no popup shell)
-    if (document.body.classList.contains('option-trade-ticket')) {
+    if (document.body?.classList.contains('option-trade-ticket')) {
       return CTX.DEDICATED_OPTIONS;
     }
     // Floating popup
