@@ -59,10 +59,15 @@
     try {
       const result = await chrome.storage.sync.get(STORAGE_KEY_SETTINGS);
       const s = { ...DEFAULT_SETTINGS, ...result[STORAGE_KEY_SETTINGS] };
-      document.getElementById('setting-enabled').checked = s.enabled;
-      document.getElementById('setting-threshold').value = s.debitWarningThreshold;
-      document.getElementById('setting-debounce').value = String(s.debounceMs);
-    } catch { /* storage unavailable — keep HTML defaults */ }
+      const enabledEl = document.getElementById('setting-enabled');
+      const thresholdEl = document.getElementById('setting-threshold');
+      const debounceEl = document.getElementById('setting-debounce');
+      if (enabledEl) enabledEl.checked = s.enabled;
+      if (thresholdEl) thresholdEl.value = s.debitWarningThreshold;
+      if (debounceEl) debounceEl.value = String(s.debounceMs);
+    } catch (err) {
+      console.warn('[FMC-Popup] Could not load settings:', err.message);
+    }
   }
 
   function saveSettings() {
@@ -134,13 +139,25 @@
     // Force recalculate
     const refreshBtn = document.getElementById('btn-refresh');
     if (refreshBtn) refreshBtn.addEventListener('click', async () => {
+      refreshBtn.disabled = true;
+      const originalText = refreshBtn.textContent;
       try {
         const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
         if (tabs[0]) {
-          chrome.tabs.sendMessage(tabs[0].id, { type: 'FORCE_RECALC', _fmc: true })
-            .catch(() => {}); // Content script may not be loaded on this tab — ignore
+          await chrome.tabs.sendMessage(tabs[0].id, { type: 'FORCE_RECALC', _fmc: true })
+            .catch(() => null); // Content script may not be loaded on this tab — ignore
+          refreshBtn.textContent = 'Sent!';
+        } else {
+          refreshBtn.textContent = 'No tab';
         }
-      } catch { /* tabs API unavailable */ }
+      } catch {
+        refreshBtn.textContent = 'Error';
+      } finally {
+        setTimeout(() => {
+          refreshBtn.textContent = originalText;
+          refreshBtn.disabled = false;
+        }, 1500);
+      }
     });
   }
 
