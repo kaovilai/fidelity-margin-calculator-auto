@@ -157,5 +157,5 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', () => init().catch(err => console.error('[FMC-Popup] Fatal init error:', err)));
 })();
