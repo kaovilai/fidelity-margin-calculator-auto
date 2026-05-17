@@ -43,6 +43,8 @@ const MarginInjector = (() => {
   const MAX_LOG = 50;
 
   function formatCurrency(value) {
+    // Guard against NaN/Infinity — can occur if API returns an unexpected type.
+    if (!Number.isFinite(value)) return '--';
     const abs = Math.abs(value);
     const formatted = '$' + abs.toLocaleString('en-US', {
       minimumFractionDigits: 2,
@@ -56,8 +58,11 @@ const MarginInjector = (() => {
     return value > 0 ? '+' + formatted : formatted;
   }
 
-  // Returns STATUS.CREDIT | STATUS.WARNING | STATUS.DEBIT based on projected value
+  // Returns STATUS.CREDIT | STATUS.WARNING | STATUS.DEBIT based on projected value.
+  // Guards against NaN: NaN comparisons are always false, which would incorrectly
+  // return STATUS.CREDIT — fall back to STATUS.DEBIT (conservative safe default).
   function getStatus(projectedCreditDebit) {
+    if (!Number.isFinite(projectedCreditDebit)) return STATUS.DEBIT;
     if (projectedCreditDebit < 0) return STATUS.DEBIT;
     if (projectedCreditDebit <= warningThreshold) return STATUS.WARNING;
     return STATUS.CREDIT;
