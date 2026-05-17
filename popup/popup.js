@@ -46,7 +46,7 @@
     if (calcEl) calcEl.textContent = timeAgo(status.lastCalcTime);
     if (callsEl) callsEl.textContent = status.apiCallCount ?? 0;
 
-    if (errRow) errRow.style.display = status.lastError ? '' : 'none';
+    if (errRow) errRow.style.display = status.lastError ? 'flex' : 'none';
     if (errEl) errEl.textContent = status.lastError || '';
   }
 
