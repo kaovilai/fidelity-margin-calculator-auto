@@ -38,11 +38,11 @@ importScripts('/lib/constants.js');
   function cacheGet(key) {
     const entry = cache.get(key);
     if (!entry) return { hit: false, data: null, age: 0 };
-    if (Date.now() > entry.expires) {
+    const now = Date.now();
+    if (now > entry.expires) {
       cache.delete(key);
       return { hit: false, data: null, age: 0 };
     }
-    const now = Date.now();
     entry.lastAccess = now;
     return { hit: true, data: entry.data, age: now - (entry.expires - entry.ttl) };
   }
