@@ -166,7 +166,7 @@
   const CLEANUP_ALARM = 'fmc-cache-cleanup';
   chrome.alarms.get(CLEANUP_ALARM).then(existing => {
     if (!existing) chrome.alarms.create(CLEANUP_ALARM, { periodInMinutes: CLEANUP_INTERVAL_MINUTES });
-  });
+  }).catch(err => log('Could not create cleanup alarm:', err.message));
   chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name !== CLEANUP_ALARM) return;
     const now = Date.now();

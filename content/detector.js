@@ -363,7 +363,7 @@ const TradeDetector = (() => {
         debounceTimer = null;
         if (lastEventType !== 'closed') {
           lastEventType = 'closed';
-          try { callback({ type: 'closed' }); } catch { /* prevent observer from breaking */ }
+          try { callback({ type: 'closed' }); } catch (e) { console.error('[FMC] observer callback error:', e); }
         }
         return;
       }
@@ -374,7 +374,7 @@ const TradeDetector = (() => {
         debounceTimer = null;
         if (lastEventType !== 'incomplete') {
           lastEventType = 'incomplete';
-          try { callback({ type: 'incomplete' }); } catch { /* prevent observer from breaking */ }
+          try { callback({ type: 'incomplete' }); } catch (e) { console.error('[FMC] observer callback error:', e); }
         }
         return;
       }
@@ -393,7 +393,7 @@ const TradeDetector = (() => {
             accountNum: getAccountNumber(ctx),
             orders: buildOrders(ctx)
           });
-        } catch { /* prevent observer from breaking */ }
+        } catch (e) { console.error('[FMC] observer callback error:', e); }
       }, debounceMs);
     }
 
