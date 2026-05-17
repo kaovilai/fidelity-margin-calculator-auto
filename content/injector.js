@@ -139,7 +139,7 @@ const MarginInjector = (() => {
     const retryBtn = panel.querySelector('.fmc-retry-btn');
     if (retryBtn) {
       retryBtn.addEventListener('click', () => {
-        if (retryCallback) retryCallback();
+        retryCallback?.();
       });
     }
 
