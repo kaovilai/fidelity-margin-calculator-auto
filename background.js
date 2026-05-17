@@ -72,7 +72,7 @@ importScripts('/lib/constants.js');
 
   // --- Rate limiting ---
   function checkRateLimit(accountNum) {
-    const last = apiCallLog.get(accountNum) || 0;
+    const last = apiCallLog.get(accountNum) ?? 0;
     const elapsed = Date.now() - last;
     if (elapsed < MIN_API_INTERVAL) {
       return { rateLimited: true, retryAfter: MIN_API_INTERVAL - elapsed };
