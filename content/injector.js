@@ -57,6 +57,21 @@ const MarginInjector = (() => {
     return STATUS.CREDIT;
   }
 
+  // Build a DOM element without innerHTML to avoid CSP violations and accidental XSS.
+  // attrs: plain attribute key/value pairs; className and textContent set their properties directly.
+  function mkEl(tag, attrs = {}, ...children) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'className') node.className = v;
+      else if (k === 'textContent') node.textContent = v;
+      else node.setAttribute(k, v);
+    }
+    for (const child of children) {
+      if (child != null) node.appendChild(child);
+    }
+    return node;
+  }
+
   function createPanel() {
     const panel = document.createElement('div');
     panel.id = PANEL_ID;
@@ -64,39 +79,59 @@ const MarginInjector = (() => {
     panel.setAttribute('data-fmc-state', PANEL_STATE.LOADING);
     panel.setAttribute('role', 'region');
     panel.setAttribute('aria-label', 'Margin Impact');
-    panel.innerHTML = `
-      <div class="fmc-panel-body">
-        <div class="fmc-col">
-          <span class="fmc-label" id="${EL_ID.CREDIT_DEBIT_LABEL}">Margin Credit/Debit</span>
-          <span class="fmc-value" id="${EL_ID.CREDIT_DEBIT}" aria-live="polite" aria-atomic="true" aria-labelledby="${EL_ID.CREDIT_DEBIT_LABEL}">--</span>
-          <span class="fmc-sublabel" id="${EL_ID.DELTA}"></span>
-        </div>
-        <div class="fmc-col">
-          <span class="fmc-label" id="${EL_ID.CASH_WITHDRAWABLE_LABEL}">Cash Withdrawable</span>
-          <span class="fmc-value" id="${EL_ID.CASH_WITHDRAWABLE}" aria-live="polite" aria-atomic="true" aria-labelledby="${EL_ID.CASH_WITHDRAWABLE_LABEL}">--</span>
-          <span class="fmc-sublabel">without margin interest</span>
-        </div>
-        <div class="fmc-col fmc-col-last">
-          <span class="fmc-label" id="${EL_ID.BUYING_POWER_LABEL}">Buying Power</span>
-          <span class="fmc-value" id="${EL_ID.BUYING_POWER}" aria-live="polite" aria-atomic="true" aria-labelledby="${EL_ID.BUYING_POWER_LABEL}">--</span>
-          <span class="fmc-sublabel">margin buying power</span>
-        </div>
-      </div>
-      <div class="fmc-panel-loading" id="${EL_ID.LOADING}" role="status" aria-label="Calculating margin impact...">
-        <span class="fmc-spinner" aria-hidden="true"></span>
-        <span>Calculating margin impact...</span>
-      </div>
-      <div class="fmc-panel-error" id="${EL_ID.ERROR}" role="alert" style="display: none;">
-        <span class="fmc-error-icon" aria-hidden="true">&#9888;</span>
-        <span class="fmc-error-text"></span>
-        <button type="button" class="fmc-retry-btn" aria-label="Retry margin calculation" style="display: none;">Retry</button>
-        <button type="button" class="fmc-debug-btn" aria-label="Show debug log" aria-controls="${EL_ID.DEBUG_LOG}" aria-expanded="false">Debug</button>
-      </div>
-      <div class="fmc-debug-log" id="${EL_ID.DEBUG_LOG}" role="log" aria-label="Debug log" style="display: none;"></div>
-      <div class="fmc-attribution">
-        <span class="fmc-ext-badge">Margin Calc</span>
-      </div>
-    `;
+
+    // Panel body — three data columns
+    const body = mkEl('div', { className: 'fmc-panel-body' },
+      mkEl('div', { className: 'fmc-col' },
+        mkEl('span', { className: 'fmc-label', id: EL_ID.CREDIT_DEBIT_LABEL, textContent: 'Margin Credit/Debit' }),
+        mkEl('span', { className: 'fmc-value', id: EL_ID.CREDIT_DEBIT, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.CREDIT_DEBIT_LABEL, textContent: '--' }),
+        mkEl('span', { className: 'fmc-sublabel', id: EL_ID.DELTA })
+      ),
+      mkEl('div', { className: 'fmc-col' },
+        mkEl('span', { className: 'fmc-label', id: EL_ID.CASH_WITHDRAWABLE_LABEL, textContent: 'Cash Withdrawable' }),
+        mkEl('span', { className: 'fmc-value', id: EL_ID.CASH_WITHDRAWABLE, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.CASH_WITHDRAWABLE_LABEL, textContent: '--' }),
+        mkEl('span', { className: 'fmc-sublabel', textContent: 'without margin interest' })
+      ),
+      mkEl('div', { className: 'fmc-col fmc-col-last' },
+        mkEl('span', { className: 'fmc-label', id: EL_ID.BUYING_POWER_LABEL, textContent: 'Buying Power' }),
+        mkEl('span', { className: 'fmc-value', id: EL_ID.BUYING_POWER, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.BUYING_POWER_LABEL, textContent: '--' }),
+        mkEl('span', { className: 'fmc-sublabel', textContent: 'margin buying power' })
+      )
+    );
+
+    // Loading indicator
+    const loading = mkEl('div', { className: 'fmc-panel-loading', id: EL_ID.LOADING, role: 'status', 'aria-label': 'Calculating margin impact...' },
+      mkEl('span', { className: 'fmc-spinner', 'aria-hidden': 'true' }),
+      mkEl('span', { textContent: 'Calculating margin impact...' })
+    );
+
+    // Error row (hidden until needed)
+    const warningIcon = mkEl('span', { className: 'fmc-error-icon', 'aria-hidden': 'true' });
+    warningIcon.textContent = '\u26a0'; // ⚠ warning sign
+    const errorRow = mkEl('div', {
+      className: 'fmc-panel-error', id: EL_ID.ERROR, role: 'alert'
+    },
+      warningIcon,
+      mkEl('span', { className: 'fmc-error-text' }),
+      mkEl('button', { type: 'button', className: 'fmc-retry-btn', 'aria-label': 'Retry margin calculation', textContent: 'Retry' }),
+      mkEl('button', { type: 'button', className: 'fmc-debug-btn', 'aria-label': 'Show debug log', 'aria-controls': EL_ID.DEBUG_LOG, 'aria-expanded': 'false', textContent: 'Debug' })
+    );
+    errorRow.style.display = 'none';
+    errorRow.querySelector('.fmc-retry-btn').style.display = 'none';
+
+    // Debug log (hidden until toggled)
+    const debugLogDiv = mkEl('div', { className: 'fmc-debug-log', id: EL_ID.DEBUG_LOG, role: 'log', 'aria-label': 'Debug log' });
+    debugLogDiv.style.display = 'none';
+
+    const attribution = mkEl('div', { className: 'fmc-attribution' },
+      mkEl('span', { className: 'fmc-ext-badge', textContent: 'Margin Calc' })
+    );
+
+    panel.appendChild(body);
+    panel.appendChild(loading);
+    panel.appendChild(errorRow);
+    panel.appendChild(debugLogDiv);
+    panel.appendChild(attribution);
 
     // Wire retry button
     const retryBtn = panel.querySelector('.fmc-retry-btn');
