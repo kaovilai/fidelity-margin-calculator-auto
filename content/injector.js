@@ -48,35 +48,37 @@ const MarginInjector = (() => {
     panel.id = PANEL_ID;
     panel.className = 'fmc-margin-panel';
     panel.setAttribute('data-fmc-state', PANEL_STATE.LOADING);
+    panel.setAttribute('role', 'region');
+    panel.setAttribute('aria-label', 'Margin Impact');
     panel.innerHTML = `
       <div class="fmc-panel-body">
         <div class="fmc-col">
           <span class="fmc-label" id="fmc-credit-debit-label">Margin Credit/Debit</span>
-          <span class="fmc-value" id="fmc-credit-debit">--</span>
+          <span class="fmc-value" id="fmc-credit-debit" aria-live="polite" aria-atomic="true" aria-labelledby="fmc-credit-debit-label">--</span>
           <span class="fmc-sublabel" id="fmc-delta"></span>
         </div>
         <div class="fmc-col">
-          <span class="fmc-label">Cash Withdrawable</span>
-          <span class="fmc-value" id="fmc-cash-withdrawable">--</span>
+          <span class="fmc-label" id="fmc-cash-withdrawable-label">Cash Withdrawable</span>
+          <span class="fmc-value" id="fmc-cash-withdrawable" aria-live="polite" aria-atomic="true" aria-labelledby="fmc-cash-withdrawable-label">--</span>
           <span class="fmc-sublabel">without margin interest</span>
         </div>
         <div class="fmc-col fmc-col-last">
-          <span class="fmc-label">Buying Power</span>
-          <span class="fmc-value" id="fmc-buying-power">--</span>
+          <span class="fmc-label" id="fmc-buying-power-label">Buying Power</span>
+          <span class="fmc-value" id="fmc-buying-power" aria-live="polite" aria-atomic="true" aria-labelledby="fmc-buying-power-label">--</span>
           <span class="fmc-sublabel">margin buying power</span>
         </div>
       </div>
-      <div class="fmc-panel-loading" id="fmc-loading">
+      <div class="fmc-panel-loading" id="fmc-loading" role="status" aria-label="Calculating margin impact...">
         <span class="fmc-spinner"></span>
         <span>Calculating margin impact...</span>
       </div>
       <div class="fmc-panel-error" id="fmc-error" style="display: none;">
-        <span class="fmc-error-icon">&#9888;</span>
+        <span class="fmc-error-icon" aria-hidden="true">&#9888;</span>
         <span class="fmc-error-text"></span>
         <button class="fmc-retry-btn" style="display: none;">Retry</button>
         <button class="fmc-debug-btn">Debug</button>
       </div>
-      <div class="fmc-debug-log" id="fmc-debug-log" style="display: none;"></div>
+      <div class="fmc-debug-log" id="fmc-debug-log" role="log" aria-label="Debug log" style="display: none;"></div>
       <div class="fmc-attribution">
         <span class="fmc-ext-badge">Margin Calc</span>
       </div>
