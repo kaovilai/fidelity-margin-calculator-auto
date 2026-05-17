@@ -173,8 +173,13 @@
   // Clean up tab tracking when tabs close
   chrome.tabs.onRemoved.addListener((tabId) => {
     const accountNum = tabAccounts.get(tabId);
-    if (accountNum) apiCallLog.delete(accountNum);
     tabAccounts.delete(tabId);
+    // Only remove from apiCallLog if no other open tab is still using this account.
+    // Removing it while another tab holds the same account would reset the rate limit
+    // window for that account, allowing back-to-back calls from the surviving tab.
+    if (accountNum && ![...tabAccounts.values()].includes(accountNum)) {
+      apiCallLog.delete(accountNum);
+    }
   });
 
   chrome.runtime.onInstalled.addListener(() => {

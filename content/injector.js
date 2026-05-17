@@ -187,7 +187,7 @@ const MarginInjector = (() => {
     if (error) {
       error.style.display = 'flex';
       const textEl = error.querySelector('.fmc-error-text');
-      if (textEl) textEl.textContent = msg;
+      if (textEl) textEl.textContent = msg || 'Unknown error';
       const retryBtn = error.querySelector('.fmc-retry-btn');
       if (retryBtn) retryBtn.style.display = canRetry ? 'inline-block' : 'none';
     }
