@@ -144,10 +144,14 @@
       if (typeof RateLimiter !== 'undefined') {
         const rl = await RateLimiter.acquire();
         if (rl.cancelled) return;
+        // A new request may have arrived while waiting for a token
+        if (requestId !== currentRequest) return;
       }
 
       // Also check background rate limit (advisory)
       const rateCheck = await sendToBackground('LOG_API_CALL', { accountNum });
+      // A new request may have arrived while waiting for background response
+      if (requestId !== currentRequest) return;
       if (!rateCheck.fallback && rateCheck.rateLimited) {
         await new Promise(r => setTimeout(r, rateCheck.retryAfter));
         if (requestId !== currentRequest) return;
