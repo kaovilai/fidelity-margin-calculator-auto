@@ -43,6 +43,7 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_popup": "popup/popup.html"
+    "default_popup": "popup/popup.html",
+    "default_title": "Fidelity Margin Calculator Auto"
   }
 }
