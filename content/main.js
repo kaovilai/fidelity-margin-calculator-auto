@@ -377,6 +377,9 @@
           // Increment currentRequest so any in-flight handleTradeReady call
           // sees a stale requestId and exits early without touching the DOM.
           currentRequest++;
+          // Reset lastResult so the next ticket open computes delta from a fresh
+          // baseline rather than a potentially stale previous projection.
+          lastResult = null;
           MarginInjector.remove();
           break;
 
