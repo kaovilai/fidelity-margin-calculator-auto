@@ -47,7 +47,7 @@
     if (callsEl) callsEl.textContent = status.apiCallCount || 0;
 
     if (errRow) errRow.style.display = status.lastError ? '' : 'none';
-    if (errEl && status.lastError) errEl.textContent = status.lastError;
+    if (errEl) errEl.textContent = status.lastError || '';
   }
 
   // --- Settings ---

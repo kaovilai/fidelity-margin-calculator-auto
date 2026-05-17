@@ -16,8 +16,8 @@
     <div class="popup-section">
       <div class="status-row">
         <span class="status-label">Status</span>
-        <span class="status-dot" id="status-dot"></span>
-        <span class="status-text" id="status-text">Unknown</span>
+        <span class="status-dot" id="status-dot" aria-hidden="true"></span>
+        <span class="status-text" id="status-text" aria-live="polite" aria-atomic="true">Unknown</span>
       </div>
       <div class="status-row">
         <span class="status-label">Account</span>
@@ -33,7 +33,7 @@
       </div>
       <div class="status-row" id="status-error-row" style="display: none;">
         <span class="status-label">Error</span>
-        <span class="status-text status-error-text" id="status-error">--</span>
+        <span class="status-text status-error-text" id="status-error" aria-live="assertive" aria-atomic="true"></span>
       </div>
     </div>
 
