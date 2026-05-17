@@ -188,8 +188,12 @@ const MarginInjector = (() => {
     clearDebugLog();
 
     const panel = createPanel();
-    // Append inside ott-max-gain-loss to stay within Angular component boundary
-    const parent = mxregin.closest('ott-max-gain-loss') || mxregin.parentNode;
+    // Append inside ott-max-gain-loss to stay within Angular component boundary.
+    // Fall back to mxregin's direct parent, but only if it is an element node
+    // (nodeType 1) — prevents accidental injection at document/body level if
+    // Fidelity removes the surrounding component wrapper.
+    const parent = mxregin.closest('ott-max-gain-loss') ||
+      (mxregin.parentNode?.nodeType === Node.ELEMENT_NODE ? mxregin.parentNode : null);
     if (!parent) return false;
     try {
       parent.appendChild(panel);
