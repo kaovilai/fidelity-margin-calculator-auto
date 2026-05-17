@@ -152,7 +152,8 @@ const MarginInjector = (() => {
     if (!panel) return;
     panel.setAttribute('data-fmc-state', PANEL_STATE.LOADING);
     const { body, loading, error } = getPanelElements(panel);
-    if (body) body.style.opacity = '0.5';
+    // Reset display in case a prior showError() hid the body
+    if (body) { body.style.display = ''; body.style.opacity = '0.5'; }
     if (loading) loading.style.display = 'flex';
     if (error) error.style.display = 'none';
   }
