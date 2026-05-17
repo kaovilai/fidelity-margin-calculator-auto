@@ -149,6 +149,8 @@
 
   // Clean up tab tracking when tabs close
   chrome.tabs.onRemoved.addListener((tabId) => {
+    const accountNum = tabAccounts.get(tabId);
+    if (accountNum) apiCallLog.delete(accountNum);
     tabAccounts.delete(tabId);
   });
 
