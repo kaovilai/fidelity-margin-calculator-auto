@@ -10,13 +10,45 @@ const TradeDetector = (() => {
     DEDICATED_OPTIONS: 'dedicated-options'
   });
 
-  // DOM element IDs and selectors for Fidelity's trade ticket UI
+  // DOM element IDs and selectors for Fidelity's trade ticket UI.
+  // Centralised here so a Fidelity page-layout change only requires edits in one place.
   const DOM = Object.freeze({
-    TRADE_SHELL:         'trade-container-shell',
-    FLOAT_OPTIONS:       'float_trade_O',
-    FLOAT_EQUITY:        'float_trade_SE',
-    EQUITY_CONTAINER:    '#float_trade_SE',
-    DEDICATED_BODY_CLASS: 'option-trade-ticket'
+    TRADE_SHELL:          'trade-container-shell',
+    FLOAT_OPTIONS:        'float_trade_O',
+    FLOAT_EQUITY:         'float_trade_SE',
+    EQUITY_CONTAINER:     '#float_trade_SE',
+    DEDICATED_BODY_CLASS: 'option-trade-ticket',
+
+    // Options ticket — account
+    OPT_ACCOUNT:          'ott-account-dropdown .binding-val .accountNum',
+
+    // Options ticket — order form fields
+    OPT_SYMBOL:           '#symbol_search',
+    OPT_LIMIT_PRICE:      '#dest-limitPrice',
+    OPT_ORDER_TYPE:       '#ordertype-dropdown .binding-val',
+    OPT_TRADE_TYPE:       '#tradeType_dropdown .binding-val',
+
+    // Equity ticket — account (relative selectors; prepend EQUITY_CONTAINER)
+    EQ_ACCOUNT_LABEL:     '.selected-account-dropdown-label',
+    EQ_ACCOUNT_DD:        '#dest-acct-dropdown',
+
+    // Equity ticket — order form fields (relative selectors; prepend EQUITY_CONTAINER)
+    EQ_SYMBOL:            '#eq-ticket-dest-symbol',
+    EQ_ACTION_PRIMARY:    '#dest-dropdownlist-button-action .selected-dropdown-item',
+    EQ_ACTION_FALLBACK:   '#selected-dropdown-itemaction',
+    EQ_QTY:               '#eqt-shared-quantity',
+    EQ_ORDER_TYPE_PRIMARY: '#dest-dropdownlist-button-ordertype .selected-dropdown-item',
+    EQ_ORDER_TYPE_FALLBACK: '#selected-dropdown-itemordertype',
+    EQ_LIMIT_PRIMARY:     '#eqt-shared-limit-price',
+    EQ_LIMIT_FALLBACK:    '#dest-limitPrice',
+
+    // Per-leg selectors — append '-{legIndex}' (or '-{legIndex} .binding-val') to get full selector
+    LEG_ROW_PREFIX:       'leg-row',
+    LEG_CALL_PREFIX:      'call-put',
+    LEG_ACTION_SEL_BASE:  '#action_dropdown',
+    LEG_QTY_SEL_BASE:     '#quantity',
+    LEG_EXP_SEL_BASE:     '#exp_dropdown',
+    LEG_STRIKE_SEL_BASE:  '#strike_dropdown'
   });
 
   // Order type codes sent to the margin calculator API
@@ -103,15 +135,15 @@ const TradeDetector = (() => {
       return getEquityAccountNumber();
     }
     // Options ticket (popup or dedicated) — same selector
-    const el = document.querySelector('ott-account-dropdown .binding-val .accountNum');
+    const el = document.querySelector(DOM.OPT_ACCOUNT);
     if (!el) return null;
     return el.textContent.trim().replace(/[()]/g, '').trim();
   }
 
   function getEquityAccountNumber() {
     // Try primary selector first, fall back to secondary
-    const el = document.querySelector(DOM.EQUITY_CONTAINER + ' .selected-account-dropdown-label') ||
-               document.querySelector(DOM.EQUITY_CONTAINER + ' #dest-acct-dropdown');
+    const el = document.querySelector(DOM.EQUITY_CONTAINER + ' ' + DOM.EQ_ACCOUNT_LABEL) ||
+               document.querySelector(DOM.EQUITY_CONTAINER + ' ' + DOM.EQ_ACCOUNT_DD);
     if (!el) return null;
     // Match the LAST parenthetical to avoid picking up account type labels
     // that Fidelity sometimes prefixes, e.g. "Individual (non-retirement) (X12345678)".
@@ -122,9 +154,9 @@ const TradeDetector = (() => {
   // --- Call/Put for leg N ---
 
   function getCallPut(legIndex) {
-    const callRadio = document.getElementById(`call-put-${legIndex}-call`);
+    const callRadio = document.getElementById(`${DOM.LEG_CALL_PREFIX}-${legIndex}-call`);
     if (callRadio?.getAttribute('aria-checked') === 'true' || callRadio?.checked) return 'C';
-    const putRadio = document.getElementById(`call-put-${legIndex}-put`);
+    const putRadio = document.getElementById(`${DOM.LEG_CALL_PREFIX}-${legIndex}-put`);
     if (putRadio?.getAttribute('aria-checked') === 'true' || putRadio?.checked) return 'P';
     return '';
   }
@@ -179,7 +211,7 @@ const TradeDetector = (() => {
 
   function getLegCount() {
     let count = 0;
-    while (count < MAX_LEGS && document.getElementById(`leg-row-${count}`)) {
+    while (count < MAX_LEGS && document.getElementById(`${DOM.LEG_ROW_PREFIX}-${count}`)) {
       count++;
     }
     return Math.max(count, 1); // at least 1 leg even if leg-row-0 missing
@@ -187,11 +219,11 @@ const TradeDetector = (() => {
 
   function getLegParams(legIndex) {
     return {
-      action: getDropdownValue(`#action_dropdown-${legIndex} .binding-val`),
-      quantity: getInputValue(`#quantity-${legIndex}`),
+      action: getDropdownValue(`${DOM.LEG_ACTION_SEL_BASE}-${legIndex} .binding-val`),
+      quantity: getInputValue(`${DOM.LEG_QTY_SEL_BASE}-${legIndex}`),
       callPut: getCallPut(legIndex),
-      expiration: getDropdownValue(`#exp_dropdown-${legIndex} .binding-val`),
-      strike: getDropdownValue(`#strike_dropdown-${legIndex} .binding-val`)
+      expiration: getDropdownValue(`${DOM.LEG_EXP_SEL_BASE}-${legIndex} .binding-val`),
+      strike: getDropdownValue(`${DOM.LEG_STRIKE_SEL_BASE}-${legIndex} .binding-val`)
     };
   }
 
@@ -202,10 +234,10 @@ const TradeDetector = (() => {
   // --- Options trade params (all legs) ---
 
   function getOptionsTradeParams() {
-    const symbol = getInputValue('#symbol_search').toUpperCase();
-    const limitPrice = getInputValue('#dest-limitPrice');
-    const orderType = getDropdownValue('#ordertype-dropdown .binding-val');
-    const tradeType = getDropdownValue('#tradeType_dropdown .binding-val');
+    const symbol = getInputValue(DOM.OPT_SYMBOL).toUpperCase();
+    const limitPrice = getInputValue(DOM.OPT_LIMIT_PRICE);
+    const orderType = getDropdownValue(DOM.OPT_ORDER_TYPE);
+    const tradeType = getDropdownValue(DOM.OPT_TRADE_TYPE);
     const legCount = getLegCount();
 
     const legs = [];
@@ -221,15 +253,15 @@ const TradeDetector = (() => {
   // --- Equity trade params ---
 
   function getEquityTradeParams() {
-    const container = DOM.EQUITY_CONTAINER;
-    const symbol = getInputValue(`${container} #eq-ticket-dest-symbol`);
-    const action = getDropdownValue(`${container} #dest-dropdownlist-button-action .selected-dropdown-item`) ||
-                   getDropdownValue(`${container} #selected-dropdown-itemaction`);
-    const quantity = getInputValue(`${container} #eqt-shared-quantity`);
-    const orderType = getDropdownValue(`${container} #dest-dropdownlist-button-ordertype .selected-dropdown-item`) ||
-                      getDropdownValue(`${container} #selected-dropdown-itemordertype`);
-    const limitPrice = getInputValue(`${container} #eqt-shared-limit-price`) ||
-                       getInputValue(`${container} #dest-limitPrice`);
+    const c = DOM.EQUITY_CONTAINER;
+    const symbol = getInputValue(`${c} ${DOM.EQ_SYMBOL}`);
+    const action = getDropdownValue(`${c} ${DOM.EQ_ACTION_PRIMARY}`) ||
+                   getDropdownValue(`${c} ${DOM.EQ_ACTION_FALLBACK}`);
+    const quantity = getInputValue(`${c} ${DOM.EQ_QTY}`);
+    const orderType = getDropdownValue(`${c} ${DOM.EQ_ORDER_TYPE_PRIMARY}`) ||
+                      getDropdownValue(`${c} ${DOM.EQ_ORDER_TYPE_FALLBACK}`);
+    const limitPrice = getInputValue(`${c} ${DOM.EQ_LIMIT_PRIMARY}`) ||
+                       getInputValue(`${c} ${DOM.EQ_LIMIT_FALLBACK}`);
 
     return {
       symbol: symbol.toUpperCase(),
@@ -466,14 +498,22 @@ const TradeDetector = (() => {
     // (e.g. typing a quantity or limit price) doesn't fire multiple redundant
     // check() calls within a single 50ms window. The debounce inside check()
     // still guards the actual API call regardless.
+    // IDs are derived from DOM selector constants by stripping the leading '#'.
+    const OPT_LIMIT_ID  = DOM.OPT_LIMIT_PRICE.slice(1);   // 'dest-limitPrice'
+    const OPT_SYM_ID    = DOM.OPT_SYMBOL.slice(1);         // 'symbol_search'
+    const EQ_SYM_ID     = DOM.EQ_SYMBOL.slice(1);          // 'eq-ticket-dest-symbol'
+    const EQ_QTY_ID     = DOM.EQ_QTY.slice(1);             // 'eqt-shared-quantity'
+    const EQ_LIMIT_ID   = DOM.EQ_LIMIT_PRIMARY.slice(1);   // 'eqt-shared-limit-price'
+    const LEG_QTY_BASE  = DOM.LEG_QTY_SEL_BASE.slice(1);  // 'quantity' (quantity-{i})
+    const legQtyRe = new RegExp(`^${LEG_QTY_BASE}-\\d+$`);
     inputListener = (e) => {
       const id = e.target?.id ?? '';
-      if (/^quantity-\d+$/.test(id) ||
-          id === 'dest-limitPrice' ||
-          id === 'eqt-shared-quantity' ||
-          id === 'eqt-shared-limit-price' ||
-          id === 'eq-ticket-dest-symbol' ||
-          id === 'symbol_search') {
+      if (legQtyRe.test(id) ||
+          id === OPT_LIMIT_ID ||
+          id === EQ_QTY_ID ||
+          id === EQ_LIMIT_ID ||
+          id === EQ_SYM_ID ||
+          id === OPT_SYM_ID) {
         scheduleCheck();
       }
     };
