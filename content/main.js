@@ -312,8 +312,8 @@
           const prevDebounceMs = settings.debounceMs;
           settings = { ...settings, ...changes[STORAGE_KEY_SETTINGS].newValue };
           // Clamp debounceMs to a safe minimum to prevent runaway polling from corrupted storage
-          if (typeof settings.debounceMs !== 'number' || !Number.isFinite(settings.debounceMs) || settings.debounceMs < 100) {
-            settings.debounceMs = 100;
+          if (typeof settings.debounceMs !== 'number' || !Number.isFinite(settings.debounceMs) || settings.debounceMs < FMC_CONSTANTS.MIN_DEBOUNCE_MS) {
+            settings.debounceMs = FMC_CONSTANTS.MIN_DEBOUNCE_MS;
           }
           MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
           log('Settings updated:', settings);
