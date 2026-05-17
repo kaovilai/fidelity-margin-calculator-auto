@@ -320,6 +320,10 @@ const TradeDetector = (() => {
 
   function observe(callback, debounceMs = 500) {
     if (observer) observer.disconnect();
+    // Cancel any pending debounce from a previous observe() call so the old
+    // callback cannot fire after the observer is replaced.
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
     // Remove previous input listener to avoid stacking listeners across re-init
     if (inputListener) {
       document.removeEventListener('input', inputListener, true);
