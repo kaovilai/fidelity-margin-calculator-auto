@@ -204,7 +204,7 @@
         apiCallCount++;
         projectedData = await MarginAPI.fetchMarginCalc(accountNum, orders, (attempt, max, delay) => {
           MarginInjector.showLoading();
-          log('Projected retry ' + attempt + '/' + max + ' in ' + delay + 'ms');
+          log(`Projected retry ${attempt}/${max} in ${delay}ms`);
         }, priceList);
         if (requestId !== currentRequest) return;
         await setCache(projectedKey, projectedData, PROJECTED_TTL);

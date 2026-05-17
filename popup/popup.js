@@ -10,16 +10,16 @@
   // Mask account number for privacy: Z2...8273
   function maskAccount(acct) {
     if (!acct || acct.length < 6) return acct || '--';
-    return acct.slice(0, 2) + '...' + acct.slice(-4);
+    return `${acct.slice(0, 2)}...${acct.slice(-4)}`;
   }
 
   function timeAgo(ts) {
     if (!ts) return '--';
     const diff = Math.floor((Date.now() - ts) / 1000);
     if (diff < 5) return 'just now';
-    if (diff < 60) return diff + 's ago';
-    if (diff < 3600) return Math.floor(diff / 60) + 'min ago';
-    return Math.floor(diff / 3600) + 'h ago';
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}min ago`;
+    return `${Math.floor(diff / 3600)}h ago`;
   }
 
   // --- Status display ---
@@ -42,7 +42,7 @@
       textEl.textContent = status.state === 'active' ? 'Active' :
                            status.state === 'error' ? 'Error' : 'Inactive';
     }
-    if (dotEl) dotEl.className = 'status-dot ' + (status.state || 'inactive');
+    if (dotEl) dotEl.className = `status-dot ${status.state || 'inactive'}`;
 
     if (acctEl) acctEl.textContent = maskAccount(status.accountNum);
     if (calcEl) calcEl.textContent = timeAgo(status.lastCalcTime);
@@ -87,7 +87,7 @@
     // Version
     const manifest = chrome.runtime.getManifest();
     const versionEl = document.getElementById('version');
-    if (versionEl) versionEl.textContent = 'v' + manifest.version;
+    if (versionEl) versionEl.textContent = `v${manifest.version}`;
 
     // Load current status
     chrome.storage.local.get('fmc_status').then((result) => {

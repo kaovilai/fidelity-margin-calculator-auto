@@ -108,7 +108,7 @@ const MarginInjector = (() => {
 
     // Wire debug button
     const debugBtn = panel.querySelector('.fmc-debug-btn');
-    const debugLogEl = panel.querySelector('#' + EL_ID.DEBUG_LOG);
+    const debugLogEl = panel.querySelector(`#${EL_ID.DEBUG_LOG}`);
     if (debugBtn && debugLogEl) {
       debugBtn.addEventListener('click', () => {
         const visible = debugLogEl.style.display !== 'none';
@@ -137,8 +137,8 @@ const MarginInjector = (() => {
   function getPanelElements(panel) {
     return {
       body: panel.querySelector('.fmc-panel-body'),
-      loading: panel.querySelector('#' + EL_ID.LOADING),
-      error: panel.querySelector('#' + EL_ID.ERROR)
+      loading: panel.querySelector(`#${EL_ID.LOADING}`),
+      error: panel.querySelector(`#${EL_ID.ERROR}`)
     };
   }
 
@@ -211,21 +211,20 @@ const MarginInjector = (() => {
     panel.setAttribute('data-fmc-status', status);
 
     // Column 1: Margin Credit/Debit + delta sublabel
-    const creditDebitEl = panel.querySelector('#' + EL_ID.CREDIT_DEBIT);
-    const creditDebitLabel = panel.querySelector('#' + EL_ID.CREDIT_DEBIT_LABEL);
-    const deltaEl = panel.querySelector('#' + EL_ID.DELTA);
+    const creditDebitEl = panel.querySelector(`#${EL_ID.CREDIT_DEBIT}`);
+    const creditDebitLabel = panel.querySelector(`#${EL_ID.CREDIT_DEBIT_LABEL}`);
+    const deltaEl = panel.querySelector(`#${EL_ID.DELTA}`);
     if (creditDebitLabel) {
       creditDebitLabel.textContent = impact.projectedCreditDebit >= 0 ? 'Margin Credit' : 'Margin Debit';
     }
     if (creditDebitEl) {
       creditDebitEl.textContent = formatCurrency(impact.projectedCreditDebit);
-      creditDebitEl.className = 'fmc-value fmc-status-' + status;
+      creditDebitEl.className = `fmc-value fmc-status-${status}`;
     }
     if (deltaEl) {
       if (impact.delta !== null) {
-        deltaEl.textContent = formatDelta(impact.delta) + ' from current';
-        deltaEl.className = 'fmc-sublabel ' +
-          (impact.delta < 0 ? 'fmc-negative' : impact.delta > 0 ? 'fmc-positive' : '');
+        deltaEl.textContent = `${formatDelta(impact.delta)} from current`;
+        deltaEl.className = `fmc-sublabel ${impact.delta < 0 ? 'fmc-negative' : impact.delta > 0 ? 'fmc-positive' : ''}`.trimEnd();
       } else {
         deltaEl.textContent = 'projected with trade';
         deltaEl.className = 'fmc-sublabel';
@@ -233,25 +232,23 @@ const MarginInjector = (() => {
     }
 
     // Column 2: Cash Withdrawable
-    const cashEl = panel.querySelector('#' + EL_ID.CASH_WITHDRAWABLE);
+    const cashEl = panel.querySelector(`#${EL_ID.CASH_WITHDRAWABLE}`);
     if (cashEl) {
       cashEl.textContent = formatCurrency(impact.cashWithdrawable);
-      cashEl.className = 'fmc-value ' +
-        (impact.cashWithdrawable > 0 ? 'fmc-status-' + STATUS.CREDIT : 'fmc-neutral');
+      cashEl.className = `fmc-value ${impact.cashWithdrawable > 0 ? `fmc-status-${STATUS.CREDIT}` : 'fmc-neutral'}`;
     }
 
     // Column 3: Buying Power
-    const bpEl = panel.querySelector('#' + EL_ID.BUYING_POWER);
+    const bpEl = panel.querySelector(`#${EL_ID.BUYING_POWER}`);
     if (bpEl) {
       bpEl.textContent = formatCurrency(impact.projectedBuyingPower);
-      bpEl.className = 'fmc-value ' +
-        (impact.projectedBuyingPower > 0 ? 'fmc-status-' + STATUS.CREDIT : 'fmc-status-' + STATUS.DEBIT);
+      bpEl.className = `fmc-value ${impact.projectedBuyingPower > 0 ? `fmc-status-${STATUS.CREDIT}` : `fmc-status-${STATUS.DEBIT}`}`;
     }
   }
 
   function addDebugLog(entry) {
     const ts = new Date().toLocaleTimeString();
-    debugLog.push('[' + ts + '] ' + entry);
+    debugLog.push(`[${ts}] ${entry}`);
     if (debugLog.length > MAX_LOG) debugLog.shift();
     // Update visible log if open
     const logEl = document.getElementById(EL_ID.DEBUG_LOG);
