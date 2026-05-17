@@ -322,6 +322,7 @@ const TradeDetector = (() => {
   let observer = null;
   let debounceTimer = null;
   let inputListener = null;
+  let throttleTimer = null; // throttles MutationObserver → check() to reduce DOM queries
 
   function observe(callback, debounceMs = 500) {
     if (observer) observer.disconnect();
@@ -329,6 +330,8 @@ const TradeDetector = (() => {
     // callback cannot fire after the observer is replaced.
     clearTimeout(debounceTimer);
     debounceTimer = null;
+    clearTimeout(throttleTimer);
+    throttleTimer = null;
     // Remove previous input listener to avoid stacking listeners across re-init
     if (inputListener) {
       document.removeEventListener('input', inputListener, true);
@@ -375,7 +378,17 @@ const TradeDetector = (() => {
     }
 
     if (!document.body) return;
-    observer = new MutationObserver(() => check());
+    // Throttle MutationObserver callbacks: Fidelity is an Angular SPA that
+    // produces hundreds of mutations per second during navigation and rendering.
+    // Running check() on every mutation wastes CPU — 50ms throttle keeps the UI
+    // responsive while avoiding redundant DOM queries between mutations.
+    observer = new MutationObserver(() => {
+      if (throttleTimer) return;
+      throttleTimer = setTimeout(() => {
+        throttleTimer = null;
+        check();
+      }, 50);
+    });
     observer.observe(document.body, {
       childList: true,
       subtree: true,
@@ -411,6 +424,8 @@ const TradeDetector = (() => {
       inputListener = null;
     }
     clearTimeout(debounceTimer);
+    clearTimeout(throttleTimer);
+    throttleTimer = null;
   }
 
   return {
