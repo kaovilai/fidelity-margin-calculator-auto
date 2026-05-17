@@ -57,6 +57,7 @@
   // --- Settings ---
   async function loadSettings() {
     if (!chrome.storage?.sync) {
+      log('Warning: chrome.storage.sync unavailable — using default settings');
       MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
       return;
     }
