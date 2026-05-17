@@ -127,6 +127,7 @@
 
     if (!MarginInjector.getPanel()) {
       if (!MarginInjector.inject()) {
+        log('Warning: injection target (#mxregin) not found in page DOM — Fidelity layout may have changed');
         return;
       }
     }
@@ -151,7 +152,19 @@
       let priceList = await getCached(priceListKey);
       if (!priceList) {
         log('Fetching positions for', accountNum);
-        priceList = await PositionsAPI.fetchPriceList(accountNum);
+        try {
+          priceList = await PositionsAPI.fetchPriceList(accountNum);
+        } catch (posErr) {
+          if (requestId !== currentRequest) return;
+          const isSessionErr = posErr.type === 'SESSION_EXPIRED';
+          const msg = isSessionErr
+            ? 'Session expired. Please refresh the page.'
+            : (posErr.message || 'Unable to fetch account positions.');
+          MarginInjector.showError(msg, !isSessionErr);
+          setBadge('!', isSessionErr ? '#f5a623' : '#c41200');
+          reportStatus('error', { lastError: msg });
+          return;
+        }
         if (requestId !== currentRequest) return;
         if (priceList.length > 0) {
           await setCache(priceListKey, priceList, PRICELIST_TTL);
