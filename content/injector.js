@@ -79,13 +79,14 @@ const MarginInjector = (() => {
     panel.setAttribute('data-fmc-state', PANEL_STATE.LOADING);
     panel.setAttribute('role', 'region');
     panel.setAttribute('aria-label', 'Margin Impact');
+    panel.setAttribute('aria-busy', 'true');
 
     // Panel body — three data columns
     const body = mkEl('div', { className: 'fmc-panel-body' },
       mkEl('div', { className: 'fmc-col', role: 'group', 'aria-labelledby': EL_ID.CREDIT_DEBIT_LABEL },
-        mkEl('span', { className: 'fmc-label', id: EL_ID.CREDIT_DEBIT_LABEL, textContent: 'Margin Credit/Debit' }),
+        mkEl('span', { className: 'fmc-label', id: EL_ID.CREDIT_DEBIT_LABEL, 'aria-live': 'polite', 'aria-atomic': 'true', textContent: 'Margin Credit/Debit' }),
         mkEl('span', { className: 'fmc-value', id: EL_ID.CREDIT_DEBIT, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.CREDIT_DEBIT_LABEL, textContent: '--' }),
-        mkEl('span', { className: 'fmc-sublabel', id: EL_ID.DELTA })
+        mkEl('span', { className: 'fmc-sublabel', id: EL_ID.DELTA, 'aria-live': 'polite', 'aria-atomic': 'true' })
       ),
       mkEl('div', { className: 'fmc-col', role: 'group', 'aria-labelledby': EL_ID.CASH_WITHDRAWABLE_LABEL },
         mkEl('span', { className: 'fmc-label', id: EL_ID.CASH_WITHDRAWABLE_LABEL, textContent: 'Cash Withdrawable' }),
@@ -214,8 +215,8 @@ const MarginInjector = (() => {
     const panel = getPanel();
     if (!panel) return;
     panel.setAttribute('data-fmc-state', PANEL_STATE.LOADING);
+    panel.setAttribute('aria-busy', 'true');
     const { body, loading, error } = getPanelElements(panel);
-    // Reset display in case a prior showError() hid the body
     if (body) { body.style.display = ''; body.style.opacity = '0.5'; }
     if (loading) loading.style.display = 'flex';
     if (error) error.style.display = 'none';
@@ -225,6 +226,7 @@ const MarginInjector = (() => {
     const panel = getPanel();
     if (!panel) return;
     panel.setAttribute('data-fmc-state', PANEL_STATE.ERROR);
+    panel.setAttribute('aria-busy', 'false');
     const { body, loading, error } = getPanelElements(panel);
     if (body) body.style.display = 'none';
     if (loading) loading.style.display = 'none';
@@ -245,6 +247,7 @@ const MarginInjector = (() => {
     const panel = getPanel();
     if (!panel) return;
     panel.setAttribute('data-fmc-state', PANEL_STATE.RESULT);
+    panel.setAttribute('aria-busy', 'false');
 
     const { body, loading, error } = getPanelElements(panel);
     if (body) { body.style.display = ''; body.style.opacity = ''; }
