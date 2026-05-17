@@ -52,6 +52,10 @@
 
   // --- Settings ---
   async function loadSettings() {
+    if (!chrome.storage?.sync) {
+      console.warn('[FMC-Popup] chrome.storage.sync unavailable — using default settings');
+      return;
+    }
     try {
       const result = await chrome.storage.sync.get(STORAGE_KEY_SETTINGS);
       const s = { ...DEFAULT_SETTINGS, ...result[STORAGE_KEY_SETTINGS] };
@@ -67,6 +71,7 @@
   }
 
   function saveSettings() {
+    if (!chrome.storage?.sync) return;
     const enabledEl = document.getElementById('setting-enabled');
     const thresholdEl = document.getElementById('setting-threshold');
     const debounceEl = document.getElementById('setting-debounce');
@@ -91,17 +96,21 @@
     if (versionEl) versionEl.textContent = `v${manifest.version}`;
 
     // Load current status
-    try {
-      const result = await chrome.storage.local.get(STORAGE_KEY_STATUS);
-      updateStatus(result[STORAGE_KEY_STATUS]);
-    } catch { /* storage unavailable */ }
+    if (chrome.storage?.local) {
+      try {
+        const result = await chrome.storage.local.get(STORAGE_KEY_STATUS);
+        updateStatus(result[STORAGE_KEY_STATUS]);
+      } catch { /* storage unavailable */ }
+    }
 
     // Live status updates
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area === 'local' && changes[STORAGE_KEY_STATUS]) {
-        updateStatus(changes[STORAGE_KEY_STATUS].newValue);
-      }
-    });
+    if (chrome.storage?.onChanged) {
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local' && changes[STORAGE_KEY_STATUS]) {
+          updateStatus(changes[STORAGE_KEY_STATUS].newValue);
+        }
+      });
+    }
 
     // Load settings
     await loadSettings();
