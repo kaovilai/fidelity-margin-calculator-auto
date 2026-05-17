@@ -8,6 +8,11 @@
   const BADGE_COLOR_WARNING = '#f5a623';
   const BG_MESSAGE_TIMEOUT_MS = 3000;
 
+  const CACHE_KEY = {
+    PRICELIST: 'pricelist:',
+    PROJECTED: 'projected:'
+  };
+
   let currentRequest = 0;
   let lastAccountNum = null;
   let lastOrders = null;
@@ -159,7 +164,7 @@
       }
 
       // Fetch priceList from portfolio API (cached)
-      const priceListKey = `pricelist:${accountNum}`;
+      const priceListKey = `${CACHE_KEY.PRICELIST}${accountNum}`;
       let priceList = await getCached(priceListKey);
       if (!priceList) {
         log('Fetching positions for', accountNum);
@@ -192,7 +197,7 @@
       }
 
       // Fetch projected margin (cached by orders hash)
-      const projectedKey = `projected:${accountNum}:${hashOrders(orders)}`;
+      const projectedKey = `${CACHE_KEY.PROJECTED}${accountNum}:${hashOrders(orders)}`;
       let projectedData = await getCached(projectedKey);
       if (!projectedData) {
         log('Fetching projected margin for', orders);
@@ -263,8 +268,8 @@
             lastResult = null;
             if (lastAccountNum) {
               await Promise.all([
-                invalidateCache(`pricelist:${lastAccountNum}`),
-                invalidateCache(`projected:${lastAccountNum}`)
+                invalidateCache(`${CACHE_KEY.PRICELIST}${lastAccountNum}`),
+                invalidateCache(`${CACHE_KEY.PROJECTED}${lastAccountNum}`)
               ]);
             }
             if (lastAccountNum && lastOrders) {
@@ -315,8 +320,8 @@
                 accountNum: event.accountNum,
                 previousAccountNum
               });
-              invalidateCache(`pricelist:${previousAccountNum}`);
-              invalidateCache(`projected:${previousAccountNum}`);
+              invalidateCache(`${CACHE_KEY.PRICELIST}${previousAccountNum}`);
+              invalidateCache(`${CACHE_KEY.PROJECTED}${previousAccountNum}`);
               lastResult = null;
             }
             previousAccountNum = event.accountNum;
