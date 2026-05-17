@@ -4,8 +4,7 @@
 (() => {
   const LOG_PREFIX = '[FMC-BG]';
   const MAX_CACHE_ENTRIES = 50;
-  const DEFAULT_BASELINE_TTL = 60000;
-  const DEFAULT_PROJECTED_TTL = 30000;
+  const DEFAULT_CACHE_TTL = 60000;
   const MIN_API_INTERVAL = 2000;
 
   // --- In-memory cache (lost on service worker termination — by design) ---
@@ -102,7 +101,7 @@
         return false;
 
       case 'CACHE_SET':
-        sendResponse(cacheSet(msg.payload.key, msg.payload.data, msg.payload.ttl || DEFAULT_BASELINE_TTL));
+        sendResponse(cacheSet(msg.payload.key, msg.payload.data, msg.payload.ttl || DEFAULT_CACHE_TTL));
         return false;
 
       case 'CACHE_INVALIDATE':
