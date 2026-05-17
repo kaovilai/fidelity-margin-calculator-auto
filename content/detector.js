@@ -368,6 +368,10 @@ const TradeDetector = (() => {
         // Cancel pending 'ready' debounce — form is no longer complete.
         clearTimeout(debounceTimer);
         debounceTimer = null;
+        // Reset fingerprint so that if the user restores the form to the exact
+        // same state, the equality check below doesn't suppress the new 'ready'
+        // event and the calculation re-fires correctly.
+        lastFingerprint = '';
         if (lastEventType !== 'incomplete') {
           lastEventType = 'incomplete';
           try { callback({ type: 'incomplete' }); } catch (e) { console.error('[FMC] observer callback error:', e); }
@@ -382,6 +386,12 @@ const TradeDetector = (() => {
 
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
+        // Re-check context inside the callback: if the trade ticket was closed or
+        // its type changed during the debounce window without producing a mutation
+        // (e.g. a rapid open/close cycle), skip the stale event.  A fresh check()
+        // will be triggered by the next mutation to handle the new state.
+        const currentCtx = detectPageContext();
+        if (currentCtx !== ctx) return;
         try {
           callback({
             type: 'ready',
