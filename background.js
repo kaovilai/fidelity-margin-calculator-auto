@@ -138,7 +138,7 @@ importScripts('/lib/constants.js');
         const badgeTarget = tabId !== undefined ? { tabId } : {};
         if (msg.payload?.text) {
           chrome.action?.setBadgeText({ text: msg.payload.text, ...badgeTarget });
-          chrome.action?.setBadgeBackgroundColor({ color: msg.payload.color || '#c41200', ...badgeTarget });
+          chrome.action?.setBadgeBackgroundColor({ color: msg.payload.color || FMC_CONSTANTS.BADGE_COLORS.ERROR, ...badgeTarget });
         } else {
           chrome.action?.setBadgeText({ text: '', ...badgeTarget });
         }
