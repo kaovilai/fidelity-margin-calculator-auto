@@ -228,6 +228,10 @@
           MarginInjector.showError(msg, !isSessionErr);
           setBadge('!', isSessionErr ? BADGE_COLOR_WARNING : BADGE_COLOR_ERROR);
           reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: msg });
+          return;
+        }
+        if (requestId !== currentRequest) return;
+        if (priceList.length > 0) {
           await setCache(priceListKey, priceList, PRICELIST_TTL);
         } else {
           log('Warning: no positions found — margin API requires existing positions');
@@ -291,6 +295,10 @@
 
       MarginInjector.showError(msg, !isSessionError);
       reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: msg });
+    }
+  }
+
+  async function init() {
     log('Initializing...');
 
     // Wire retry button
