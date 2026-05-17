@@ -113,11 +113,12 @@
 
     // Force recalculate
     document.getElementById('btn-refresh').addEventListener('click', () => {
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
         if (tabs[0]) {
-          chrome.tabs.sendMessage(tabs[0].id, { type: 'FORCE_RECALC', _fmc: true });
+          chrome.tabs.sendMessage(tabs[0].id, { type: 'FORCE_RECALC', _fmc: true })
+            .catch(() => {}); // Content script may not be loaded on this tab — ignore
         }
-      });
+      }).catch(() => {});
     });
   }
 
