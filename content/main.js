@@ -22,6 +22,22 @@
 
   // Fallback in-memory cache when background is unavailable
   let fallbackCache = {};
+  const FALLBACK_CACHE_MAX = 30;
+
+  // Remove expired entries from fallbackCache to prevent memory growth over long sessions.
+  // Also evicts oldest entry if the cache exceeds FALLBACK_CACHE_MAX entries.
+  function cleanFallbackCache() {
+    const now = Date.now();
+    for (const key of Object.keys(fallbackCache)) {
+      if (now >= fallbackCache[key].expires) delete fallbackCache[key];
+    }
+    const keys = Object.keys(fallbackCache);
+    if (keys.length > FALLBACK_CACHE_MAX) {
+      // Evict the entry with the earliest expiry
+      keys.sort((a, b) => fallbackCache[a].expires - fallbackCache[b].expires);
+      delete fallbackCache[keys[0]];
+    }
+  }
 
   function log(...args) {
     console.log(LOG_PREFIX, ...args);
@@ -108,6 +124,7 @@
 
   async function setCache(key, data, ttl) {
     fallbackCache[key] = { data, expires: Date.now() + ttl };
+    cleanFallbackCache();
     await sendToBackground('CACHE_SET', { key, data, ttl });
   }
 
@@ -277,6 +294,7 @@
             }
           })().catch(err => log('Error during force-recalc:', err));
         }
+        return false; // no async response needed — close port immediately
       });
     }
 
