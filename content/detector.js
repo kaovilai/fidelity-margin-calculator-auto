@@ -320,7 +320,9 @@ const TradeDetector = (() => {
 
     if (ctx === CTX.POPUP_EQUITY) {
       const p = getEquityTradeParams();
-      return !!(p.symbol && p.action && p.quantity);
+      // Limit orders require a price — submitting with price=0 produces wrong margin results
+      const isLimit = p.orderType && p.orderType.toLowerCase().includes('limit');
+      return !!(p.symbol && p.action && p.quantity && (!isLimit || p.limitPrice));
     }
 
     // Options — need symbol, price, and at least one complete leg
@@ -338,7 +340,7 @@ const TradeDetector = (() => {
 
     if (ctx === CTX.POPUP_EQUITY) {
       const p = getEquityTradeParams();
-      return `EQ|${p.symbol}|${p.action}|${p.quantity}|${p.limitPrice}`;
+      return `EQ|${p.symbol}|${p.action}|${p.quantity}|${p.orderType}|${p.limitPrice}`;
     }
 
     const p = getOptionsTradeParams();
