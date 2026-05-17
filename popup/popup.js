@@ -12,7 +12,7 @@
   }
 
   function timeAgo(ts) {
-    if (!ts) return '--';
+    if (ts == null) return '--';
     const diff = Math.floor((Date.now() - ts) / 1000);
     if (diff < 5) return 'just now';
     if (diff < 60) return `${diff}s ago`;
