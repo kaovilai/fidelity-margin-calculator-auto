@@ -1,6 +1,8 @@
 // Background service worker — cache manager, rate limiter, account tracker
 // API calls stay in content scripts (same-origin cookies); background coordinates.
 
+importScripts('/lib/constants.js');
+
 (() => {
   const LOG_PREFIX = '[FMC-BG]';
   const MAX_CACHE_ENTRIES = 50;
@@ -85,8 +87,8 @@
     tabAccounts.set(tabId, accountNum);
     if (previousAccountNum && previousAccountNum !== accountNum) {
       // Invalidate cache for old account
-      cacheInvalidate(null, `pricelist:${previousAccountNum}`);
-      cacheInvalidate(null, `projected:${previousAccountNum}`);
+      cacheInvalidate(null, `${FMC_CONSTANTS.CACHE_KEY_PREFIX.PRICELIST}${previousAccountNum}`);
+      cacheInvalidate(null, `${FMC_CONSTANTS.CACHE_KEY_PREFIX.PROJECTED}${previousAccountNum}`);
       log('Account switched', previousAccountNum, '->', accountNum, '- cache cleared');
     }
     return { ok: true };
