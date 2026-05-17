@@ -3,8 +3,7 @@
   const DEFAULT_SETTINGS = {
     enabled: true,
     debitWarningThreshold: 500,
-    debounceMs: 500,
-    autoRefreshBaseline: true
+    debounceMs: 500
   };
 
   const STORAGE_KEY_SETTINGS = 'fmc_settings';
@@ -63,7 +62,6 @@
       document.getElementById('setting-enabled').checked = s.enabled;
       document.getElementById('setting-threshold').value = s.debitWarningThreshold;
       document.getElementById('setting-debounce').value = String(s.debounceMs);
-      document.getElementById('setting-auto-refresh').checked = s.autoRefreshBaseline;
     } catch { /* storage unavailable — keep HTML defaults */ }
   }
 
@@ -71,15 +69,13 @@
     const enabledEl = document.getElementById('setting-enabled');
     const thresholdEl = document.getElementById('setting-threshold');
     const debounceEl = document.getElementById('setting-debounce');
-    const autoRefreshEl = document.getElementById('setting-auto-refresh');
-    if (!enabledEl || !thresholdEl || !debounceEl || !autoRefreshEl) return;
+    if (!enabledEl || !thresholdEl || !debounceEl) return;
     const threshold = parseInt(thresholdEl.value, 10);
     const debounce = parseInt(debounceEl.value, 10);
     const settings = {
       enabled: enabledEl.checked,
       debitWarningThreshold: Number.isFinite(threshold) ? threshold : 500,
-      debounceMs: Number.isFinite(debounce) && debounce > 0 ? debounce : 500,
-      autoRefreshBaseline: autoRefreshEl.checked
+      debounceMs: Number.isFinite(debounce) && debounce > 0 ? debounce : 500
     };
     chrome.storage.sync.set({ [STORAGE_KEY_SETTINGS]: settings }).catch((err) => {
       console.warn('[FMC-Popup] Could not save settings:', err.message);
@@ -110,7 +106,7 @@
     await loadSettings();
 
     // Settings change handlers
-    const settingIds = ['setting-enabled', 'setting-threshold', 'setting-debounce', 'setting-auto-refresh'];
+    const settingIds = ['setting-enabled', 'setting-threshold', 'setting-debounce'];
     for (const id of settingIds) {
       const el = document.getElementById(id);
       if (el) el.addEventListener('change', saveSettings);
