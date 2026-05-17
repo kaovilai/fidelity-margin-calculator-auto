@@ -80,7 +80,7 @@
     const debounce = parseInt(debounceEl.value, 10);
     const settings = {
       enabled: enabledEl.checked,
-      debitWarningThreshold: Number.isFinite(threshold) ? threshold : DEFAULT_SETTINGS.debitWarningThreshold,
+      debitWarningThreshold: Number.isFinite(threshold) ? Math.max(0, threshold) : DEFAULT_SETTINGS.debitWarningThreshold,
       debounceMs: Number.isFinite(debounce) && debounce >= FMC_CONSTANTS.MIN_DEBOUNCE_MS ? debounce : DEFAULT_SETTINGS.debounceMs
     };
     chrome.storage.sync.set({ [STORAGE_KEY_SETTINGS]: settings }).catch((err) => {

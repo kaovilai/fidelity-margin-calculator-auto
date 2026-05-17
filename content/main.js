@@ -51,10 +51,14 @@
   function log(...args) {
     console.log(LOG_PREFIX, ...args);
     if (typeof MarginInjector !== 'undefined' && MarginInjector.addDebugLog) {
+      const MAX_ENTRY_LEN = 500;
       MarginInjector.addDebugLog(args.map(a => {
         if (a instanceof Error) return a.message + (a.stack ? '\n' + a.stack : '');
         if (typeof a !== 'object') return String(a);
-        try { return JSON.stringify(a); } catch { return '[unserializable object]'; }
+        try {
+          const s = JSON.stringify(a);
+          return s.length > MAX_ENTRY_LEN ? s.slice(0, MAX_ENTRY_LEN) + '…' : s;
+        } catch { return '[unserializable object]'; }
       }).join(' '));
     }
   }
@@ -63,19 +67,18 @@
   async function loadSettings() {
     if (!chrome.storage?.sync) {
       log('Warning: chrome.storage.sync unavailable — using default settings');
-      MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
-      return;
-    }
-    try {
-      const result = await chrome.storage.sync.get(STORAGE_KEY_SETTINGS);
-      if (result[STORAGE_KEY_SETTINGS]) {
-        settings = { ...settings, ...result[STORAGE_KEY_SETTINGS] };
+    } else {
+      try {
+        const result = await chrome.storage.sync.get(STORAGE_KEY_SETTINGS);
+        if (result[STORAGE_KEY_SETTINGS]) {
+          settings = { ...settings, ...result[STORAGE_KEY_SETTINGS] };
+        }
+      } catch (err) {
+        log('Warning: could not load settings:', err.message);
       }
-    } catch (err) {
-      log('Warning: could not load settings:', err.message);
     }
-    // Clamp debounceMs on load — same guard as in the onChanged listener.
-    // Corrupted or pre-guard stored values would otherwise bypass MIN_DEBOUNCE_MS.
+    // Always clamp debounceMs — guards against corrupted/pre-guard stored values
+    // and future changes to DEFAULT_SETTINGS.debounceMs below MIN_DEBOUNCE_MS.
     settings.debounceMs = clampDebounceMs(settings.debounceMs);
     MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
   }
