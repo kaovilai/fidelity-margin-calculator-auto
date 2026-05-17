@@ -296,7 +296,7 @@
     // Listen for force-recalc from popup
     if (chrome.runtime?.onMessage) {
       chrome.runtime.onMessage.addListener((msg, sender) => {
-        if (msg && msg._fmc && msg.type === 'FORCE_RECALC' && sender.id === chrome.runtime.id) {
+        if (msg && msg._fmc && msg.type === 'FORCE_RECALC' && chrome.runtime?.id && sender.id === chrome.runtime.id) {
           (async () => {
             fallbackCache = {};
             lastResult = null;
