@@ -274,9 +274,15 @@
     if (chrome.storage && chrome.storage.onChanged) {
       chrome.storage.onChanged.addListener((changes, area) => {
         if (area === 'sync' && changes.fmc_settings?.newValue) {
+          const wasEnabled = settings.enabled;
           settings = { ...settings, ...changes.fmc_settings.newValue };
           MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
           log('Settings updated:', settings);
+          // If the extension was just disabled, remove the panel immediately
+          // so stale margin data is not left visible to the user.
+          if (wasEnabled && !settings.enabled) {
+            MarginInjector.remove();
+          }
         }
       });
     }
