@@ -64,11 +64,16 @@
   }
 
   function saveSettings() {
+    const enabledEl = document.getElementById('setting-enabled');
+    const thresholdEl = document.getElementById('setting-threshold');
+    const debounceEl = document.getElementById('setting-debounce');
+    const autoRefreshEl = document.getElementById('setting-auto-refresh');
+    if (!enabledEl || !thresholdEl || !debounceEl || !autoRefreshEl) return;
     const settings = {
-      enabled: document.getElementById('setting-enabled').checked,
-      debitWarningThreshold: parseInt(document.getElementById('setting-threshold').value, 10) || 500,
-      debounceMs: parseInt(document.getElementById('setting-debounce').value, 10) || 500,
-      autoRefreshBaseline: document.getElementById('setting-auto-refresh').checked
+      enabled: enabledEl.checked,
+      debitWarningThreshold: parseInt(thresholdEl.value, 10) || 500,
+      debounceMs: parseInt(debounceEl.value, 10) || 500,
+      autoRefreshBaseline: autoRefreshEl.checked
     };
     chrome.storage.sync.set({ fmc_settings: settings }).catch((err) => {
       console.warn('[FMC-Popup] Could not save settings:', err.message);

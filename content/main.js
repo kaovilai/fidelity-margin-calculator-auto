@@ -275,6 +275,7 @@
       chrome.storage.onChanged.addListener((changes, area) => {
         if (area === 'sync' && changes.fmc_settings?.newValue) {
           const wasEnabled = settings.enabled;
+          const prevDebounceMs = settings.debounceMs;
           settings = { ...settings, ...changes.fmc_settings.newValue };
           MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
           log('Settings updated:', settings);
@@ -282,6 +283,10 @@
           // so stale margin data is not left visible to the user.
           if (wasEnabled && !settings.enabled) {
             MarginInjector.remove();
+          }
+          // Re-observe with new debounce so the change takes effect without a page reload
+          if (settings.debounceMs !== prevDebounceMs) {
+            TradeDetector.observe(tradeEventCallback, settings.debounceMs);
           }
         }
       });
@@ -291,7 +296,7 @@
     await loadSettings();
     let previousAccountNum = null;
 
-    TradeDetector.observe((event) => {
+    function tradeEventCallback(event) {
       switch (event.type) {
         case 'ready':
           if (!event.accountNum) {
@@ -321,7 +326,9 @@
         case 'incomplete':
           break;
       }
-    }, settings.debounceMs);
+    }
+
+    TradeDetector.observe(tradeEventCallback, settings.debounceMs);
   }
 
   if (document.readyState === 'loading') {
