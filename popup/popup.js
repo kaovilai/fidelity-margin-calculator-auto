@@ -106,9 +106,17 @@
     const toggle = document.getElementById('settings-toggle');
     const body = document.getElementById('settings-body');
     const arrow = document.getElementById('settings-arrow');
-    toggle.addEventListener('click', () => {
-      body.classList.toggle('collapsed');
+    function applyToggle() {
+      const isCollapsed = body.classList.toggle('collapsed');
       arrow.classList.toggle('collapsed');
+      toggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+    }
+    toggle.addEventListener('click', applyToggle);
+    toggle.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        applyToggle();
+      }
     });
 
     // Force recalculate

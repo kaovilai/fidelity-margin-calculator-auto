@@ -38,15 +38,16 @@
 
     <!-- Settings Section -->
     <div class="popup-section">
-      <div class="section-header" id="settings-toggle">
+      <div class="section-header" id="settings-toggle" role="button" tabindex="0"
+           aria-expanded="true" aria-controls="settings-body">
         <span>Settings</span>
         <span class="toggle-arrow" id="settings-arrow">&#9662;</span>
       </div>
       <div class="settings-body" id="settings-body">
         <div class="setting-row">
-          <span class="setting-label">Enabled</span>
+          <span class="setting-label" id="label-enabled">Enabled</span>
           <label class="switch">
-            <input type="checkbox" id="setting-enabled" checked>
+            <input type="checkbox" id="setting-enabled" checked aria-labelledby="label-enabled">
             <span class="slider"></span>
           </label>
         </div>
@@ -63,9 +64,9 @@
           </select>
         </div>
         <div class="setting-row">
-          <span class="setting-label">Auto-refresh baseline</span>
+          <span class="setting-label" id="label-auto-refresh">Auto-refresh baseline</span>
           <label class="switch">
-            <input type="checkbox" id="setting-auto-refresh" checked>
+            <input type="checkbox" id="setting-auto-refresh" checked aria-labelledby="label-auto-refresh">
             <span class="slider"></span>
           </label>
         </div>
