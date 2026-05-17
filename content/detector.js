@@ -102,8 +102,10 @@ const TradeDetector = (() => {
     const el = document.querySelector(DOM.EQUITY_CONTAINER + ' .selected-account-dropdown-label') ||
                document.querySelector(DOM.EQUITY_CONTAINER + ' #dest-acct-dropdown');
     if (!el) return null;
-    const match = el.textContent.match(/\(([A-Z0-9]+)\)/);
-    return match ? match[1] : null;
+    // Use [^)]+ to capture the full account identifier — avoids silent null returns
+    // if Fidelity account numbers ever contain lowercase letters or hyphens.
+    const match = el.textContent.match(/\(([^)]+)\)/);
+    return match ? match[1].trim() : null;
   }
 
   // --- Call/Put for leg N ---
@@ -125,7 +127,10 @@ const TradeDetector = (() => {
     if (!match) return '';
     const [, month, day, year] = match;
     const mm = MONTH_MAP[month];
-    if (!mm) return '';
+    if (!mm) {
+      console.warn('[FMC] Unrecognized month abbreviation in expiration — Fidelity may have changed format:', expStr);
+      return '';
+    }
     const yy = year.slice(2);
     const dd = day.padStart(2, '0');
     return yy + mm + dd;
@@ -149,7 +154,11 @@ const TradeDetector = (() => {
   }
 
   function mapAction(actionText) {
-    return ACTION_MAP[actionText] || '';
+    const mapped = ACTION_MAP[actionText];
+    if (!mapped && actionText) {
+      console.warn('[FMC] Unrecognized trade action — Fidelity may have added a new action type:', actionText);
+    }
+    return mapped || '';
   }
 
   // --- Multi-leg options extraction ---
@@ -243,7 +252,14 @@ const TradeDetector = (() => {
   function buildOptionsOrders() {
     const params = getOptionsTradeParams();
     const price = parseFloat(params.limitPrice);
-    if (isNaN(price)) return [];
+    if (isNaN(price)) {
+      // Only warn when the symbol is already set — unparseable price with a symbol present
+      // likely means a limit price selector stopped matching after a Fidelity page update.
+      if (params.symbol) {
+        console.warn('[FMC] Limit price is unparseable — selector may have changed:', params.limitPrice);
+      }
+      return [];
+    }
 
     const orders = [];
     for (const leg of params.legs) {
