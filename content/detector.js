@@ -356,6 +356,11 @@ const TradeDetector = (() => {
       if (!ctx) {
         // Clear fingerprint so same params re-trigger 'ready' after ticket reopens
         lastFingerprint = '';
+        // Cancel any pending debounced 'ready' callback — it must not fire after the
+        // ticket closes, as the injection target will be gone and handleTradeReady
+        // would attempt work with a stale requestId.
+        clearTimeout(debounceTimer);
+        debounceTimer = null;
         if (lastEventType !== 'closed') {
           lastEventType = 'closed';
           try { callback({ type: 'closed' }); } catch { /* prevent observer from breaking */ }
@@ -364,6 +369,9 @@ const TradeDetector = (() => {
       }
 
       if (!hasRequiredFields(ctx)) {
+        // Cancel pending 'ready' debounce — form is no longer complete.
+        clearTimeout(debounceTimer);
+        debounceTimer = null;
         if (lastEventType !== 'incomplete') {
           lastEventType = 'incomplete';
           try { callback({ type: 'incomplete' }); } catch { /* prevent observer from breaking */ }
