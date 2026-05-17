@@ -143,23 +143,24 @@
 
     // Force recalculate
     const refreshBtn = document.getElementById('btn-refresh');
+    const refreshStatus = document.getElementById('btn-refresh-status');
     if (refreshBtn) refreshBtn.addEventListener('click', async () => {
       refreshBtn.disabled = true;
-      const originalText = refreshBtn.textContent;
+      if (refreshStatus) refreshStatus.textContent = '';
       try {
         const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
         if (tabs[0]) {
           await chrome.tabs.sendMessage(tabs[0].id, { type: 'FORCE_RECALC', _fmc: true })
             .catch(() => null); // Content script may not be loaded on this tab — ignore
-          refreshBtn.textContent = 'Sent!';
+          if (refreshStatus) refreshStatus.textContent = 'Recalculate request sent.';
         } else {
-          refreshBtn.textContent = 'No tab';
+          if (refreshStatus) refreshStatus.textContent = 'No active tab found.';
         }
       } catch {
-        refreshBtn.textContent = 'Error';
+        if (refreshStatus) refreshStatus.textContent = 'Error sending request.';
       } finally {
         setTimeout(() => {
-          refreshBtn.textContent = originalText;
+          if (refreshStatus) refreshStatus.textContent = '';
           refreshBtn.disabled = false;
         }, 1500);
       }
