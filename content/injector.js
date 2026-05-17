@@ -72,11 +72,11 @@ const MarginInjector = (() => {
         <span class="fmc-spinner"></span>
         <span>Calculating margin impact...</span>
       </div>
-      <div class="fmc-panel-error" id="fmc-error" style="display: none;">
+      <div class="fmc-panel-error" id="fmc-error" role="alert" style="display: none;">
         <span class="fmc-error-icon" aria-hidden="true">&#9888;</span>
         <span class="fmc-error-text"></span>
-        <button class="fmc-retry-btn" style="display: none;">Retry</button>
-        <button class="fmc-debug-btn">Debug</button>
+        <button class="fmc-retry-btn" aria-label="Retry margin calculation" style="display: none;">Retry</button>
+        <button class="fmc-debug-btn" aria-label="Show debug log" aria-controls="fmc-debug-log" aria-expanded="false">Debug</button>
       </div>
       <div class="fmc-debug-log" id="fmc-debug-log" role="log" aria-label="Debug log" style="display: none;"></div>
       <div class="fmc-attribution">
@@ -101,10 +101,14 @@ const MarginInjector = (() => {
         if (visible) {
           debugLogEl.style.display = 'none';
           debugBtn.textContent = 'Debug';
+          debugBtn.setAttribute('aria-label', 'Show debug log');
+          debugBtn.setAttribute('aria-expanded', 'false');
         } else {
           debugLogEl.textContent = debugLog.join('\n') || '(no log entries)';
           debugLogEl.style.display = 'block';
           debugBtn.textContent = 'Hide';
+          debugBtn.setAttribute('aria-label', 'Hide debug log');
+          debugBtn.setAttribute('aria-expanded', 'true');
         }
       });
     }
