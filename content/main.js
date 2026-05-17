@@ -4,6 +4,9 @@
   const LOG_PREFIX = '[FMC]';
   const PRICELIST_TTL = 300000; // 5 min — positions don't change often
   const PROJECTED_TTL = 30000;
+  const BADGE_COLOR_ERROR = '#c41200';
+  const BADGE_COLOR_WARNING = '#f5a623';
+
   let currentRequest = 0;
   let lastAccountNum = null;
   let lastOrders = null;
@@ -129,7 +132,7 @@
       if (!MarginInjector.inject()) {
         const injErrMsg = 'Injection target not found — Fidelity page layout may have changed';
         log('Warning:', injErrMsg);
-        setBadge('!', '#c41200');
+        setBadge('!', BADGE_COLOR_ERROR);
         reportStatus('error', { lastError: injErrMsg });
         return;
       }
@@ -164,7 +167,7 @@
             ? 'Session expired. Please refresh the page.'
             : (posErr.message || 'Unable to fetch account positions.');
           MarginInjector.showError(msg, !isSessionErr);
-          setBadge('!', isSessionErr ? '#f5a623' : '#c41200');
+          setBadge('!', isSessionErr ? BADGE_COLOR_WARNING : BADGE_COLOR_ERROR);
           reportStatus('error', { lastError: msg });
           return;
         }
@@ -177,7 +180,7 @@
             'No positions found for this account. Margin calculation requires at least one existing position.',
             false
           );
-          setBadge('!', '#c41200');
+          setBadge('!', BADGE_COLOR_ERROR);
           reportStatus('error', { lastError: 'No positions found' });
           return;
         }
@@ -201,7 +204,7 @@
       const impact = MarginCalc.computeImpact(projectedData, lastResult);
       if (!impact) {
         MarginInjector.showError('No margin data available for this account.', false);
-        setBadge('!', '#c41200');
+        setBadge('!', BADGE_COLOR_ERROR);
         reportStatus('error', { lastError: 'No margin data' });
         return;
       }
@@ -225,10 +228,10 @@
       let msg;
       if (isSessionError) {
         msg = 'Session expired. Please refresh the page.';
-        setBadge('!', '#f5a623');
+        setBadge('!', BADGE_COLOR_WARNING);
       } else {
         msg = err.message || 'Unable to calculate margin impact.';
-        setBadge('!', '#c41200');
+        setBadge('!', BADGE_COLOR_ERROR);
       }
 
       MarginInjector.showError(msg, !isSessionError);
