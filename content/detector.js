@@ -92,14 +92,10 @@ const TradeDetector = (() => {
   }
 
   function getEquityAccountNumber() {
-    // Equity ticket stores account as " Individual (X12345678) " in a .truncate div
-    const el = document.querySelector('#float_trade_SE .selected-account-dropdown-label');
-    if (!el) {
-      const alt = document.querySelector('#float_trade_SE #dest-acct-dropdown');
-      if (!alt) return null;
-      const match = alt.textContent.match(/\(([A-Z0-9]+)\)/);
-      return match ? match[1] : null;
-    }
+    // Try primary selector first, fall back to secondary
+    const el = document.querySelector('#float_trade_SE .selected-account-dropdown-label') ||
+               document.querySelector('#float_trade_SE #dest-acct-dropdown');
+    if (!el) return null;
     const match = el.textContent.match(/\(([A-Z0-9]+)\)/);
     return match ? match[1] : null;
   }
