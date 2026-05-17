@@ -1,13 +1,9 @@
 // Popup logic — reads status from chrome.storage.local, manages settings in chrome.storage.sync
 (() => {
-  const DEFAULT_SETTINGS = {
-    enabled: true,
-    debitWarningThreshold: 500,
-    debounceMs: 500
-  };
+  const DEFAULT_SETTINGS = FMC_CONSTANTS.DEFAULT_SETTINGS;
 
-  const STORAGE_KEY_SETTINGS = 'fmc_settings';
-  const STORAGE_KEY_STATUS = 'fmc_status';
+  const STORAGE_KEY_SETTINGS = FMC_CONSTANTS.STORAGE_KEY_SETTINGS;
+  const STORAGE_KEY_STATUS = FMC_CONSTANTS.STORAGE_KEY_STATUS;
 
   // Mask account number for privacy: Z2...8273
   function maskAccount(acct) {

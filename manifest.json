@@ -24,6 +24,7 @@
     {
       "matches": ["*://digital.fidelity.com/ftgw/digital/*"],
       "js": [
+        "lib/constants.js",
         "lib/debug.js",
         "lib/retry.js",
         "lib/positions.js",
