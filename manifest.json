@@ -25,6 +25,7 @@
       "matches": ["*://digital.fidelity.com/ftgw/digital/*"],
       "js": [
         "lib/debug.js",
+        "lib/retry.js",
         "lib/positions.js",
         "lib/margin-api.js",
         "lib/margin-calc.js",
