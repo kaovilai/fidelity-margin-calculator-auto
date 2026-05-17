@@ -464,7 +464,7 @@ const TradeDetector = (() => {
     // still guards the actual API call regardless.
     inputListener = (e) => {
       const id = e.target?.id ?? '';
-      if (id.startsWith('quantity-') ||
+      if (/^quantity-\d+$/.test(id) ||
           id === 'dest-limitPrice' ||
           id === 'eqt-shared-quantity' ||
           id === 'eqt-shared-limit-price' ||
