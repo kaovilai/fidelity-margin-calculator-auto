@@ -54,14 +54,13 @@
 
   // --- Settings ---
   function loadSettings() {
-    chrome.storage.sync.get('fmc_settings', (result) => {
-      if (chrome.runtime.lastError) return; // storage unavailable — keep HTML defaults
+    chrome.storage.sync.get('fmc_settings').then((result) => {
       const s = Object.assign({}, DEFAULT_SETTINGS, result.fmc_settings);
       document.getElementById('setting-enabled').checked = s.enabled;
       document.getElementById('setting-threshold').value = s.debitWarningThreshold;
       document.getElementById('setting-debounce').value = String(s.debounceMs);
       document.getElementById('setting-auto-refresh').checked = s.autoRefreshBaseline;
-    });
+    }).catch(() => {}); // storage unavailable — keep HTML defaults
   }
 
   function saveSettings() {
@@ -71,10 +70,8 @@
       debounceMs: parseInt(document.getElementById('setting-debounce').value, 10) || 500,
       autoRefreshBaseline: document.getElementById('setting-auto-refresh').checked
     };
-    chrome.storage.sync.set({ fmc_settings: settings }, () => {
-      if (chrome.runtime.lastError) {
-        console.warn('[FMC-Popup] Could not save settings:', chrome.runtime.lastError.message);
-      }
+    chrome.storage.sync.set({ fmc_settings: settings }).catch((err) => {
+      console.warn('[FMC-Popup] Could not save settings:', err.message);
     });
   }
 
@@ -85,9 +82,9 @@
     document.getElementById('version').textContent = 'v' + manifest.version;
 
     // Load current status
-    chrome.storage.local.get('fmc_status', (result) => {
-      if (!chrome.runtime.lastError) updateStatus(result.fmc_status);
-    });
+    chrome.storage.local.get('fmc_status').then((result) => {
+      updateStatus(result.fmc_status);
+    }).catch(() => {});
 
     // Live status updates
     chrome.storage.onChanged.addListener((changes, area) => {
