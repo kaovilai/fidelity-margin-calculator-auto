@@ -29,7 +29,10 @@
 
   // --- Settings ---
   async function loadSettings() {
-    if (!chrome.storage?.sync) return;
+    if (!chrome.storage?.sync) {
+      MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
+      return;
+    }
     try {
       const result = await chrome.storage.sync.get('fmc_settings');
       if (result.fmc_settings) {
