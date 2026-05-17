@@ -114,6 +114,14 @@ const MarginInjector = (() => {
     return document.getElementById(PANEL_ID);
   }
 
+  function getPanelElements(panel) {
+    return {
+      body: panel.querySelector('.fmc-panel-body'),
+      loading: panel.querySelector('#fmc-loading'),
+      error: panel.querySelector('#fmc-error')
+    };
+  }
+
   function inject() {
     if (getPanel()) return true;
 
@@ -137,9 +145,7 @@ const MarginInjector = (() => {
     const panel = getPanel();
     if (!panel) return;
     panel.setAttribute('data-fmc-state', PANEL_STATE.LOADING);
-    const body = panel.querySelector('.fmc-panel-body');
-    const loading = panel.querySelector('#fmc-loading');
-    const error = panel.querySelector('#fmc-error');
+    const { body, loading, error } = getPanelElements(panel);
     if (body) body.style.opacity = '0.5';
     if (loading) loading.style.display = 'flex';
     if (error) error.style.display = 'none';
@@ -149,9 +155,7 @@ const MarginInjector = (() => {
     const panel = getPanel();
     if (!panel) return;
     panel.setAttribute('data-fmc-state', PANEL_STATE.ERROR);
-    const body = panel.querySelector('.fmc-panel-body');
-    const loading = panel.querySelector('#fmc-loading');
-    const error = panel.querySelector('#fmc-error');
+    const { body, loading, error } = getPanelElements(panel);
     if (body) body.style.display = 'none';
     if (loading) loading.style.display = 'none';
     if (error) {
@@ -172,9 +176,7 @@ const MarginInjector = (() => {
     if (!panel) return;
     panel.setAttribute('data-fmc-state', PANEL_STATE.RESULT);
 
-    const body = panel.querySelector('.fmc-panel-body');
-    const loading = panel.querySelector('#fmc-loading');
-    const error = panel.querySelector('#fmc-error');
+    const { body, loading, error } = getPanelElements(panel);
     if (body) { body.style.display = ''; body.style.opacity = ''; }
     if (loading) loading.style.display = 'none';
     if (error) error.style.display = 'none';
