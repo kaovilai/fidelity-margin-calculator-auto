@@ -118,7 +118,8 @@ const MarginInjector = (() => {
       mkEl('button', { type: 'button', className: 'fmc-debug-btn', 'aria-label': 'Show debug log', 'aria-controls': EL_ID.DEBUG_LOG, 'aria-expanded': 'false', textContent: 'Debug' })
     );
     errorRow.style.display = 'none';
-    errorRow.querySelector('.fmc-retry-btn').style.display = 'none';
+    const initialRetryBtn = errorRow.querySelector('.fmc-retry-btn');
+    if (initialRetryBtn) initialRetryBtn.style.display = 'none';
 
     // Debug log (hidden until toggled)
     const debugLogDiv = mkEl('div', { className: 'fmc-debug-log', id: EL_ID.DEBUG_LOG, role: 'log', 'aria-label': 'Debug log' });
@@ -217,7 +218,14 @@ const MarginInjector = (() => {
     panel.setAttribute('data-fmc-state', PANEL_STATE.LOADING);
     panel.setAttribute('aria-busy', 'true');
     const { body, loading, error } = getPanelElements(panel);
-    if (body) { body.style.display = ''; body.style.opacity = '0.5'; }
+    if (body) {
+      body.style.display = '';
+      body.style.opacity = '0.5';
+      // Prevent stale aria-live values from being announced while new data loads.
+      // aria-busy="true" on the panel suppresses announcements in most screen readers,
+      // but aria-hidden here provides an additional safeguard for older AT.
+      body.setAttribute('aria-hidden', 'true');
+    }
     if (loading) loading.style.display = 'flex';
     if (error) error.style.display = 'none';
   }
@@ -250,7 +258,7 @@ const MarginInjector = (() => {
     panel.setAttribute('aria-busy', 'false');
 
     const { body, loading, error } = getPanelElements(panel);
-    if (body) { body.style.display = ''; body.style.opacity = ''; }
+    if (body) { body.style.display = ''; body.style.opacity = ''; body.removeAttribute('aria-hidden'); }
     if (loading) loading.style.display = 'none';
     if (error) error.style.display = 'none';
 
@@ -271,7 +279,9 @@ const MarginInjector = (() => {
     if (deltaEl) {
       if (impact.delta !== null) {
         deltaEl.textContent = `${formatDelta(impact.delta)} from current`;
-        deltaEl.className = `fmc-sublabel ${impact.delta < 0 ? 'fmc-negative' : impact.delta > 0 ? 'fmc-positive' : ''}`.trimEnd();
+        deltaEl.className = ['fmc-sublabel',
+          impact.delta < 0 ? 'fmc-negative' : impact.delta > 0 ? 'fmc-positive' : null
+        ].filter(Boolean).join(' ');
       } else {
         deltaEl.textContent = 'projected with trade';
         deltaEl.className = 'fmc-sublabel';
