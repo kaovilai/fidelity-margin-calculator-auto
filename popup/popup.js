@@ -84,7 +84,8 @@
   function init() {
     // Version
     const manifest = chrome.runtime.getManifest();
-    document.getElementById('version').textContent = 'v' + manifest.version;
+    const versionEl = document.getElementById('version');
+    if (versionEl) versionEl.textContent = 'v' + manifest.version;
 
     // Load current status
     chrome.storage.local.get('fmc_status').then((result) => {
@@ -104,28 +105,32 @@
     // Settings change handlers
     const settingIds = ['setting-enabled', 'setting-threshold', 'setting-debounce', 'setting-auto-refresh'];
     for (const id of settingIds) {
-      document.getElementById(id).addEventListener('change', saveSettings);
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', saveSettings);
     }
 
     // Settings toggle
     const toggle = document.getElementById('settings-toggle');
     const body = document.getElementById('settings-body');
     const arrow = document.getElementById('settings-arrow');
-    function applyToggle() {
-      const isCollapsed = body.classList.toggle('collapsed');
-      arrow.classList.toggle('collapsed');
-      toggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
-    }
-    toggle.addEventListener('click', applyToggle);
-    toggle.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        applyToggle();
+    if (toggle && body && arrow) {
+      function applyToggle() {
+        const isCollapsed = body.classList.toggle('collapsed');
+        arrow.classList.toggle('collapsed');
+        toggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
       }
-    });
+      toggle.addEventListener('click', applyToggle);
+      toggle.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          applyToggle();
+        }
+      });
+    }
 
     // Force recalculate
-    document.getElementById('btn-refresh').addEventListener('click', () => {
+    const refreshBtn = document.getElementById('btn-refresh');
+    if (refreshBtn) refreshBtn.addEventListener('click', () => {
       chrome.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
         if (tabs[0]) {
           chrome.tabs.sendMessage(tabs[0].id, { type: 'FORCE_RECALC', _fmc: true })
