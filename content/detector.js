@@ -9,6 +9,15 @@ const TradeDetector = (() => {
     DEDICATED_OPTIONS: 'dedicated-options'
   };
 
+  // DOM element IDs and selectors for Fidelity's trade ticket UI
+  const DOM = {
+    TRADE_SHELL:         'trade-container-shell',
+    FLOAT_OPTIONS:       'float_trade_O',
+    FLOAT_EQUITY:        'float_trade_SE',
+    EQUITY_CONTAINER:    '#float_trade_SE',
+    DEDICATED_BODY_CLASS: 'option-trade-ticket'
+  };
+
   // Order type codes sent to the margin calculator API
   const ORDER_TYPE = {
     OPTIONS: 'O',
@@ -37,15 +46,15 @@ const TradeDetector = (() => {
   // Returns 'popup-options' | 'popup-equity' | 'dedicated-options' | null
   function detectPageContext() {
     // Dedicated options page (full page, no popup shell)
-    if (document.body?.classList.contains('option-trade-ticket')) {
+    if (document.body?.classList.contains(DOM.DEDICATED_BODY_CLASS)) {
       return CTX.DEDICATED_OPTIONS;
     }
     // Floating popup
-    const shell = document.getElementById('trade-container-shell');
+    const shell = document.getElementById(DOM.TRADE_SHELL);
     if (shell?.style.display === 'block') {
-      const optDiv = document.getElementById('float_trade_O');
+      const optDiv = document.getElementById(DOM.FLOAT_OPTIONS);
       if (optDiv?.style.display === 'block') return CTX.POPUP_OPTIONS;
-      const eqDiv = document.getElementById('float_trade_SE');
+      const eqDiv = document.getElementById(DOM.FLOAT_EQUITY);
       if (eqDiv?.style.display === 'block') return CTX.POPUP_EQUITY;
     }
     return null;
@@ -94,8 +103,8 @@ const TradeDetector = (() => {
 
   function getEquityAccountNumber() {
     // Try primary selector first, fall back to secondary
-    const el = document.querySelector('#float_trade_SE .selected-account-dropdown-label') ||
-               document.querySelector('#float_trade_SE #dest-acct-dropdown');
+    const el = document.querySelector(DOM.EQUITY_CONTAINER + ' .selected-account-dropdown-label') ||
+               document.querySelector(DOM.EQUITY_CONTAINER + ' #dest-acct-dropdown');
     if (!el) return null;
     const match = el.textContent.match(/\(([A-Z0-9]+)\)/);
     return match ? match[1] : null;
@@ -196,7 +205,7 @@ const TradeDetector = (() => {
   // --- Equity trade params ---
 
   function getEquityTradeParams() {
-    const container = '#float_trade_SE';
+    const container = DOM.EQUITY_CONTAINER;
     const symbol = getInputValue(`${container} #eq-ticket-dest-symbol`);
     const action = getDropdownValue(`${container} #dest-dropdownlist-button-action .selected-dropdown-item`) ||
                    getDropdownValue(`${container} #selected-dropdown-itemaction`);
