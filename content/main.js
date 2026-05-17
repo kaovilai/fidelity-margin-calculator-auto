@@ -325,6 +325,9 @@
           break;
 
         case 'closed':
+          // Increment currentRequest so any in-flight handleTradeReady call
+          // sees a stale requestId and exits early without touching the DOM.
+          currentRequest++;
           MarginInjector.remove();
           break;
 
