@@ -116,7 +116,7 @@
             if (chrome.runtime.lastError) {
               resolve({ error: chrome.runtime.lastError.message, fallback: true });
             } else {
-              resolve(response || { fallback: true });
+              resolve(response ?? { fallback: true });
             }
           }
         );
@@ -190,7 +190,7 @@
       // A new request may have arrived while waiting for background response
       if (requestId !== currentRequest) return;
       if (!rateCheck.fallback && rateCheck.rateLimited) {
-        await new Promise(r => setTimeout(r, rateCheck.retryAfter));
+        await new Promise(r => setTimeout(r, Math.min(rateCheck.retryAfter, 10000)));
         if (requestId !== currentRequest) return;
       }
 

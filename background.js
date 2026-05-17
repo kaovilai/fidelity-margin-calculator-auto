@@ -108,7 +108,7 @@ importScripts('/lib/constants.js');
 
       case 'CACHE_SET':
         if (!msg.payload?.key) { sendResponse({ ok: false }); return false; }
-        sendResponse(cacheSet(msg.payload.key, msg.payload.data, msg.payload.ttl || DEFAULT_CACHE_TTL));
+        sendResponse(cacheSet(msg.payload.key, msg.payload.data, msg.payload.ttl ?? DEFAULT_CACHE_TTL));
         return false;
 
       case 'CACHE_INVALIDATE':
@@ -184,8 +184,14 @@ importScripts('/lib/constants.js');
     // Only remove from apiCallLog if no other open tab is still using this account.
     // Removing it while another tab holds the same account would reset the rate limit
     // window for that account, allowing back-to-back calls from the surviving tab.
-    if (accountNum && ![...tabAccounts.values()].includes(accountNum)) {
-      apiCallLog.delete(accountNum);
+    if (accountNum) {
+      let stillUsed = false;
+      for (const v of tabAccounts.values()) {
+        if (v === accountNum) { stillUsed = true; break; }
+      }
+      if (!stillUsed) {
+        apiCallLog.delete(accountNum);
+      }
     }
   });
 
