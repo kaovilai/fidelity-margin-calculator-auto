@@ -203,7 +203,7 @@
           priceList = await PositionsAPI.fetchPriceList(accountNum);
         } catch (posErr) {
           if (requestId !== currentRequest) return;
-          const isSessionErr = posErr.type === 'SESSION_EXPIRED';
+          const isSessionErr = posErr.type === FMC_CONSTANTS.ERROR_TYPES.SESSION_EXPIRED;
           const msg = isSessionErr
             ? MSG_SESSION_EXPIRED
             : (posErr.message || 'Unable to fetch account positions.');
@@ -263,7 +263,7 @@
       log('Error:', err);
 
       const errType = err.type || 'UNKNOWN';
-      const isSessionError = errType === 'SESSION_EXPIRED' ||
+      const isSessionError = errType === FMC_CONSTANTS.ERROR_TYPES.SESSION_EXPIRED ||
         err.message?.includes('Session expired');
 
       let msg;
