@@ -3,28 +3,28 @@
 const TradeDetector = (() => {
 
   // Page context identifiers returned by detectPageContext()
-  const CTX = {
+  const CTX = Object.freeze({
     POPUP_OPTIONS: 'popup-options',
     POPUP_EQUITY: 'popup-equity',
     DEDICATED_OPTIONS: 'dedicated-options'
-  };
+  });
 
   // DOM element IDs and selectors for Fidelity's trade ticket UI
-  const DOM = {
+  const DOM = Object.freeze({
     TRADE_SHELL:         'trade-container-shell',
     FLOAT_OPTIONS:       'float_trade_O',
     FLOAT_EQUITY:        'float_trade_SE',
     EQUITY_CONTAINER:    '#float_trade_SE',
     DEDICATED_BODY_CLASS: 'option-trade-ticket'
-  };
+  });
 
   // Order type codes sent to the margin calculator API
-  const ORDER_TYPE = {
+  const ORDER_TYPE = Object.freeze({
     OPTIONS: 'O',
     EQUITY: 'E'
-  };
+  });
 
-  const ACTION_MAP = {
+  const ACTION_MAP = Object.freeze({
     'Buy To Open': 'BO',
     'Sell To Open': 'SO',
     'Buy To Close': 'BC',
@@ -33,13 +33,13 @@ const TradeDetector = (() => {
     'Sell': 'S',
     'Sell Short': 'SS',
     'Buy to Cover': 'BC'
-  };
+  });
 
-  const MONTH_MAP = {
+  const MONTH_MAP = Object.freeze({
     'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
     'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
     'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
-  };
+  });
 
   // --- Page context detection ---
 

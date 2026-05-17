@@ -5,21 +5,21 @@ const MarginInjector = (() => {
   let warningThreshold = DEFAULT_WARNING_THRESHOLD;
 
   // data-fmc-state attribute values
-  const PANEL_STATE = {
+  const PANEL_STATE = Object.freeze({
     LOADING: 'loading',
     ERROR: 'error',
     RESULT: 'result'
-  };
+  });
 
   // data-fmc-status attribute values (also used as CSS class suffixes)
-  const STATUS = {
+  const STATUS = Object.freeze({
     CREDIT: 'credit',
     WARNING: 'warning',
     DEBIT: 'debit'
-  };
+  });
 
   // IDs for elements inside the panel — used in both the HTML template and querySelector calls
-  const EL_ID = {
+  const EL_ID = Object.freeze({
     CREDIT_DEBIT:            'fmc-credit-debit',
     CREDIT_DEBIT_LABEL:      'fmc-credit-debit-label',
     CASH_WITHDRAWABLE:       'fmc-cash-withdrawable',
@@ -30,7 +30,7 @@ const MarginInjector = (() => {
     LOADING:                 'fmc-loading',
     ERROR:                   'fmc-error',
     DEBUG_LOG:               'fmc-debug-log'
-  };
+  });
 
   let retryCallback = null;
   let debugLog = []; // ring buffer of debug entries
