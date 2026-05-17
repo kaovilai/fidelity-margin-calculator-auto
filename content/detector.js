@@ -174,8 +174,8 @@ const TradeDetector = (() => {
 
   // --- Multi-leg options extraction ---
 
-  const MAX_LEGS = 8; // Fidelity supports up to 4 legs; 8 is a safe upper bound
-  const OBSERVER_THROTTLE_MS = 50; // throttle MutationObserver → check() to reduce DOM queries
+  const MAX_LEGS = FMC_CONSTANTS.DETECTOR.MAX_LEGS; // Fidelity supports up to 4 legs; 8 is a safe upper bound
+  const OBSERVER_THROTTLE_MS = FMC_CONSTANTS.DETECTOR.OBSERVER_THROTTLE_MS; // throttle MutationObserver → check() to reduce DOM queries
 
   function getLegCount() {
     let count = 0;
