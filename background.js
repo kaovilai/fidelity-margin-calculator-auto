@@ -81,7 +81,7 @@
 
   // --- Account tracking ---
   function handleAccountChanged(tabId, accountNum, previousAccountNum) {
-    if (tabId === undefined) return { ok: false, error: 'no tab context' };
+    if (tabId == null) return { ok: false, error: 'no tab context' };
     tabAccounts.set(tabId, accountNum);
     if (previousAccountNum && previousAccountNum !== accountNum) {
       // Invalidate cache for old account
@@ -126,7 +126,7 @@
 
       case 'GET_STATE':
         sendResponse({
-          activeAccount: tabId !== undefined ? (tabAccounts.get(tabId) || null) : null,
+          activeAccount: tabId != null ? (tabAccounts.get(tabId) || null) : null,
           cacheSize: cache.size,
           lastApiCall: apiCallLog.get(msg.payload?.accountNum) || 0
         });
