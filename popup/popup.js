@@ -64,7 +64,12 @@
       const debounceEl = document.getElementById('setting-debounce');
       if (enabledEl) enabledEl.checked = s.enabled;
       if (thresholdEl) thresholdEl.value = s.debitWarningThreshold;
-      if (debounceEl) debounceEl.value = String(s.debounceMs);
+      if (debounceEl) {
+        debounceEl.value = String(s.debounceMs);
+        // HTMLSelectElement.value silently stays empty if the value doesn't match
+        // any option. Fall back to the default so the UI isn't left blank.
+        if (debounceEl.value === '') debounceEl.value = String(DEFAULT_SETTINGS.debounceMs);
+      }
     } catch (err) {
       console.warn('[FMC-Popup] Could not load settings:', err.message);
     }
