@@ -165,7 +165,9 @@ const MarginInjector = (() => {
       creditDebitLabel:  creditDebitLabelEl,
       delta:             deltaEl,
       cash:              cashEl,
-      buyingPower:       buyingPowerEl
+      buyingPower:       buyingPowerEl,
+      debugLog:          debugLogDiv,
+      debugBtn:          debugBtnEl
     });
 
     // Wire retry button
@@ -322,8 +324,11 @@ const MarginInjector = (() => {
     const ts = new Date().toLocaleTimeString();
     debugLog.push(`[${ts}] ${entry}`);
     if (debugLog.length > MAX_LOG) debugLog.shift();
-    // Update visible log if open
-    const logEl = document.getElementById(EL_ID.DEBUG_LOG);
+    // Update visible log if open — use panelRefs to avoid a global getElementById
+    // call that could theoretically find a detached element from a stale panel.
+    const panel = getPanel();
+    if (!panel) return;
+    const logEl = panelRefs.get(panel)?.debugLog;
     if (logEl && logEl.style.display !== 'none') {
       logEl.textContent = debugLog.join('\n');
     }
