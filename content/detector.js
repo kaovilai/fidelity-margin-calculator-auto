@@ -327,22 +327,32 @@ const TradeDetector = (() => {
     }
 
     let lastFingerprint = '';
+    let lastEventType = '';
 
     function check() {
       const ctx = detectPageContext();
       if (!ctx) {
-        callback({ type: 'closed' });
+        // Clear fingerprint so same params re-trigger 'ready' after ticket reopens
+        lastFingerprint = '';
+        if (lastEventType !== 'closed') {
+          lastEventType = 'closed';
+          callback({ type: 'closed' });
+        }
         return;
       }
 
       if (!hasRequiredFields()) {
-        callback({ type: 'incomplete' });
+        if (lastEventType !== 'incomplete') {
+          lastEventType = 'incomplete';
+          callback({ type: 'incomplete' });
+        }
         return;
       }
 
       const fp = getParamsFingerprint();
       if (fp === lastFingerprint) return;
       lastFingerprint = fp;
+      lastEventType = 'ready';
 
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
