@@ -69,6 +69,11 @@
     } catch (err) {
       log('Warning: could not load settings:', err.message);
     }
+    // Clamp debounceMs on load — same guard as in the onChanged listener.
+    // Corrupted or pre-guard stored values would otherwise bypass MIN_DEBOUNCE_MS.
+    if (typeof settings.debounceMs !== 'number' || !Number.isFinite(settings.debounceMs) || settings.debounceMs < FMC_CONSTANTS.MIN_DEBOUNCE_MS) {
+      settings.debounceMs = FMC_CONSTANTS.MIN_DEBOUNCE_MS;
+    }
     MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
   }
 
