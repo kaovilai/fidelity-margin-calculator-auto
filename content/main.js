@@ -378,6 +378,10 @@
           break;
 
         case 'incomplete':
+          // Increment currentRequest so any in-flight handleTradeReady call that
+          // was dispatched before the form became incomplete cannot overwrite the
+          // panel with results that no longer match the current form state.
+          currentRequest++;
           break;
       }
     }
