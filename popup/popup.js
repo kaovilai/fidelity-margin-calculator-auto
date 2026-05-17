@@ -133,12 +133,6 @@
         toggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
       }
       toggle.addEventListener('click', applyToggle);
-      toggle.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          applyToggle();
-        }
-      });
     }
 
     // Force recalculate

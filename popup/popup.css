@@ -43,11 +43,16 @@ body {
   align-items: center;
   font-weight: 600;
   font-size: 12px;
+  font-family: inherit;
   color: #333;
   cursor: pointer;
   padding: 4px 0;
   margin-bottom: 6px;
+  background: none;
+  border: none;
   border-bottom: 1px solid #e9e9e9;
+  width: 100%;
+  text-align: left;
   user-select: none;
 }
 .section-header:focus-visible {
