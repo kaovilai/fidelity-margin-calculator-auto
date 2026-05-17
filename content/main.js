@@ -265,7 +265,7 @@
             if (lastAccountNum && lastOrders) {
               await handleTradeReady(lastAccountNum, lastOrders);
             }
-          })();
+          })().catch(err => log('Error during force-recalc:', err));
         }
       });
     }
