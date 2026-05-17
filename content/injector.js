@@ -4,6 +4,20 @@ const MarginInjector = (() => {
   const DEFAULT_WARNING_THRESHOLD = 500; // amber when credit < this
   let warningThreshold = DEFAULT_WARNING_THRESHOLD;
 
+  // data-fmc-state attribute values
+  const PANEL_STATE = {
+    LOADING: 'loading',
+    ERROR: 'error',
+    RESULT: 'result'
+  };
+
+  // data-fmc-status attribute values (also used as CSS class suffixes)
+  const STATUS = {
+    CREDIT: 'credit',
+    WARNING: 'warning',
+    DEBIT: 'debit'
+  };
+
   let retryCallback = null;
   let debugLog = []; // ring buffer of debug entries
   const MAX_LOG = 50;
@@ -22,18 +36,18 @@ const MarginInjector = (() => {
     return value > 0 ? '+' + formatted : formatted;
   }
 
-  // Returns 'credit' | 'warning' | 'debit' based on projected value
+  // Returns STATUS.CREDIT | STATUS.WARNING | STATUS.DEBIT based on projected value
   function getStatus(projectedCreditDebit) {
-    if (projectedCreditDebit <= 0) return 'debit';
-    if (projectedCreditDebit <= warningThreshold) return 'warning';
-    return 'credit';
+    if (projectedCreditDebit <= 0) return STATUS.DEBIT;
+    if (projectedCreditDebit <= warningThreshold) return STATUS.WARNING;
+    return STATUS.CREDIT;
   }
 
   function createPanel() {
     const panel = document.createElement('div');
     panel.id = PANEL_ID;
     panel.className = 'fmc-margin-panel';
-    panel.setAttribute('data-fmc-state', 'loading');
+    panel.setAttribute('data-fmc-state', PANEL_STATE.LOADING);
     panel.innerHTML = `
       <div class="fmc-panel-body">
         <div class="fmc-col">
@@ -122,7 +136,7 @@ const MarginInjector = (() => {
   function showLoading() {
     const panel = getPanel();
     if (!panel) return;
-    panel.setAttribute('data-fmc-state', 'loading');
+    panel.setAttribute('data-fmc-state', PANEL_STATE.LOADING);
     const body = panel.querySelector('.fmc-panel-body');
     const loading = panel.querySelector('#fmc-loading');
     const error = panel.querySelector('#fmc-error');
@@ -134,7 +148,7 @@ const MarginInjector = (() => {
   function showError(msg, canRetry) {
     const panel = getPanel();
     if (!panel) return;
-    panel.setAttribute('data-fmc-state', 'error');
+    panel.setAttribute('data-fmc-state', PANEL_STATE.ERROR);
     const body = panel.querySelector('.fmc-panel-body');
     const loading = panel.querySelector('#fmc-loading');
     const error = panel.querySelector('#fmc-error');
@@ -156,7 +170,7 @@ const MarginInjector = (() => {
   function updatePanel(impact) {
     const panel = getPanel();
     if (!panel) return;
-    panel.setAttribute('data-fmc-state', 'result');
+    panel.setAttribute('data-fmc-state', PANEL_STATE.RESULT);
 
     const body = panel.querySelector('.fmc-panel-body');
     const loading = panel.querySelector('#fmc-loading');
@@ -195,7 +209,7 @@ const MarginInjector = (() => {
     if (cashEl) {
       cashEl.textContent = formatCurrency(impact.cashWithdrawable);
       cashEl.className = 'fmc-value ' +
-        (impact.cashWithdrawable > 0 ? 'fmc-status-credit' : 'fmc-neutral');
+        (impact.cashWithdrawable > 0 ? 'fmc-status-' + STATUS.CREDIT : 'fmc-neutral');
     }
 
     // Column 3: Buying Power
@@ -203,7 +217,7 @@ const MarginInjector = (() => {
     if (bpEl) {
       bpEl.textContent = formatCurrency(impact.projectedBuyingPower);
       bpEl.className = 'fmc-value ' +
-        (impact.projectedBuyingPower > 0 ? 'fmc-status-credit' : 'fmc-status-debit');
+        (impact.projectedBuyingPower > 0 ? 'fmc-status-' + STATUS.CREDIT : 'fmc-status-' + STATUS.DEBIT);
     }
   }
 
