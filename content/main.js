@@ -28,19 +28,21 @@
   }
 
   // --- Settings ---
-  function loadSettings(onLoaded) {
-    if (!chrome.storage || !chrome.storage.sync) {
-      if (onLoaded) onLoaded();
-      return;
-    }
-    chrome.storage.sync.get('fmc_settings', (result) => {
-      if (chrome.runtime.lastError) {
-        log('Warning: could not load settings:', chrome.runtime.lastError.message);
-      } else if (result.fmc_settings) {
-        settings = { ...settings, ...result.fmc_settings };
+  function loadSettings() {
+    return new Promise((resolve) => {
+      if (!chrome.storage || !chrome.storage.sync) {
+        resolve();
+        return;
       }
-      MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
-      if (onLoaded) onLoaded();
+      chrome.storage.sync.get('fmc_settings', (result) => {
+        if (chrome.runtime.lastError) {
+          log('Warning: could not load settings:', chrome.runtime.lastError.message);
+        } else if (result.fmc_settings) {
+          settings = { ...settings, ...result.fmc_settings };
+        }
+        MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
+        resolve();
+      });
     });
   }
 
@@ -239,11 +241,11 @@
     }
   }
 
-  function init() {
+  async function init() {
     log('Initializing...');
 
     // Wire retry button
-    MarginInjector.setRetryCallback(function() {
+    MarginInjector.setRetryCallback(() => {
       if (lastAccountNum && lastOrders) {
         handleTradeReady(lastAccountNum, lastOrders);
       }
@@ -251,14 +253,18 @@
 
     // Listen for force-recalc from popup
     if (chrome.runtime && chrome.runtime.onMessage) {
-      chrome.runtime.onMessage.addListener(function(msg) {
+      chrome.runtime.onMessage.addListener(async (msg) => {
         if (msg && msg._fmc && msg.type === 'FORCE_RECALC') {
           fallbackCache = {};
           lastResult = null;
-          if (lastAccountNum) invalidateCache(`pricelist:${lastAccountNum}`);
-          if (lastAccountNum) invalidateCache(`projected:${lastAccountNum}`);
+          if (lastAccountNum) {
+            await Promise.all([
+              invalidateCache(`pricelist:${lastAccountNum}`),
+              invalidateCache(`projected:${lastAccountNum}`)
+            ]);
+          }
           if (lastAccountNum && lastOrders) {
-            handleTradeReady(lastAccountNum, lastOrders);
+            await handleTradeReady(lastAccountNum, lastOrders);
           }
         }
       });
@@ -266,7 +272,7 @@
 
     // Listen for settings changes
     if (chrome.storage && chrome.storage.onChanged) {
-      chrome.storage.onChanged.addListener(function(changes, area) {
+      chrome.storage.onChanged.addListener((changes, area) => {
         if (area === 'sync' && changes.fmc_settings?.newValue) {
           settings = { ...settings, ...changes.fmc_settings.newValue };
           MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
@@ -276,41 +282,40 @@
     }
 
     // Load settings first so TradeDetector.observe uses the correct debounceMs
-    loadSettings(() => {
-      let previousAccountNum = null;
+    await loadSettings();
+    let previousAccountNum = null;
 
-      TradeDetector.observe((event) => {
-        switch (event.type) {
-          case 'ready':
-            if (!event.accountNum) {
-              if (!MarginInjector.getPanel()) MarginInjector.inject();
-              MarginInjector.showError('Could not detect account number — try refreshing the page.', false);
-              break;
+    TradeDetector.observe((event) => {
+      switch (event.type) {
+        case 'ready':
+          if (!event.accountNum) {
+            if (!MarginInjector.getPanel()) MarginInjector.inject();
+            MarginInjector.showError('Could not detect account number — try refreshing the page.', false);
+            break;
+          }
+          if (event.orders.length > 0) {
+            if (previousAccountNum && previousAccountNum !== event.accountNum) {
+              sendToBackground('ACCOUNT_CHANGED', {
+                accountNum: event.accountNum,
+                previousAccountNum
+              });
+              invalidateCache(`pricelist:${previousAccountNum}`);
+              invalidateCache(`projected:${previousAccountNum}`);
+              lastResult = null;
             }
-            if (event.orders.length > 0) {
-              if (previousAccountNum && previousAccountNum !== event.accountNum) {
-                sendToBackground('ACCOUNT_CHANGED', {
-                  accountNum: event.accountNum,
-                  previousAccountNum
-                });
-                invalidateCache(`pricelist:${previousAccountNum}`);
-                invalidateCache(`projected:${previousAccountNum}`);
-                lastResult = null;
-              }
-              previousAccountNum = event.accountNum;
-              handleTradeReady(event.accountNum, event.orders);
-            }
-            break;
+            previousAccountNum = event.accountNum;
+            handleTradeReady(event.accountNum, event.orders);
+          }
+          break;
 
-          case 'closed':
-            MarginInjector.remove();
-            break;
+        case 'closed':
+          MarginInjector.remove();
+          break;
 
-          case 'incomplete':
-            break;
-        }
-      }, settings.debounceMs);
-    });
+        case 'incomplete':
+          break;
+      }
+    }, settings.debounceMs);
   }
 
   if (document.readyState === 'loading') {
