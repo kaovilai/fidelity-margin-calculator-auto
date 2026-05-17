@@ -58,7 +58,7 @@ const MarginInjector = (() => {
 
   // Returns STATUS.CREDIT | STATUS.WARNING | STATUS.DEBIT based on projected value
   function getStatus(projectedCreditDebit) {
-    if (projectedCreditDebit <= 0) return STATUS.DEBIT;
+    if (projectedCreditDebit < 0) return STATUS.DEBIT;
     if (projectedCreditDebit <= warningThreshold) return STATUS.WARNING;
     return STATUS.CREDIT;
   }
