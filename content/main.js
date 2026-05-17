@@ -28,22 +28,17 @@
   }
 
   // --- Settings ---
-  function loadSettings() {
-    return new Promise((resolve) => {
-      if (!chrome.storage || !chrome.storage.sync) {
-        resolve();
-        return;
+  async function loadSettings() {
+    if (!chrome.storage?.sync) return;
+    try {
+      const result = await chrome.storage.sync.get('fmc_settings');
+      if (result.fmc_settings) {
+        settings = { ...settings, ...result.fmc_settings };
       }
-      chrome.storage.sync.get('fmc_settings', (result) => {
-        if (chrome.runtime.lastError) {
-          log('Warning: could not load settings:', chrome.runtime.lastError.message);
-        } else if (result.fmc_settings) {
-          settings = { ...settings, ...result.fmc_settings };
-        }
-        MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
-        resolve();
-      });
-    });
+    } catch (err) {
+      log('Warning: could not load settings:', err.message);
+    }
+    MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
   }
 
   // --- Status reporting ---
@@ -253,19 +248,21 @@
 
     // Listen for force-recalc from popup
     if (chrome.runtime && chrome.runtime.onMessage) {
-      chrome.runtime.onMessage.addListener(async (msg) => {
+      chrome.runtime.onMessage.addListener((msg) => {
         if (msg && msg._fmc && msg.type === 'FORCE_RECALC') {
-          fallbackCache = {};
-          lastResult = null;
-          if (lastAccountNum) {
-            await Promise.all([
-              invalidateCache(`pricelist:${lastAccountNum}`),
-              invalidateCache(`projected:${lastAccountNum}`)
-            ]);
-          }
-          if (lastAccountNum && lastOrders) {
-            await handleTradeReady(lastAccountNum, lastOrders);
-          }
+          (async () => {
+            fallbackCache = {};
+            lastResult = null;
+            if (lastAccountNum) {
+              await Promise.all([
+                invalidateCache(`pricelist:${lastAccountNum}`),
+                invalidateCache(`projected:${lastAccountNum}`)
+              ]);
+            }
+            if (lastAccountNum && lastOrders) {
+              await handleTradeReady(lastAccountNum, lastOrders);
+            }
+          })();
         }
       });
     }
