@@ -432,17 +432,24 @@ const TradeDetector = (() => {
     }
 
     if (!document.body) return;
-    // Throttle MutationObserver callbacks: Fidelity is an Angular SPA that
-    // produces hundreds of mutations per second during navigation and rendering.
-    // Running check() on every mutation wastes CPU — OBSERVER_THROTTLE_MS throttle
-    // keeps the UI responsive while avoiding redundant DOM queries between mutations.
-    observer = new MutationObserver(() => {
+
+    // Shared throttle: schedule a check() at most once per OBSERVER_THROTTLE_MS window.
+    // Used by both the MutationObserver and the input listener so the throttle is shared
+    // rather than duplicated — a mutation and an input event arriving in the same window
+    // still only produce one check() call.
+    function scheduleCheck() {
       if (throttleTimer) return;
       throttleTimer = setTimeout(() => {
         throttleTimer = null;
         check();
       }, OBSERVER_THROTTLE_MS);
-    });
+    }
+
+    // Throttle MutationObserver callbacks: Fidelity is an Angular SPA that
+    // produces hundreds of mutations per second during navigation and rendering.
+    // Running check() on every mutation wastes CPU — OBSERVER_THROTTLE_MS throttle
+    // keeps the UI responsive while avoiding redundant DOM queries between mutations.
+    observer = new MutationObserver(scheduleCheck);
     observer.observe(document.body, {
       childList: true,
       subtree: true,
@@ -463,11 +470,7 @@ const TradeDetector = (() => {
           id === 'eqt-shared-limit-price' ||
           id === 'eq-ticket-dest-symbol' ||
           id === 'symbol_search') {
-        if (throttleTimer) return;
-        throttleTimer = setTimeout(() => {
-          throttleTimer = null;
-          check();
-        }, OBSERVER_THROTTLE_MS);
+        scheduleCheck();
       }
     };
     document.addEventListener('input', inputListener, true);
