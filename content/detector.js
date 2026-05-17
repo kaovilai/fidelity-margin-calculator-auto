@@ -2,6 +2,19 @@
 // Supports: options (single + multi-leg) and equity tickets, popup + dedicated page
 const TradeDetector = (() => {
 
+  // Page context identifiers returned by detectPageContext()
+  const CTX = {
+    POPUP_OPTIONS: 'popup-options',
+    POPUP_EQUITY: 'popup-equity',
+    DEDICATED_OPTIONS: 'dedicated-options'
+  };
+
+  // Order type codes sent to the margin calculator API
+  const ORDER_TYPE = {
+    OPTIONS: 'O',
+    EQUITY: 'E'
+  };
+
   const ACTION_MAP = {
     'Buy To Open': 'BO',
     'Sell To Open': 'SO',
@@ -25,15 +38,15 @@ const TradeDetector = (() => {
   function detectPageContext() {
     // Dedicated options page (full page, no popup shell)
     if (document.body.classList.contains('option-trade-ticket')) {
-      return 'dedicated-options';
+      return CTX.DEDICATED_OPTIONS;
     }
     // Floating popup
     const shell = document.getElementById('trade-container-shell');
     if (shell?.style.display === 'block') {
       const optDiv = document.getElementById('float_trade_O');
-      if (optDiv?.style.display === 'block') return 'popup-options';
+      if (optDiv?.style.display === 'block') return CTX.POPUP_OPTIONS;
       const eqDiv = document.getElementById('float_trade_SE');
-      if (eqDiv?.style.display === 'block') return 'popup-equity';
+      if (eqDiv?.style.display === 'block') return CTX.POPUP_EQUITY;
     }
     return null;
   }
@@ -44,11 +57,11 @@ const TradeDetector = (() => {
 
   function isOptionsTicket() {
     const ctx = detectPageContext();
-    return ctx === 'popup-options' || ctx === 'dedicated-options';
+    return ctx === CTX.POPUP_OPTIONS || ctx === CTX.DEDICATED_OPTIONS;
   }
 
   function isEquityTicket() {
-    return detectPageContext() === 'popup-equity';
+    return detectPageContext() === CTX.POPUP_EQUITY;
   }
 
   // --- Helpers ---
@@ -69,7 +82,7 @@ const TradeDetector = (() => {
 
   function getAccountNumber() {
     const ctx = detectPageContext();
-    if (ctx === 'popup-equity') {
+    if (ctx === CTX.POPUP_EQUITY) {
       return getEquityAccountNumber();
     }
     // Options ticket (popup or dedicated) — same selector
@@ -209,8 +222,8 @@ const TradeDetector = (() => {
 
   function getTradeParams() {
     const ctx = detectPageContext();
-    if (ctx === 'popup-equity') return getEquityTradeParams();
-    if (ctx === 'popup-options' || ctx === 'dedicated-options') return getOptionsTradeParams();
+    if (ctx === CTX.POPUP_EQUITY) return getEquityTradeParams();
+    if (ctx === CTX.POPUP_OPTIONS || ctx === CTX.DEDICATED_OPTIONS) return getOptionsTradeParams();
     return null;
   }
 
@@ -218,7 +231,7 @@ const TradeDetector = (() => {
 
   function buildOrders() {
     const ctx = detectPageContext();
-    if (ctx === 'popup-equity') return buildEquityOrders();
+    if (ctx === CTX.POPUP_EQUITY) return buildEquityOrders();
     return buildOptionsOrders();
   }
 
@@ -240,7 +253,7 @@ const TradeDetector = (() => {
 
       orders.push({
         orderSymbol,
-        orderType: 'O',
+        orderType: ORDER_TYPE.OPTIONS,
         orderAction,
         orderQty: qty,
         price
@@ -261,7 +274,7 @@ const TradeDetector = (() => {
 
     return [{
       orderSymbol: params.symbol,
-      orderType: 'E',
+      orderType: ORDER_TYPE.EQUITY,
       orderAction,
       orderQty: qty,
       price: orderPrice
@@ -274,7 +287,7 @@ const TradeDetector = (() => {
     const ctx = detectPageContext();
     if (!ctx) return false;
 
-    if (ctx === 'popup-equity') {
+    if (ctx === CTX.POPUP_EQUITY) {
       const p = getEquityTradeParams();
       return !!(p.symbol && p.action && p.quantity);
     }
@@ -291,7 +304,7 @@ const TradeDetector = (() => {
     const ctx = detectPageContext();
     if (!ctx) return '';
 
-    if (ctx === 'popup-equity') {
+    if (ctx === CTX.POPUP_EQUITY) {
       const p = getEquityTradeParams();
       return `EQ|${p.symbol}|${p.action}|${p.quantity}|${p.limitPrice}`;
     }
