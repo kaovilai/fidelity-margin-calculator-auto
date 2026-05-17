@@ -92,21 +92,27 @@ const MarginInjector = (() => {
     panel.setAttribute('aria-label', 'Margin Impact');
     panel.setAttribute('aria-busy', 'true');
 
-    // Panel body — three data columns
+    // Panel body — three data columns — capture value element references directly
+    // so panelRefs can use them without a second querySelector pass over the DOM.
+    const creditDebitLabelEl = mkEl('span', { className: 'fmc-label', id: EL_ID.CREDIT_DEBIT_LABEL, textContent: 'Margin Credit/Debit' });
+    const creditDebitEl = mkEl('span', { className: 'fmc-value', id: EL_ID.CREDIT_DEBIT, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.CREDIT_DEBIT_LABEL, textContent: '--' });
+    const deltaEl = mkEl('span', { className: 'fmc-sublabel', id: EL_ID.DELTA, 'aria-live': 'polite', 'aria-atomic': 'true' });
+    const cashEl = mkEl('span', { className: 'fmc-value', id: EL_ID.CASH_WITHDRAWABLE, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.CASH_WITHDRAWABLE_LABEL, textContent: '--' });
+    const buyingPowerEl = mkEl('span', { className: 'fmc-value', id: EL_ID.BUYING_POWER, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.BUYING_POWER_LABEL, textContent: '--' });
     const body = mkEl('div', { className: 'fmc-panel-body' },
       mkEl('div', { className: 'fmc-col', role: 'group', 'aria-labelledby': EL_ID.CREDIT_DEBIT_LABEL },
-        mkEl('span', { className: 'fmc-label', id: EL_ID.CREDIT_DEBIT_LABEL, textContent: 'Margin Credit/Debit' }),
-        mkEl('span', { className: 'fmc-value', id: EL_ID.CREDIT_DEBIT, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.CREDIT_DEBIT_LABEL, textContent: '--' }),
-        mkEl('span', { className: 'fmc-sublabel', id: EL_ID.DELTA, 'aria-live': 'polite', 'aria-atomic': 'true' })
+        creditDebitLabelEl,
+        creditDebitEl,
+        deltaEl
       ),
       mkEl('div', { className: 'fmc-col', role: 'group', 'aria-labelledby': EL_ID.CASH_WITHDRAWABLE_LABEL },
         mkEl('span', { className: 'fmc-label', id: EL_ID.CASH_WITHDRAWABLE_LABEL, textContent: 'Cash Withdrawable' }),
-        mkEl('span', { className: 'fmc-value', id: EL_ID.CASH_WITHDRAWABLE, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.CASH_WITHDRAWABLE_LABEL, textContent: '--' }),
+        cashEl,
         mkEl('span', { className: 'fmc-sublabel', textContent: 'without margin interest' })
       ),
       mkEl('div', { className: 'fmc-col fmc-col-last', role: 'group', 'aria-labelledby': EL_ID.BUYING_POWER_LABEL },
         mkEl('span', { className: 'fmc-label', id: EL_ID.BUYING_POWER_LABEL, textContent: 'Buying Power' }),
-        mkEl('span', { className: 'fmc-value', id: EL_ID.BUYING_POWER, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.BUYING_POWER_LABEL, textContent: '--' }),
+        buyingPowerEl,
         mkEl('span', { className: 'fmc-sublabel', textContent: 'margin buying power' })
       )
     );
@@ -117,20 +123,21 @@ const MarginInjector = (() => {
       mkEl('span', { textContent: 'Calculating margin impact...' })
     );
 
-    // Error row (hidden until needed)
-    const warningIcon = mkEl('span', { className: 'fmc-error-icon', 'aria-hidden': 'true' });
-    warningIcon.textContent = '\u26a0'; // ⚠ warning sign
+    // Error row (hidden until needed) — capture child references directly to avoid
+    // redundant querySelector calls later for panelRefs and event-listener wiring.
+    const errorTextEl = mkEl('span', { className: 'fmc-error-text' });
+    const retryBtnEl = mkEl('button', { type: 'button', className: 'fmc-retry-btn', 'aria-label': 'Retry margin calculation', textContent: 'Retry' });
+    const debugBtnEl = mkEl('button', { type: 'button', className: 'fmc-debug-btn', 'aria-label': 'Show debug log', 'aria-controls': EL_ID.DEBUG_LOG, 'aria-expanded': 'false', textContent: 'Debug' });
     const errorRow = mkEl('div', {
       className: 'fmc-panel-error', id: EL_ID.ERROR, role: 'alert'
     },
-      warningIcon,
-      mkEl('span', { className: 'fmc-error-text' }),
-      mkEl('button', { type: 'button', className: 'fmc-retry-btn', 'aria-label': 'Retry margin calculation', textContent: 'Retry' }),
-      mkEl('button', { type: 'button', className: 'fmc-debug-btn', 'aria-label': 'Show debug log', 'aria-controls': EL_ID.DEBUG_LOG, 'aria-expanded': 'false', textContent: 'Debug' })
+      mkEl('span', { className: 'fmc-error-icon', 'aria-hidden': 'true', textContent: '\u26a0' }),
+      errorTextEl,
+      retryBtnEl,
+      debugBtnEl
     );
     errorRow.style.display = 'none';
-    const initialRetryBtn = errorRow.querySelector('.fmc-retry-btn');
-    if (initialRetryBtn) initialRetryBtn.style.display = 'none';
+    retryBtnEl.style.display = 'none';
 
     // Debug log (hidden until toggled)
     const debugLogDiv = mkEl('div', { className: 'fmc-debug-log', id: EL_ID.DEBUG_LOG, role: 'log', 'aria-label': 'Debug log' });
@@ -152,43 +159,36 @@ const MarginInjector = (() => {
       body,
       loading,
       error: errorRow,
-      errorText:         errorRow.querySelector('.fmc-error-text'),
-      retryBtn:          errorRow.querySelector('.fmc-retry-btn'),
-      creditDebit:       body.querySelector(`#${EL_ID.CREDIT_DEBIT}`),
-      creditDebitLabel:  body.querySelector(`#${EL_ID.CREDIT_DEBIT_LABEL}`),
-      delta:             body.querySelector(`#${EL_ID.DELTA}`),
-      cash:              body.querySelector(`#${EL_ID.CASH_WITHDRAWABLE}`),
-      buyingPower:       body.querySelector(`#${EL_ID.BUYING_POWER}`)
+      errorText:         errorTextEl,
+      retryBtn:          retryBtnEl,
+      creditDebit:       creditDebitEl,
+      creditDebitLabel:  creditDebitLabelEl,
+      delta:             deltaEl,
+      cash:              cashEl,
+      buyingPower:       buyingPowerEl
     });
 
     // Wire retry button
-    const retryBtn = panel.querySelector('.fmc-retry-btn');
-    if (retryBtn) {
-      retryBtn.addEventListener('click', () => {
-        retryCallback?.();
-      });
-    }
+    retryBtnEl.addEventListener('click', () => {
+      retryCallback?.();
+    });
 
-    // Wire debug button
-    const debugBtn = panel.querySelector('.fmc-debug-btn');
-    const debugLogEl = panel.querySelector(`#${EL_ID.DEBUG_LOG}`);
-    if (debugBtn && debugLogEl) {
-      debugBtn.addEventListener('click', () => {
-        const visible = debugLogEl.style.display !== 'none';
-        if (visible) {
-          debugLogEl.style.display = 'none';
-          debugBtn.textContent = 'Debug';
-          debugBtn.setAttribute('aria-label', 'Show debug log');
-          debugBtn.setAttribute('aria-expanded', 'false');
-        } else {
-          debugLogEl.textContent = debugLog.join('\n') || '(no log entries)';
-          debugLogEl.style.display = 'block';
-          debugBtn.textContent = 'Hide';
-          debugBtn.setAttribute('aria-label', 'Hide debug log');
-          debugBtn.setAttribute('aria-expanded', 'true');
-        }
-      });
-    }
+    // Wire debug button — use debugLogDiv reference already in scope
+    debugBtnEl.addEventListener('click', () => {
+      const visible = debugLogDiv.style.display !== 'none';
+      if (visible) {
+        debugLogDiv.style.display = 'none';
+        debugBtnEl.textContent = 'Debug';
+        debugBtnEl.setAttribute('aria-label', 'Show debug log');
+        debugBtnEl.setAttribute('aria-expanded', 'false');
+      } else {
+        debugLogDiv.textContent = debugLog.join('\n') || '(no log entries)';
+        debugLogDiv.style.display = 'block';
+        debugBtnEl.textContent = 'Hide';
+        debugBtnEl.setAttribute('aria-label', 'Hide debug log');
+        debugBtnEl.setAttribute('aria-expanded', 'true');
+      }
+    });
 
     return panel;
   }
