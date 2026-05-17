@@ -2,11 +2,11 @@
 // Single-call architecture: portfolio API provides priceList, margin calc API requires order + priceList.
 (() => {
   const LOG_PREFIX = '[FMC]';
-  const PRICELIST_TTL = 300000; // 5 min — positions don't change often
-  const PROJECTED_TTL = 30000;
-  const BADGE_COLOR_ERROR = '#c41200';
-  const BADGE_COLOR_WARNING = '#f5a623';
-  const BG_MESSAGE_TIMEOUT_MS = 3000;
+  const PRICELIST_TTL = FMC_CONSTANTS.CACHE_TTL_MS.PRICELIST;
+  const PROJECTED_TTL = FMC_CONSTANTS.CACHE_TTL_MS.PROJECTED;
+  const BADGE_COLOR_ERROR = FMC_CONSTANTS.BADGE_COLORS.ERROR;
+  const BADGE_COLOR_WARNING = FMC_CONSTANTS.BADGE_COLORS.WARNING;
+  const BG_MESSAGE_TIMEOUT_MS = FMC_CONSTANTS.BG_MESSAGE_TIMEOUT_MS;
 
   const CACHE_KEY = FMC_CONSTANTS.CACHE_KEY_PREFIX;
 
