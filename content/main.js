@@ -344,6 +344,13 @@
             }
             previousAccountNum = event.accountNum;
             handleTradeReady(event.accountNum, event.orders).catch(err => log('Unhandled error in trade handler:', err));
+          } else {
+            // Trade form passed field completeness check but order parsing failed
+            // (e.g. unparseable limit price or missing option symbol component).
+            // Inject the panel and show a meaningful error so the user isn't left wondering.
+            log('Warning: ready event with empty orders — trade form may be incomplete or in an unexpected format');
+            if (!MarginInjector.getPanel()) MarginInjector.inject();
+            MarginInjector.showError('Could not parse trade details — verify the form is filled in correctly.', false);
           }
           break;
 
