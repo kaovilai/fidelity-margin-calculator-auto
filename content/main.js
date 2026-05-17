@@ -31,7 +31,7 @@
 
   // Fallback in-memory cache when background is unavailable
   let fallbackCache = {};
-  const FALLBACK_CACHE_MAX = 30;
+  const FALLBACK_CACHE_MAX = FMC_CONSTANTS.CONTENT_FALLBACK_CACHE_MAX;
 
   // Remove expired entries from fallbackCache to prevent memory growth over long sessions.
   // Also evicts oldest entry if the cache exceeds FALLBACK_CACHE_MAX entries.
