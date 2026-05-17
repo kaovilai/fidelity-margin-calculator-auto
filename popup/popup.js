@@ -44,7 +44,7 @@
 
     if (acctEl) acctEl.textContent = maskAccount(status.accountNum);
     if (calcEl) calcEl.textContent = timeAgo(status.lastCalcTime);
-    if (callsEl) callsEl.textContent = status.apiCallCount || 0;
+    if (callsEl) callsEl.textContent = status.apiCallCount ?? 0;
 
     if (errRow) errRow.style.display = status.lastError ? '' : 'none';
     if (errEl) errEl.textContent = status.lastError || '';
