@@ -157,6 +157,7 @@
         const isCollapsed = body.classList.toggle('collapsed');
         arrow.classList.toggle('collapsed');
         toggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+        body.setAttribute('aria-hidden', isCollapsed ? 'true' : 'false');
       };
       toggle.addEventListener('click', applyToggle);
     }
