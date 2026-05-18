@@ -563,7 +563,7 @@ const TradeDetector = (() => {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['style', 'aria-checked', 'class']
+      attributeFilter: ['style', 'hidden', 'aria-checked', 'class']
     });
 
     // Listen for input events on trade fields (options + equity).
