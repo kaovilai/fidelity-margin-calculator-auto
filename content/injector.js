@@ -206,7 +206,7 @@ const MarginInjector = (() => {
   function inject() {
     if (getPanel()) return true;
 
-    const mxregin = document.getElementById('mxregin');
+    const mxregin = document.getElementById(FMC_CONSTANTS.INJECTION.TARGET_ID);
     if (!mxregin) return false;
 
     // Clear stale log entries from any previous panel so the debug view shows
@@ -214,11 +214,11 @@ const MarginInjector = (() => {
     clearDebugLog();
 
     const panel = createPanel();
-    // Append inside ott-max-gain-loss to stay within Angular component boundary.
+    // Append inside the Angular component wrapper to stay within its boundary.
     // Fall back to mxregin's direct parent, but only if it is an element node
     // (nodeType 1) — prevents accidental injection at document/body level if
     // Fidelity removes the surrounding component wrapper.
-    const parent = mxregin.closest('ott-max-gain-loss') ||
+    const parent = mxregin.closest(FMC_CONSTANTS.INJECTION.COMPONENT_SELECTOR) ||
       (mxregin.parentNode?.nodeType === Node.ELEMENT_NODE ? mxregin.parentNode : null);
     if (!parent) return false;
     // Guard against Angular removing the injection parent between our getElementById call
