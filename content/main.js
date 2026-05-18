@@ -206,6 +206,8 @@
         if (rl.cancelled) return;
         // A new request may have arrived while waiting for a token
         if (requestId !== currentRequest) return;
+        // Extension may have been disabled during the wait
+        if (!settings.enabled) return;
       }
 
       // Also check background rate limit (advisory)
@@ -216,6 +218,8 @@
         const waitMs = Math.max(0, Math.min(rateCheck.retryAfter || 0, FMC_CONSTANTS.MAX_RATE_LIMIT_WAIT_MS));
         await new Promise(r => setTimeout(r, waitMs));
         if (requestId !== currentRequest) return;
+        // Extension may have been disabled during the rate-limit back-off wait
+        if (!settings.enabled) return;
       }
 
       // Fetch priceList from portfolio API (cached)
@@ -361,8 +365,12 @@
           if (wasEnabled && !settings.enabled) {
             MarginInjector.remove();
           }
-          // Re-observe with new debounce so the change takes effect without a page reload
-          if (settings.debounceMs !== prevDebounceMs) {
+          // Re-observe with new debounce so the change takes effect without a page reload.
+          // Also re-observe when re-enabling: if the trade form was already filled in and
+          // static (no further DOM mutations), the observer's stale fingerprint would prevent
+          // a new 'ready' event from firing, leaving the panel invisible until the form changes.
+          // Re-observing resets the fingerprint and triggers an immediate fresh check.
+          if (settings.debounceMs !== prevDebounceMs || (!wasEnabled && settings.enabled)) {
             TradeDetector.observe(tradeEventCallback, settings.debounceMs);
           }
         }
