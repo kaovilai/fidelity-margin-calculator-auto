@@ -120,7 +120,10 @@
     // Version
     const manifest = chrome.runtime.getManifest();
     const versionEl = document.getElementById('version');
-    if (versionEl) versionEl.textContent = `v${manifest.version}`;
+    if (versionEl) {
+      versionEl.textContent = `v${manifest.version}`;
+      versionEl.setAttribute('aria-label', `Extension version ${manifest.version}`);
+    }
 
     // Load current status
     if (chrome.storage?.local) {
@@ -162,6 +165,13 @@
         arrow.classList.toggle('collapsed');
         toggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
         body.setAttribute('aria-hidden', isCollapsed ? 'true' : 'false');
+        // inert prevents keyboard users from tabbing into inputs hidden by the CSS
+        // max-height collapse (aria-hidden alone only hides from screen readers, not focus).
+        if (isCollapsed) {
+          body.setAttribute('inert', '');
+        } else {
+          body.removeAttribute('inert');
+        }
       };
       toggle.addEventListener('click', applyToggle);
     }
