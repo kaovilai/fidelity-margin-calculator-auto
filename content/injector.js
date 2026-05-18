@@ -202,6 +202,10 @@ const MarginInjector = (() => {
     return panel;
   }
 
+  /**
+   * Returns the currently injected margin panel element, or `null` if not present.
+   * @returns {HTMLElement|null}
+   */
   function getPanel() {
     return document.getElementById(PANEL_ID);
   }
@@ -210,6 +214,13 @@ const MarginInjector = (() => {
     return panelRefs.get(panel) ?? { body: null, loading: null, error: null };
   }
 
+  /**
+   * Injects the margin panel into the trade ticket DOM.
+   * Finds the injection target (`#mxregin`) and appends the panel to its
+   * nearest Angular component ancestor or direct parent.
+   * @returns {boolean} `true` if the panel was successfully injected (or was already present),
+   *   `false` if the injection target or its parent could not be found or was detached.
+   */
   function inject() {
     if (getPanel()) return true;
 
@@ -251,11 +262,20 @@ const MarginInjector = (() => {
     return true;
   }
 
+  /**
+   * Removes the margin panel from the DOM.
+   * No-op if the panel is not currently present.
+   */
   function remove() {
     const panel = getPanel();
     if (panel) panel.remove();
   }
 
+  /**
+   * Puts the panel into the loading state: shows the spinner, fades the body,
+   * and suppresses live-region announcements until results arrive.
+   * No-op if the panel is not currently injected.
+   */
   function showLoading() {
     const panel = getPanel();
     if (!panel) return;
@@ -274,6 +294,12 @@ const MarginInjector = (() => {
     if (error) error.style.display = 'none';
   }
 
+  /**
+   * Puts the panel into the error state and displays a message.
+   * No-op if the panel is not currently injected.
+   * @param {string} msg - Human-readable error message to display.
+   * @param {boolean} canRetry - Whether to show the Retry button.
+   */
   function showError(msg, canRetry) {
     const panel = getPanel();
     if (!panel) return;
@@ -289,10 +315,25 @@ const MarginInjector = (() => {
     }
   }
 
+  /**
+   * Registers a callback to invoke when the Retry button is clicked.
+   * @param {() => void} fn - Callback to invoke on retry.
+   */
   function setRetryCallback(fn) {
     retryCallback = fn;
   }
 
+  /**
+   * Updates the panel with calculated margin impact data.
+   * Hides the loading indicator and error row, and populates all three data columns.
+   * No-op if the panel is not currently injected.
+   * @param {{
+   *   projectedCreditDebit: number,
+   *   delta: number|null,
+   *   cashWithdrawable: number,
+   *   projectedBuyingPower: number
+   * }} impact - Margin impact computed by MarginCalc.computeImpact.
+   */
   function updatePanel(impact) {
     const panel = getPanel();
     if (!panel) return;
@@ -340,6 +381,11 @@ const MarginInjector = (() => {
     }
   }
 
+  /**
+   * Appends an entry to the panel's debug log ring buffer and refreshes the
+   * visible debug log if it is currently open.
+   * @param {string} entry - Log message to append (will be prefixed with a timestamp).
+   */
   function addDebugLog(entry) {
     const ts = new Date().toLocaleTimeString();
     debugLog.push(`[${ts}] ${entry}`);
@@ -354,10 +400,16 @@ const MarginInjector = (() => {
     }
   }
 
+  /** Clears all entries from the debug log ring buffer. */
   function clearDebugLog() {
     debugLog = [];
   }
 
+  /**
+   * Sets the margin credit/debit threshold below which the panel shows a warning state.
+   * Values at or below the threshold display as WARNING instead of CREDIT.
+   * @param {number} val - Threshold in dollars (clamped to ≥0).
+   */
   function setWarningThreshold(val) {
     const parsed = Number(val);
     // Clamp to ≥0: a negative threshold would cause debit positions to pass the
