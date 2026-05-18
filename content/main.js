@@ -11,7 +11,6 @@
   const CACHE_KEYS = FMC_CONSTANTS.CACHE_KEY_PREFIX;
 
   const STORAGE_KEY_SETTINGS = FMC_CONSTANTS.STORAGE_KEY_SETTINGS;
-  const MAX_LOG_ENTRY_LEN = FMC_CONSTANTS.MAX_LOG_ENTRY_LEN;
   const STORAGE_KEY_STATUS = FMC_CONSTANTS.STORAGE_KEY_STATUS;
   const MSG_SESSION_EXPIRED = 'Session expired. Please refresh the page.';
 
@@ -49,19 +48,7 @@
     }
   }
 
-  function log(...args) {
-    console.log(LOG_PREFIX, ...args);
-    if (typeof MarginInjector !== 'undefined' && MarginInjector.addDebugLog) {
-      MarginInjector.addDebugLog(args.map(a => {
-        if (a instanceof Error) return a.message + (a.stack ? '\n' + a.stack : '');
-        if (typeof a !== 'object') return String(a);
-        try {
-          const s = JSON.stringify(a);
-          return s.length > MAX_LOG_ENTRY_LEN ? s.slice(0, MAX_LOG_ENTRY_LEN) + '…' : s;
-        } catch { return '[unserializable object]'; }
-      }).join(' '));
-    }
-  }
+  const log = makeLogFn(LOG_PREFIX, console.log);
 
   // --- Settings ---
   async function loadSettings() {
