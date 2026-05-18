@@ -491,7 +491,7 @@ const TradeDetector = (() => {
   // error rather than silently matching nothing.
   function selectorId(sel) {
     if (!sel.startsWith('#')) {
-      console.warn('[FMC-DET] selectorId: expected a CSS ID selector starting with "#", got:', sel);
+      warn('selectorId: expected a CSS ID selector starting with "#", got:', sel);
     }
     return sel.startsWith('#') ? sel.slice(1) : sel;
   }
