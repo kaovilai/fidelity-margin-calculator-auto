@@ -486,7 +486,10 @@ const TradeDetector = (() => {
     }
 
     let lastFingerprint = '';
-    let lastEventType = '';
+    // Initialize to 'closed' so the first check() call with no visible ticket does not
+    // fire a spurious 'closed' event. The initial state of "no ticket open" is already
+    // implied; main.js initialises currentRequest/lastResult/panel to safe defaults.
+    let lastEventType = 'closed';
 
     function check() {
       const ctx = detectPageContext();

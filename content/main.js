@@ -342,6 +342,9 @@
               await handleTradeReady(lastAccountNum, lastOrders);
             }
           })().catch(err => log('Error during force-recalc:', err));
+        } else if (msg?._fmc) {
+          // Unexpected _fmc message type — acknowledge to avoid "port closed before response" warnings.
+          sendResponse({ error: 'unhandled message type' });
         }
         return false; // synchronous response already sent — close port immediately
       });
