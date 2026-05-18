@@ -392,6 +392,9 @@
       switch (event.type) {
         case 'ready':
           if (!event.accountNum) {
+            // Invalidate any in-flight request so it cannot overwrite this error panel
+            // with stale results. Mirrors the same guard used in the 'incomplete' case.
+            currentRequest++;
             showErrorInPanel('Could not detect account number — try refreshing the page.', false);
             break;
           }
@@ -413,6 +416,9 @@
           } else {
             // Trade form passed field completeness check but order parsing failed
             // (e.g. unparseable limit price or missing option symbol component).
+            // Increment currentRequest so any in-flight handleTradeReady cannot
+            // overwrite this error panel with stale results once it resolves.
+            currentRequest++;
             // Inject the panel and show a meaningful error so the user isn't left wondering.
             log('Warning: ready event with empty orders — trade form may be incomplete or in an unexpected format');
             showErrorInPanel('Could not parse trade details — verify the form is filled in correctly.', false);
