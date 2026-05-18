@@ -157,6 +157,15 @@
     await sendToBackground('CACHE_INVALIDATE', { pattern });
   }
 
+  // Invalidates both priceList and projected caches for the given account.
+  // Called on account switch and force-recalc to ensure stale data is not used.
+  function invalidateAccountCache(accountNum) {
+    return Promise.all([
+      invalidateCache(`${CACHE_KEYS.PRICELIST}${accountNum}`),
+      invalidateCache(`${CACHE_KEYS.PROJECTED}${accountNum}`)
+    ]);
+  }
+
   // --- Orders hash ---
   function hashOrders(orders) {
     return orders
@@ -328,10 +337,7 @@
             fallbackCache = {};
             lastResult = null;
             if (lastAccountNum) {
-              await Promise.all([
-                invalidateCache(`${CACHE_KEYS.PRICELIST}${lastAccountNum}`),
-                invalidateCache(`${CACHE_KEYS.PROJECTED}${lastAccountNum}`)
-              ]);
+              await invalidateAccountCache(lastAccountNum);
             }
             if (lastAccountNum && lastOrders) {
               await handleTradeReady(lastAccountNum, lastOrders);
@@ -384,12 +390,11 @@
                 accountNum: event.accountNum,
                 previousAccountNum
               });
-              // Fire-and-forget: tradeEventCallback is synchronous; invalidateCache is
+              // Fire-and-forget: tradeEventCallback is synchronous; invalidateAccountCache is
               // async but the fallback cache is cleared synchronously inside the function,
               // so the next getCached() call immediately sees a miss. Background cache
               // invalidation completes shortly after without needing to block here.
-              invalidateCache(`${CACHE_KEYS.PRICELIST}${previousAccountNum}`);
-              invalidateCache(`${CACHE_KEYS.PROJECTED}${previousAccountNum}`);
+              invalidateAccountCache(previousAccountNum);
               lastResult = null;
             }
             previousAccountNum = event.accountNum;
