@@ -229,7 +229,8 @@ const TradeDetector = (() => {
   }
 
   function isLegComplete(leg) {
-    return !!(leg.action && parseFloat(leg.quantity) > 0 && leg.callPut && leg.expiration && leg.strike);
+    const qty = parseFloat(leg.quantity);
+    return !!(leg.action && Number.isFinite(qty) && qty > 0 && leg.callPut && leg.expiration && leg.strike);
   }
 
   // --- Options trade params (all legs) ---
@@ -327,12 +328,15 @@ const TradeDetector = (() => {
   function buildEquityOrders() {
     const params = getEquityTradeParams();
     const orderAction = mapAction(params.action);
-    const qty = parseInt(params.quantity, 10);
+    // Use Math.round to match the parseFloat-based completeness check in hasRequiredFields;
+    // parseInt would silently truncate fractional quantities (e.g. 1.9 → 1), while
+    // rounding is more accurate and consistent with what the user entered.
+    const qty = Math.round(parseFloat(params.quantity));
     const price = parseFloat((params.limitPrice || '').replace(/,/g, ''));
 
-    if (!orderAction || !qty || !params.symbol) return [];
+    if (!orderAction || !Number.isFinite(qty) || qty <= 0 || !params.symbol) return [];
     // Market orders may not have a price — use 0
-    const orderPrice = Number.isNaN(price) ? 0 : price;
+    const orderPrice = Number.isFinite(price) ? price : 0;
 
     return [{
       orderSymbol: params.symbol,
@@ -353,7 +357,8 @@ const TradeDetector = (() => {
       const p = getEquityTradeParams();
       // Limit orders require a price — submitting with price=0 produces wrong margin results
       const isLimit = p.orderType && p.orderType.toLowerCase().includes('limit');
-      return !!(p.symbol && p.action && parseFloat(p.quantity) > 0 && (!isLimit || p.limitPrice));
+      const qty = parseFloat(p.quantity);
+      return !!(p.symbol && p.action && Number.isFinite(qty) && qty > 0 && (!isLimit || p.limitPrice));
     }
 
     // Options — need symbol, price, and at least one complete leg
