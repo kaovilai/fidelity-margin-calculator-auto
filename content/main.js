@@ -3,6 +3,7 @@
 (() => {
   const LOG_PREFIX = '[FMC]';
   const PRICELIST_TTL = FMC_CONSTANTS.CACHE_TTL_MS.PRICELIST;
+  const PRICELIST_EMPTY_TTL = FMC_CONSTANTS.CACHE_TTL_MS.PRICELIST_EMPTY;
   const PROJECTED_TTL = FMC_CONSTANTS.CACHE_TTL_MS.PROJECTED;
   const BADGE_COLOR_ERROR = FMC_CONSTANTS.BADGE_COLORS.ERROR;
   const BADGE_COLOR_WARNING = FMC_CONSTANTS.BADGE_COLORS.WARNING;
@@ -240,6 +241,11 @@
           await setCache(priceListKey, priceList, PRICELIST_TTL);
           if (requestId !== currentRequest) return;
         } else {
+          // Cache the empty result briefly so repeated trade-form changes do not
+          // re-fetch from the positions API on every mutation when the account
+          // genuinely has no positions. Short TTL lets the user retry quickly.
+          await setCache(priceListKey, priceList, PRICELIST_EMPTY_TTL);
+          if (requestId !== currentRequest) return;
           log('Warning: no positions found — margin API requires existing positions');
           MarginInjector.showError(
             'No positions found for this account. Margin calculation requires at least one existing position.',
@@ -383,7 +389,7 @@
               // async but the fallback cache is cleared synchronously inside the function,
               // so the next getCached() call immediately sees a miss. Background cache
               // invalidation completes shortly after without needing to block here.
-              invalidateAccountCache(previousAccountNum);
+              invalidateAccountCache(previousAccountNum).catch(err => log('Cache invalidation error on account switch:', err));
               lastResult = null;
             }
             previousAccountNum = event.accountNum;
