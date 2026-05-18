@@ -295,7 +295,7 @@ const TradeDetector = (() => {
     const params = getOptionsTradeParams();
     const price = parseFloat((params.limitPrice || '').replace(/,/g, ''));
     const isLimitOrder = params.orderType && params.orderType.toLowerCase().includes('limit');
-    if (Number.isNaN(price)) {
+    if (!Number.isFinite(price)) {
       // For limit orders, an unparseable price is a selector failure — warn and bail.
       // For market (and other non-limit) orders the price field is intentionally empty;
       // use 0 so the margin API receives a valid order and the calculation still fires.

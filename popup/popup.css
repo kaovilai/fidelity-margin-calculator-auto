@@ -153,6 +153,10 @@ body {
   text-align: right;
   font-family: inherit;
 }
+.setting-input:focus-visible {
+  outline: 2px solid var(--fmc-green);
+  outline-offset: 2px;
+}
 
 .setting-select {
   padding: 2px 4px;
@@ -161,6 +165,10 @@ body {
   font-size: 12px;
   font-family: inherit;
   background: var(--fmc-bg);
+}
+.setting-select:focus-visible {
+  outline: 2px solid var(--fmc-green);
+  outline-offset: 2px;
 }
 
 /* Toggle switch */
