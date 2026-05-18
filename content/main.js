@@ -367,17 +367,19 @@
           settings.debounceMs = clampDebounceMs(settings.debounceMs);
           MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
           log('Settings updated:', settings);
-          // If the extension was just disabled, remove the panel immediately
-          // so stale margin data is not left visible to the user.
+          // If the extension was just disabled, remove the panel and disconnect the
+          // observer so Angular's frequent DOM mutations no longer trigger DOM queries.
           if (wasEnabled && !settings.enabled) {
             MarginInjector.remove();
+            TradeDetector.disconnect();
           }
           // Re-observe with new debounce so the change takes effect without a page reload.
           // Also re-observe when re-enabling: if the trade form was already filled in and
           // static (no further DOM mutations), the observer's stale fingerprint would prevent
           // a new 'ready' event from firing, leaving the panel invisible until the form changes.
           // Re-observing resets the fingerprint and triggers an immediate fresh check.
-          if (settings.debounceMs !== prevDebounceMs || (!wasEnabled && settings.enabled)) {
+          // Only re-observe when enabled — no point reattaching while disabled.
+          if (settings.enabled && (settings.debounceMs !== prevDebounceMs || !wasEnabled)) {
             TradeDetector.observe(tradeEventCallback, settings.debounceMs);
           }
         }
