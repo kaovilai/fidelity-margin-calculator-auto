@@ -380,6 +380,20 @@ const TradeDetector = (() => {
     return `OPT|${p.symbol}|${legParts}|${p.limitPrice}`;
   }
 
+  // --- Input listener ID helpers ---
+  // Derived once from DOM constants so observe() re-calls do not recompute them.
+  // selectorId strips the leading '#' from a CSS ID selector (e.g. '#foo' -> 'foo').
+  // Using a guard so a future refactor that drops the '#' prefix produces an obvious
+  // error rather than silently matching nothing.
+  function selectorId(sel) { return sel.startsWith('#') ? sel.slice(1) : sel; }
+  const OPT_LIMIT_ID = selectorId(DOM.OPT_LIMIT_PRICE);   // 'dest-limitPrice'
+  const OPT_SYM_ID   = selectorId(DOM.OPT_SYMBOL);         // 'symbol_search'
+  const EQ_SYM_ID    = selectorId(DOM.EQ_SYMBOL);          // 'eq-ticket-dest-symbol'
+  const EQ_QTY_ID    = selectorId(DOM.EQ_QTY);             // 'eqt-shared-quantity'
+  const EQ_LIMIT_ID  = selectorId(DOM.EQ_LIMIT_PRIMARY);   // 'eqt-shared-limit-price'
+  const LEG_QTY_BASE = selectorId(DOM.LEG_QTY_SEL_BASE);  // 'quantity' (quantity-{i})
+  const legQtyRe     = new RegExp(`^${LEG_QTY_BASE}-\\d+$`);
+
   // --- Observer ---
 
   let observer = null;
@@ -507,17 +521,6 @@ const TradeDetector = (() => {
     // (e.g. typing a quantity or limit price) doesn't fire multiple redundant
     // check() calls within a single 50ms window. The debounce inside check()
     // still guards the actual API call regardless.
-    // Extract the bare ID from a '#id' selector constant.
-    // Using startsWith guard so a future refactor that drops the '#' prefix
-    // produces an obvious error rather than silently matching nothing.
-    function selectorId(sel) { return sel.startsWith('#') ? sel.slice(1) : sel; }
-    const OPT_LIMIT_ID  = selectorId(DOM.OPT_LIMIT_PRICE);   // 'dest-limitPrice'
-    const OPT_SYM_ID    = selectorId(DOM.OPT_SYMBOL);         // 'symbol_search'
-    const EQ_SYM_ID     = selectorId(DOM.EQ_SYMBOL);          // 'eq-ticket-dest-symbol'
-    const EQ_QTY_ID     = selectorId(DOM.EQ_QTY);             // 'eqt-shared-quantity'
-    const EQ_LIMIT_ID   = selectorId(DOM.EQ_LIMIT_PRIMARY);   // 'eqt-shared-limit-price'
-    const LEG_QTY_BASE  = selectorId(DOM.LEG_QTY_SEL_BASE);  // 'quantity' (quantity-{i})
-    const legQtyRe = new RegExp(`^${LEG_QTY_BASE}-\\d+$`);
     inputListener = (e) => {
       const id = e.target?.id ?? '';
       if (legQtyRe.test(id) ||
