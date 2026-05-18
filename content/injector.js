@@ -371,7 +371,13 @@ const MarginInjector = (() => {
     // Column 2: Cash Withdrawable
     if (cashEl) {
       cashEl.textContent = formatCurrency(impact.cashWithdrawable);
-      cashEl.className = `fmc-value ${impact.cashWithdrawable > 0 ? `fmc-status-${STATUS.CREDIT}` : CSS.NEUTRAL}`;
+      // Negative cash withdrawable means the account is already over-borrowed (margin interest
+      // would accrue even before this trade). Show as DEBIT to alert the user, not neutral.
+      cashEl.className = `fmc-value ${
+        impact.cashWithdrawable > 0 ? `fmc-status-${STATUS.CREDIT}` :
+        impact.cashWithdrawable < 0 ? `fmc-status-${STATUS.DEBIT}` :
+        CSS.NEUTRAL
+      }`;
     }
 
     // Column 3: Buying Power
