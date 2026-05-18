@@ -281,8 +281,9 @@
       log('Error:', err);
 
       const errType = err.type || 'UNKNOWN';
-      const isSessionError = errType === FMC_CONSTANTS.ERROR_TYPES.SESSION_EXPIRED ||
-        err.message?.includes('Session expired');
+      // All typed errors from MarginAPI and PositionsAPI set err.type correctly.
+      // Rely solely on the type constant rather than a message string that could change.
+      const isSessionError = errType === FMC_CONSTANTS.ERROR_TYPES.SESSION_EXPIRED;
 
       let msg;
       if (isSessionError) {
