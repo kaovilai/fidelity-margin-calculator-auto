@@ -409,16 +409,21 @@ const TradeDetector = (() => {
   function getParamsFingerprint(ctx = detectPageContext()) {
     if (!ctx) return '';
 
+    // Include account number so that switching accounts with identical trade params
+    // still produces a distinct fingerprint, triggering a fresh 'ready' event and
+    // recalculation for the new account instead of silently reusing stale results.
+    const accountNum = getAccountNumber(ctx) ?? '';
+
     if (ctx === CTX.POPUP_EQUITY) {
       const p = getEquityTradeParams();
-      return `EQ|${p.symbol}|${p.action}|${p.quantity}|${p.orderType}|${p.limitPrice}`;
+      return `EQ|${accountNum}|${p.symbol}|${p.action}|${p.quantity}|${p.orderType}|${p.limitPrice}`;
     }
 
     const p = getOptionsTradeParams();
     const legParts = p.legs.map(l =>
       `${l.action}:${l.quantity}:${l.callPut}:${l.expiration}:${l.strike}`
     ).join('|');
-    return `OPT|${p.symbol}|${legParts}|${p.limitPrice}`;
+    return `OPT|${accountNum}|${p.symbol}|${legParts}|${p.limitPrice}`;
   }
 
   // --- Input listener ID helpers ---
