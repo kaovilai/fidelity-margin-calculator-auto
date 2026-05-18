@@ -26,8 +26,6 @@ const TradeDetector = (() => {
     OPT_SYMBOL:           '#symbol_search',
     OPT_LIMIT_PRICE:      '#dest-limitPrice',
     OPT_ORDER_TYPE:       '#ordertype-dropdown .binding-val',
-    OPT_TRADE_TYPE:       '#tradeType_dropdown .binding-val',
-
     // Equity ticket — account (relative selectors; prepend EQUITY_CONTAINER)
     EQ_ACCOUNT_LABEL:     '.selected-account-dropdown-label',
     EQ_ACCOUNT_DD:        '#dest-acct-dropdown',
@@ -298,17 +296,14 @@ const TradeDetector = (() => {
     const symbol = getInputValue(DOM.OPT_SYMBOL).toUpperCase();
     const limitPrice = getInputValue(DOM.OPT_LIMIT_PRICE);
     const orderType = getDropdownValue(DOM.OPT_ORDER_TYPE);
-    const tradeType = getDropdownValue(DOM.OPT_TRADE_TYPE);
     const legCount = getLegCount();
 
     const legs = [];
     for (let i = 0; i < legCount; i++) {
-      const leg = getLegParams(i);
-      leg.legIndex = i;
-      legs.push(leg);
+      legs.push(getLegParams(i));
     }
 
-    return { symbol, limitPrice, orderType, tradeType, legs };
+    return { symbol, limitPrice, orderType, legs };
   }
 
   // --- Equity trade params ---
