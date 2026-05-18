@@ -221,11 +221,24 @@ const MarginInjector = (() => {
     const parent = mxregin.closest('ott-max-gain-loss') ||
       (mxregin.parentNode?.nodeType === Node.ELEMENT_NODE ? mxregin.parentNode : null);
     if (!parent) return false;
+    // Guard against Angular removing the injection parent between our getElementById call
+    // and the actual append. A detached parent would cause the panel to be inserted into a
+    // disconnected subtree, making getPanel() return null and silently losing all results.
+    if (!parent.isConnected) {
+      console.warn('[FMC] Injection parent was detached by Angular re-render — will retry on next mutation');
+      return false;
+    }
     try {
       parent.appendChild(panel);
     } catch (e) {
       // Parent may have been removed from DOM by Angular re-render between detection and injection
       console.warn('[FMC] Panel injection failed:', e?.message ?? e);
+      return false;
+    }
+    // Verify the panel is reachable in the live document — guards against the parent being
+    // removed in the narrow window between the isConnected check above and the appendChild call.
+    if (!panel.isConnected) {
+      console.warn('[FMC] Panel was detached immediately after injection — Angular re-rendered during append');
       return false;
     }
     return true;
