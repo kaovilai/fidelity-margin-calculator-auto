@@ -292,7 +292,7 @@
 
     try {
       // Rate limiter (content-side token bucket)
-      if (typeof RateLimiter !== 'undefined') {
+      if (RateLimiter != null) {
         const rl = await RateLimiter.acquire();
         if (rl.cancelled) return;
         // A new request may have arrived while waiting for a token
