@@ -153,11 +153,11 @@
     const body = document.getElementById('settings-body');
     const arrow = document.getElementById('settings-arrow');
     if (toggle && body && arrow) {
-      function applyToggle() {
+      const applyToggle = () => {
         const isCollapsed = body.classList.toggle('collapsed');
         arrow.classList.toggle('collapsed');
         toggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
-      }
+      };
       toggle.addEventListener('click', applyToggle);
     }
 
