@@ -118,7 +118,11 @@ const TradeDetector = (() => {
     return d !== '' && d !== 'none';
   }
 
-  // Returns 'popup-options' | 'popup-equity' | 'dedicated-options' | null
+  /**
+   * Detects which trade ticket page context is currently active.
+   * @returns {'popup-options'|'popup-equity'|'dedicated-options'|null}
+   *   The active context, or `null` if no trade ticket is visible.
+   */
   function detectPageContext() {
     // Dedicated options page (full page, no popup shell)
     if (document.body?.classList.contains(DOM.DEDICATED_BODY_CLASS)) {
@@ -135,15 +139,18 @@ const TradeDetector = (() => {
     return null;
   }
 
+  /** @returns {boolean} `true` if any supported trade ticket is currently visible. */
   function isTradeTicketVisible() {
     return detectPageContext() !== null;
   }
 
+  /** @returns {boolean} `true` if the visible trade ticket is an options ticket (popup or dedicated page). */
   function isOptionsTicket() {
     const ctx = detectPageContext();
     return ctx === CTX.POPUP_OPTIONS || ctx === CTX.DEDICATED_OPTIONS;
   }
 
+  /** @returns {boolean} `true` if the visible trade ticket is a floating equity ticket. */
   function isEquityTicket() {
     return detectPageContext() === CTX.POPUP_EQUITY;
   }
@@ -160,6 +167,12 @@ const TradeDetector = (() => {
 
   // --- Account number ---
 
+  /**
+   * Reads the brokerage account number from the visible trade ticket.
+   * @param {string} [ctx] - Pre-computed page context from `detectPageContext()`.
+   *   Pass this to avoid a redundant DOM read when context is already known.
+   * @returns {string|null} Account number string, or `null` if not found.
+   */
   // ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
   function getAccountNumber(ctx = detectPageContext()) {
     if (ctx === CTX.POPUP_EQUITY) {
@@ -220,7 +233,15 @@ const TradeDetector = (() => {
     return num.toString();
   }
 
-  // Builds option symbol: -AVGO260522P370
+  /**
+   * Builds an option order symbol in the format expected by the margin calculator API.
+   * Example: `buildOrderSymbol('AVGO', 'May 22, 2026', 'P', '370.00')` → `'-AVGO260522P370'`
+   * @param {string} symbol - Underlying ticker symbol (e.g. `'AVGO'`).
+   * @param {string} expiration - Expiration date string as displayed by Fidelity (e.g. `'May 22, 2026'`).
+   * @param {string} callPut - `'C'` for call, `'P'` for put.
+   * @param {string} strike - Strike price string (e.g. `'370.00'` or `'1,234.50'`).
+   * @returns {string} Formatted option symbol, or `''` if any component is missing or unparseable.
+   */
   function buildOrderSymbol(symbol, expiration, callPut, strike) {
     if (!symbol || !expiration || !callPut || !strike) return '';
     const expCode = parseExpiration(expiration);
@@ -229,6 +250,11 @@ const TradeDetector = (() => {
     return `-${symbol}${expCode}${callPut}${strikeCode}`;
   }
 
+  /**
+   * Maps a Fidelity trade action label to the margin API action code.
+   * @param {string} actionText - Action text as displayed in the trade ticket (e.g. `'Buy To Open'`).
+   * @returns {string} API action code (e.g. `'BO'`), or `''` if unrecognized.
+   */
   function mapAction(actionText) {
     if (!actionText) return '';
     const mapped = ACTION_MAP_LOWER[actionText.trim().toLowerCase()];
@@ -309,6 +335,11 @@ const TradeDetector = (() => {
 
   // --- Unified getTradeParams ---
 
+  /**
+   * Returns the raw trade form parameters for the current ticket type.
+   * @param {string} [ctx] - Pre-computed page context from `detectPageContext()`.
+   * @returns {Object|null} Raw parameters object (shape varies by ticket type), or `null` if no ticket is visible.
+   */
   // ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
   function getTradeParams(ctx = detectPageContext()) {
     if (ctx === CTX.POPUP_EQUITY) return getEquityTradeParams();
@@ -318,6 +349,13 @@ const TradeDetector = (() => {
 
   // --- Build API orders ---
 
+  /**
+   * Builds the margin calculator API order array from the current trade ticket form.
+   * Returns an empty array if the ticket is not visible or form fields are incomplete.
+   * @param {string} [ctx] - Pre-computed page context from `detectPageContext()`.
+   * @returns {Array<{orderSymbol: string, orderType: string, orderAction: string,
+   *   orderQty: number, price: number}>} Order array (may be empty).
+   */
   // ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
   function buildOrders(ctx = detectPageContext()) {
     if (!ctx) return [];
@@ -381,6 +419,13 @@ const TradeDetector = (() => {
 
   // --- Completeness checks ---
 
+  /**
+   * Returns `true` when all fields required to build a valid margin API request are filled in.
+   * For limit orders, this includes a parseable limit price. For options, at least one
+   * complete leg (action, quantity, call/put, expiration, strike) must be present.
+   * @param {string} [ctx] - Pre-computed page context from `detectPageContext()`.
+   * @returns {boolean}
+   */
   // _ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
   function hasRequiredFields(ctx = detectPageContext()) {
     if (!ctx) return false;
@@ -408,6 +453,13 @@ const TradeDetector = (() => {
 
   // --- Fingerprinting for change detection ---
 
+  /**
+   * Returns a stable string fingerprint of the current trade form state.
+   * Used to detect changes between `MutationObserver` callbacks and avoid
+   * redundant API calls when the form hasn't actually changed.
+   * @param {string} [ctx] - Pre-computed page context from `detectPageContext()`.
+   * @returns {string} Fingerprint string, or `''` if no ticket is visible.
+   */
   // ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
   function getParamsFingerprint(ctx = detectPageContext()) {
     if (!ctx) return '';
@@ -620,6 +672,11 @@ const TradeDetector = (() => {
     check();
   }
 
+  /**
+   * Disconnects the MutationObserver and removes the input listener.
+   * Cancels any pending debounce or throttle timer.
+   * Safe to call even if `observe()` was never called.
+   */
   function disconnect() {
     if (observer) {
       observer.disconnect();
