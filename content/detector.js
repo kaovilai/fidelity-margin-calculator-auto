@@ -293,15 +293,18 @@ const TradeDetector = (() => {
 
   function buildOptionsOrders() {
     const params = getOptionsTradeParams();
-    const price = parseFloat(params.limitPrice.replace(/,/g, ''));
+    const price = parseFloat((params.limitPrice || '').replace(/,/g, ''));
+    const isLimitOrder = params.orderType && params.orderType.toLowerCase().includes('limit');
     if (Number.isNaN(price)) {
-      // Only warn when the symbol is already set — unparseable price with a symbol present
-      // likely means a limit price selector stopped matching after a Fidelity page update.
-      if (params.symbol) {
+      // For limit orders, an unparseable price is a selector failure — warn and bail.
+      // For market (and other non-limit) orders the price field is intentionally empty;
+      // use 0 so the margin API receives a valid order and the calculation still fires.
+      if (isLimitOrder && params.symbol) {
         warn('Limit price is unparseable — selector may have changed: ' + params.limitPrice);
+        return [];
       }
-      return [];
     }
+    const orderPrice = Number.isFinite(price) ? price : 0;
 
     const orders = [];
     for (const leg of params.legs) {
@@ -321,7 +324,7 @@ const TradeDetector = (() => {
         orderType: ORDER_TYPE.OPTIONS,
         orderAction,
         orderQty: qty,
-        price
+        price: orderPrice
       });
     }
     return orders;
@@ -377,11 +380,13 @@ const TradeDetector = (() => {
       return !!(p.symbol && p.action && Number.isFinite(qty) && qty > 0 && limitPriceOk);
     }
 
-    // Options — need symbol, a parseable price, and at least one complete leg
+    // Options — need symbol, at least one complete leg, and for limit orders a parseable price.
+    // Market orders intentionally have no limit price; they should still trigger a calculation.
     const p = getOptionsTradeParams();
     if (!p.symbol) return false;
+    const isLimit = p.orderType && p.orderType.toLowerCase().includes('limit');
     const limitPrice = parseFloat((p.limitPrice || '').replace(/,/g, ''));
-    if (!Number.isFinite(limitPrice)) return false;
+    if (isLimit && !Number.isFinite(limitPrice)) return false;
     return p.legs.some(isLegComplete);
   }
 
