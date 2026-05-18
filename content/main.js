@@ -273,7 +273,11 @@
         log('Fetching projected margin for', orders);
         apiCallCount++;
         projectedData = await MarginAPI.fetchMarginCalc(accountNum, orders, (attempt, max, delay) => {
-          MarginInjector.showLoading();
+          // Guard against a stale retry overwriting a newer request's panel state.
+          // Without this check, a retry callback firing after a newer request has already
+          // shown results would reset the panel to loading, leaving it stuck indefinitely
+          // (the stale request exits early on the requestId check after the await).
+          if (requestId === currentRequest) MarginInjector.showLoading();
           log(`Projected retry ${attempt}/${max} in ${delay}ms`);
         }, priceList);
         if (requestId !== currentRequest) return;
