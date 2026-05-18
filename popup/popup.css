@@ -41,6 +41,14 @@ body {
   color: var(--fmc-text);
 }
 
+/* Wrapper h2 for the collapsible settings section — resets heading defaults so
+   the inner button (.section-header) controls all visual presentation */
+.section-heading-wrap {
+  display: block;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
 .popup-version {
   font-size: 11px;
   color: var(--fmc-secondary);
