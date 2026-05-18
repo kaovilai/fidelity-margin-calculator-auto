@@ -357,7 +357,7 @@ const MarginInjector = (() => {
     // Clamp to ≥0: a negative threshold would cause debit positions to pass the
     // `projectedCreditDebit <= warningThreshold` check and be shown as STATUS.CREDIT.
     // This mirrors the Math.max(0, ...) guard in popup.js saveSettings().
-    warningThreshold = isFinite(parsed) ? Math.max(0, parsed) : DEFAULT_WARNING_THRESHOLD;
+    warningThreshold = Number.isFinite(parsed) ? Math.max(0, parsed) : DEFAULT_WARNING_THRESHOLD;
   }
 
   return { inject, remove, showLoading, showError, updatePanel, getPanel, setRetryCallback, addDebugLog, clearDebugLog, setWarningThreshold };
