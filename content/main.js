@@ -310,8 +310,9 @@
 
     // Listen for force-recalc from popup
     if (chrome.runtime?.onMessage) {
-      chrome.runtime.onMessage.addListener((msg, sender) => {
+      chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (msg && msg._fmc && msg.type === 'FORCE_RECALC' && chrome.runtime?.id && sender.id === chrome.runtime.id) {
+          sendResponse({ ok: true }); // acknowledge immediately so popup can confirm receipt
           (async () => {
             fallbackCache = {};
             lastResult = null;
@@ -326,7 +327,7 @@
             }
           })().catch(err => log('Error during force-recalc:', err));
         }
-        return false; // no async response needed — close port immediately
+        return false; // synchronous response already sent — close port immediately
       });
     }
 

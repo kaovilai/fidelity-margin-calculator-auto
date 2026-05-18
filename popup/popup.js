@@ -149,9 +149,9 @@
       try {
         const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
         if (tabs[0]) {
-          await chrome.tabs.sendMessage(tabs[0].id, { type: 'FORCE_RECALC', _fmc: true })
+          const resp = await chrome.tabs.sendMessage(tabs[0].id, { type: 'FORCE_RECALC', _fmc: true })
             .catch(() => null); // Content script may not be loaded on this tab — ignore
-          if (refreshStatus) refreshStatus.textContent = 'Recalculate request sent.';
+          if (refreshStatus) refreshStatus.textContent = resp?.ok ? 'Recalculate requested.' : 'Not active on this tab.';
         } else {
           if (refreshStatus) refreshStatus.textContent = 'No active tab found.';
         }
