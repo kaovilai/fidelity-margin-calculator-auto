@@ -414,7 +414,7 @@ const TradeDetector = (() => {
    * }) => void} callback - Called when form state changes. 'ready' includes accountNum and orders.
    * @param {number} [debounceMs=500] - Delay in ms before firing 'ready' after last detected change.
    */
-  function observe(callback, debounceMs = 500) {
+  function observe(callback, debounceMs = FMC_CONSTANTS.DEFAULT_SETTINGS.debounceMs) {
     if (observer) observer.disconnect();
     // Cancel any pending debounce from a previous observe() call so the old
     // callback cannot fire after the observer is replaced.
