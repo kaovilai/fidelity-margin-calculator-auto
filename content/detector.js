@@ -306,8 +306,10 @@ const TradeDetector = (() => {
     const orders = [];
     for (const leg of params.legs) {
       const orderAction = mapAction(leg.action);
-      const qty = parseInt(leg.quantity, 10);
-      if (!orderAction || !qty) continue;
+      // Use Math.round(parseFloat(...)) to match buildEquityOrders: consistent rounding
+      // vs parseInt, which would silently truncate fractional inputs.
+      const qty = Math.round(parseFloat(leg.quantity));
+      if (!orderAction || !Number.isFinite(qty) || qty <= 0) continue;
 
       const orderSymbol = buildOrderSymbol(
         params.symbol, leg.expiration, leg.callPut, leg.strike
@@ -361,9 +363,11 @@ const TradeDetector = (() => {
       return !!(p.symbol && p.action && Number.isFinite(qty) && qty > 0 && (!isLimit || p.limitPrice));
     }
 
-    // Options — need symbol, price, and at least one complete leg
+    // Options — need symbol, a parseable price, and at least one complete leg
     const p = getOptionsTradeParams();
-    if (!p.symbol || !p.limitPrice) return false;
+    if (!p.symbol) return false;
+    const limitPrice = parseFloat((p.limitPrice || '').replace(/,/g, ''));
+    if (!Number.isFinite(limitPrice)) return false;
     return p.legs.some(isLegComplete);
   }
 
