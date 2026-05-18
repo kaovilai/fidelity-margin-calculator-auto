@@ -320,6 +320,7 @@ const TradeDetector = (() => {
 
   // ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
   function buildOrders(ctx = detectPageContext()) {
+    if (!ctx) return [];
     if (ctx === CTX.POPUP_EQUITY) return buildEquityOrders();
     return buildOptionsOrders();
   }
@@ -532,9 +533,9 @@ const TradeDetector = (() => {
         try {
           callback({
             type: 'ready',
-            context: ctx,
-            accountNum: getAccountNumber(ctx),
-            orders: buildOrders(ctx)
+            context: currentCtx,
+            accountNum: getAccountNumber(currentCtx),
+            orders: buildOrders(currentCtx)
           });
         } catch (e) { console.error('[FMC] observer callback error:', e); }
       }, debounceMs);
