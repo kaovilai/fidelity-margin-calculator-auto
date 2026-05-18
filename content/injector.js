@@ -29,6 +29,7 @@ const MarginInjector = (() => {
     DELTA:                   'fmc-delta',
     LOADING:                 'fmc-loading',
     ERROR:                   'fmc-error',
+    ERROR_TEXT:              'fmc-error-text',
     DEBUG_LOG:               'fmc-debug-log'
   });
 
@@ -125,8 +126,8 @@ const MarginInjector = (() => {
 
     // Error row (hidden until needed) — capture child references directly to avoid
     // redundant querySelector calls later for panelRefs and event-listener wiring.
-    const errorTextEl = mkEl('span', { className: 'fmc-error-text' });
-    const retryBtnEl = mkEl('button', { type: 'button', className: 'fmc-retry-btn', 'aria-label': 'Retry margin calculation', textContent: 'Retry' });
+    const errorTextEl = mkEl('span', { className: 'fmc-error-text', id: EL_ID.ERROR_TEXT });
+    const retryBtnEl = mkEl('button', { type: 'button', className: 'fmc-retry-btn', 'aria-label': 'Retry margin calculation', 'aria-describedby': EL_ID.ERROR_TEXT, textContent: 'Retry' });
     const debugBtnEl = mkEl('button', { type: 'button', className: 'fmc-debug-btn', 'aria-label': 'Show debug log', 'aria-controls': EL_ID.DEBUG_LOG, 'aria-expanded': 'false', textContent: 'Debug' });
     const errorRow = mkEl('div', {
       className: 'fmc-panel-error', id: EL_ID.ERROR, role: 'alert'
