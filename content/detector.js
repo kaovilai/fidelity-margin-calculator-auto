@@ -372,10 +372,7 @@ const TradeDetector = (() => {
     const orderType = getDropdownValue(DOM.OPT_ORDER_TYPE);
     const legCount = getLegCount();
 
-    const legs = [];
-    for (let i = 0; i < legCount; i++) {
-      legs.push(getLegParams(i));
-    }
+    const legs = Array.from({ length: legCount }, (_, i) => getLegParams(i));
 
     return { symbol, limitPrice, orderType, legs };
   }
@@ -449,28 +446,20 @@ const TradeDetector = (() => {
     const orderPrice = resolveOrderPrice(params.limitPrice, params.orderType, params.symbol);
     if (orderPrice === null) return [];
 
-    const orders = [];
-    for (const leg of params.legs) {
+    return params.legs.flatMap(leg => {
       const orderAction = mapAction(leg.action);
       // Use Math.round(parsePriceInput(...)) to strip thousands-separator commas before
       // parsing — consistent with how prices are parsed and with isLegComplete.
       const qty = Math.round(parsePriceInput(leg.quantity));
-      if (!orderAction || !Number.isFinite(qty) || qty <= 0) continue;
+      if (!orderAction || !Number.isFinite(qty) || qty <= 0) return [];
 
       const orderSymbol = buildOrderSymbol(
         params.symbol, leg.expiration, leg.callPut, leg.strike
       );
-      if (!orderSymbol) continue;
+      if (!orderSymbol) return [];
 
-      orders.push({
-        orderSymbol,
-        orderType: ORDER_TYPE.OPTIONS,
-        orderAction,
-        orderQty: qty,
-        price: orderPrice
-      });
-    }
-    return orders;
+      return [{ orderSymbol, orderType: ORDER_TYPE.OPTIONS, orderAction, orderQty: qty, price: orderPrice }];
+    });
   }
 
   /**
