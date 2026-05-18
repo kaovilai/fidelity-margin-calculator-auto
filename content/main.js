@@ -170,6 +170,18 @@
 
   // --- Helpers ---
 
+  // Shows an API error in the panel, setting the appropriate badge and status.
+  // Determines session-expiry vs generic error from err.type; falls back to fallbackMsg
+  // if err.message is absent. Mirrors the same logic in both error-handling paths in
+  // handleTradeReady, extracted here to avoid duplicating the three-step pattern.
+  function showApiError(err, fallbackMsg) {
+    const isSession = err?.type === FMC_CONSTANTS.ERROR_TYPES.SESSION_EXPIRED;
+    const msg = isSession ? MSG_SESSION_EXPIRED : (err?.message || fallbackMsg);
+    showErrorInPanel(msg, !isSession);
+    setBadge('!', isSession ? BADGE_COLOR_WARNING : BADGE_COLOR_ERROR);
+    reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: msg });
+  }
+
   // Ensures the panel is present then shows an error message.
   // Use in contexts where the trade ticket is visible but the extension cannot calculate.
   function showErrorInPanel(msg, canRetry) {
@@ -235,13 +247,7 @@
           priceList = await PositionsAPI.fetchPriceList(accountNum);
         } catch (posErr) {
           if (requestId !== currentRequest) return;
-          const isSessionErr = posErr.type === FMC_CONSTANTS.ERROR_TYPES.SESSION_EXPIRED;
-          const msg = isSessionErr
-            ? MSG_SESSION_EXPIRED
-            : (posErr.message || 'Unable to fetch account positions.');
-          MarginInjector.showError(msg, !isSessionErr);
-          setBadge('!', isSessionErr ? BADGE_COLOR_WARNING : BADGE_COLOR_ERROR);
-          reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: msg });
+          showApiError(posErr, 'Unable to fetch account positions.');
           return;
         }
         if (requestId !== currentRequest) return;
@@ -305,23 +311,9 @@
     } catch (err) {
       if (requestId !== currentRequest) return;
       log('Error:', err);
-
-      const errType = err.type || 'UNKNOWN';
       // All typed errors from MarginAPI and PositionsAPI set err.type correctly.
-      // Rely solely on the type constant rather than a message string that could change.
-      const isSessionError = errType === FMC_CONSTANTS.ERROR_TYPES.SESSION_EXPIRED;
-
-      let msg;
-      if (isSessionError) {
-        msg = MSG_SESSION_EXPIRED;
-        setBadge('!', BADGE_COLOR_WARNING);
-      } else {
-        msg = err.message ?? 'Unable to calculate margin impact.';
-        setBadge('!', BADGE_COLOR_ERROR);
-      }
-
-      MarginInjector.showError(msg, !isSessionError);
-      reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: msg });
+      // showApiError relies on err.type to distinguish session-expiry from other errors.
+      showApiError(err, 'Unable to calculate margin impact.');
     }
   }
 

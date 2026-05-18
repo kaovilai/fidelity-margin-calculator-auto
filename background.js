@@ -167,12 +167,16 @@ importScripts('/lib/constants.js');
   // activated (e.g. by cache messages), which can prevent the alarm from ever
   // firing if the worker is woken frequently.
   const CLEANUP_ALARM = 'fmc-cache-cleanup';
-  chrome.alarms.get(CLEANUP_ALARM).then(existing => {
-    if (!existing) chrome.alarms.create(CLEANUP_ALARM, { periodInMinutes: CLEANUP_INTERVAL_MINUTES });
-  }).catch(err => {
-    log('Could not query cleanup alarm, attempting creation anyway:', err.message);
-    chrome.alarms.create(CLEANUP_ALARM, { periodInMinutes: CLEANUP_INTERVAL_MINUTES }).catch(e => log('Could not create cleanup alarm:', e.message));
-  });
+  (async () => {
+    try {
+      const existing = await chrome.alarms.get(CLEANUP_ALARM);
+      if (!existing) await chrome.alarms.create(CLEANUP_ALARM, { periodInMinutes: CLEANUP_INTERVAL_MINUTES });
+    } catch (err) {
+      log('Could not query cleanup alarm, attempting creation anyway:', err.message);
+      chrome.alarms.create(CLEANUP_ALARM, { periodInMinutes: CLEANUP_INTERVAL_MINUTES })
+        .catch(e => log('Could not create cleanup alarm:', e.message));
+    }
+  })();
   chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name !== CLEANUP_ALARM) return;
     const now = Date.now();
