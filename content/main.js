@@ -221,6 +221,7 @@
       // Fetch priceList from portfolio API (cached)
       const priceListKey = `${CACHE_KEYS.PRICELIST}${accountNum}`;
       let priceList = await getCached(priceListKey);
+      if (requestId !== currentRequest) return;
       if (!priceList) {
         log('Fetching positions for', accountNum);
         try {
@@ -239,6 +240,7 @@
         if (requestId !== currentRequest) return;
         if (priceList.length > 0) {
           await setCache(priceListKey, priceList, PRICELIST_TTL);
+          if (requestId !== currentRequest) return;
         } else {
           log('Warning: no positions found — margin API requires existing positions');
           MarginInjector.showError(
@@ -254,6 +256,7 @@
       // Fetch projected margin (cached by orders hash)
       const projectedKey = `${CACHE_KEYS.PROJECTED}${accountNum}:${hashOrders(orders)}`;
       let projectedData = await getCached(projectedKey);
+      if (requestId !== currentRequest) return;
       if (!projectedData) {
         log('Fetching projected margin for', orders);
         apiCallCount++;
@@ -263,6 +266,7 @@
         }, priceList);
         if (requestId !== currentRequest) return;
         await setCache(projectedKey, projectedData, PROJECTED_TTL);
+        if (requestId !== currentRequest) return;
       }
 
       // Compute impact — use lastResult as baseline for delta if available
