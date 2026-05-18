@@ -57,6 +57,7 @@ const TradeDetector = (() => {
     EQUITY: 'E'
   });
 
+  // Keys are compared case-insensitively in mapAction(), so only one entry per action is needed.
   const ACTION_MAP = Object.freeze({
     'Buy To Open': 'BO',
     'Sell To Open': 'SO',
@@ -65,8 +66,7 @@ const TradeDetector = (() => {
     'Buy': 'B',
     'Sell': 'S',
     'Sell Short': 'SS',
-    'Buy to Cover': 'BC',   // lowercase 'to' — kept for backward compat
-    'Buy To Cover': 'BC'    // Title Case variant — Fidelity may display either form
+    'Buy To Cover': 'BC'
   });
 
   const MONTH_MAP = Object.freeze({
@@ -74,6 +74,38 @@ const TradeDetector = (() => {
     'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
     'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
   });
+
+  // Normalized (lowercase) lookup built once from ACTION_MAP.
+  const ACTION_MAP_LOWER = Object.fromEntries(
+    Object.entries(ACTION_MAP).map(([k, v]) => [k.toLowerCase(), v])
+  );
+
+  // --- Shared parsing helpers ---
+
+  // Parse a price/quantity string that may contain thousands-separator commas.
+  function parsePriceInput(str) {
+    return parseFloat((str || '').replace(/,/g, ''));
+  }
+
+  // Returns true when the order type string indicates a limit order.
+  function isLimitOrderType(orderType) {
+    return !!(orderType && orderType.toLowerCase().includes('limit'));
+  }
+
+  // Returns the numeric order price, or null if a limit order has an unparseable price.
+  // Logs a warning and returns null to signal the caller should abort building the order.
+  // For non-limit orders an empty/missing price field is expected; returns 0 in that case.
+  function resolveOrderPrice(limitPriceStr, orderType, symbol) {
+    const price = parsePriceInput(limitPriceStr);
+    if (!Number.isFinite(price)) {
+      if (isLimitOrderType(orderType) && symbol) {
+        warn('Limit price is unparseable — selector may have changed: ' + limitPriceStr);
+        return null;
+      }
+      return 0;
+    }
+    return price;
+  }
 
   // --- Page context detection ---
 
@@ -198,8 +230,9 @@ const TradeDetector = (() => {
   }
 
   function mapAction(actionText) {
-    const mapped = ACTION_MAP[actionText];
-    if (!mapped && actionText) {
+    if (!actionText) return '';
+    const mapped = ACTION_MAP_LOWER[actionText.trim().toLowerCase()];
+    if (!mapped) {
       warn('Unrecognized trade action — Fidelity may have added a new action type: ' + actionText);
     }
     return mapped || '';
@@ -293,18 +326,8 @@ const TradeDetector = (() => {
 
   function buildOptionsOrders() {
     const params = getOptionsTradeParams();
-    const price = parseFloat((params.limitPrice || '').replace(/,/g, ''));
-    const isLimitOrder = params.orderType && params.orderType.toLowerCase().includes('limit');
-    if (!Number.isFinite(price)) {
-      // For limit orders, an unparseable price is a selector failure — warn and bail.
-      // For market (and other non-limit) orders the price field is intentionally empty;
-      // use 0 so the margin API receives a valid order and the calculation still fires.
-      if (isLimitOrder && params.symbol) {
-        warn('Limit price is unparseable — selector may have changed: ' + params.limitPrice);
-        return [];
-      }
-    }
-    const orderPrice = Number.isFinite(price) ? price : 0;
+    const orderPrice = resolveOrderPrice(params.limitPrice, params.orderType, params.symbol);
+    if (orderPrice === null) return [];
 
     const orders = [];
     for (const leg of params.legs) {
@@ -337,20 +360,13 @@ const TradeDetector = (() => {
     // parseInt would silently truncate fractional quantities (e.g. 1.9 → 1), while
     // rounding is more accurate and consistent with what the user entered.
     const qty = Math.round(parseFloat(params.quantity));
-    const price = parseFloat((params.limitPrice || '').replace(/,/g, ''));
-
     if (!orderAction || !Number.isFinite(qty) || qty <= 0 || !params.symbol) return [];
+
     // Market orders may not have a price — use 0.
     // Limit orders should always have a numeric price at this point because hasRequiredFields
     // validates it before buildEquityOrders is called, but warn defensively just in case.
-    if (!Number.isFinite(price) && params.symbol) {
-      const isLimit = params.orderType && params.orderType.toLowerCase().includes('limit');
-      if (isLimit) {
-        warn('Limit price is unparseable — selector may have changed: ' + params.limitPrice);
-        return [];
-      }
-    }
-    const orderPrice = Number.isFinite(price) ? price : 0;
+    const orderPrice = resolveOrderPrice(params.limitPrice, params.orderType, params.symbol);
+    if (orderPrice === null) return [];
 
     return [{
       orderSymbol: params.symbol,
@@ -373,10 +389,9 @@ const TradeDetector = (() => {
       // partially-typed values like "." or "1a" are truthy but parse to NaN, which would
       // cause buildEquityOrders to send price:0 to the margin API, producing wrong results.
       // Mirrors the Number.isFinite guard already present in the options branch below.
-      const isLimit = p.orderType && p.orderType.toLowerCase().includes('limit');
       const qty = parseFloat(p.quantity);
-      const limitPriceOk = !isLimit ||
-        Number.isFinite(parseFloat((p.limitPrice || '').replace(/,/g, '')));
+      const limitPriceOk = !isLimitOrderType(p.orderType) ||
+        Number.isFinite(parsePriceInput(p.limitPrice));
       return !!(p.symbol && p.action && Number.isFinite(qty) && qty > 0 && limitPriceOk);
     }
 
@@ -384,9 +399,7 @@ const TradeDetector = (() => {
     // Market orders intentionally have no limit price; they should still trigger a calculation.
     const p = getOptionsTradeParams();
     if (!p.symbol) return false;
-    const isLimit = p.orderType && p.orderType.toLowerCase().includes('limit');
-    const limitPrice = parseFloat((p.limitPrice || '').replace(/,/g, ''));
-    if (isLimit && !Number.isFinite(limitPrice)) return false;
+    if (isLimitOrderType(p.orderType) && !Number.isFinite(parsePriceInput(p.limitPrice))) return false;
     return p.legs.some(isLegComplete);
   }
 
