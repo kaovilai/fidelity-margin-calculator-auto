@@ -179,10 +179,12 @@ const TradeDetector = (() => {
     return yy + mm + dd;
   }
 
-  // "370.00" -> "370", "16.50" -> "16.5"
+  // "370.00" -> "370", "16.50" -> "16.5", "1,234.00" -> "1234"
+  // Strips thousand-separator commas before parsing — Fidelity may display high-priced
+  // strikes (e.g. AMZN, BRK) with commas, which would cause parseFloat to truncate.
   function formatStrike(strikeStr) {
     if (!strikeStr) return '';
-    const num = parseFloat(strikeStr);
+    const num = parseFloat(strikeStr.replace(/,/g, ''));
     if (isNaN(num)) return '';
     return num.toString();
   }
@@ -293,7 +295,7 @@ const TradeDetector = (() => {
 
   function buildOptionsOrders() {
     const params = getOptionsTradeParams();
-    const price = parseFloat(params.limitPrice);
+    const price = parseFloat(params.limitPrice.replace(/,/g, ''));
     if (isNaN(price)) {
       // Only warn when the symbol is already set — unparseable price with a symbol present
       // likely means a limit price selector stopped matching after a Fidelity page update.
@@ -329,7 +331,7 @@ const TradeDetector = (() => {
     const params = getEquityTradeParams();
     const orderAction = mapAction(params.action);
     const qty = parseInt(params.quantity, 10);
-    const price = parseFloat(params.limitPrice);
+    const price = parseFloat((params.limitPrice || '').replace(/,/g, ''));
 
     if (!orderAction || !qty || !params.symbol) return [];
     // Market orders may not have a price — use 0
