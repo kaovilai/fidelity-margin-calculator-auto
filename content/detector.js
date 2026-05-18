@@ -337,7 +337,16 @@ const TradeDetector = (() => {
     const price = parseFloat((params.limitPrice || '').replace(/,/g, ''));
 
     if (!orderAction || !Number.isFinite(qty) || qty <= 0 || !params.symbol) return [];
-    // Market orders may not have a price — use 0
+    // Market orders may not have a price — use 0.
+    // Limit orders should always have a numeric price at this point because hasRequiredFields
+    // validates it before buildEquityOrders is called, but warn defensively just in case.
+    if (!Number.isFinite(price) && params.symbol) {
+      const isLimit = params.orderType && params.orderType.toLowerCase().includes('limit');
+      if (isLimit) {
+        warn('Limit price is unparseable — selector may have changed: ' + params.limitPrice);
+        return [];
+      }
+    }
     const orderPrice = Number.isFinite(price) ? price : 0;
 
     return [{
@@ -357,10 +366,15 @@ const TradeDetector = (() => {
 
     if (ctx === CTX.POPUP_EQUITY) {
       const p = getEquityTradeParams();
-      // Limit orders require a price — submitting with price=0 produces wrong margin results
+      // Limit orders require a parseable price — truthy-only check is insufficient because
+      // partially-typed values like "." or "1a" are truthy but parse to NaN, which would
+      // cause buildEquityOrders to send price:0 to the margin API, producing wrong results.
+      // Mirrors the Number.isFinite guard already present in the options branch below.
       const isLimit = p.orderType && p.orderType.toLowerCase().includes('limit');
       const qty = parseFloat(p.quantity);
-      return !!(p.symbol && p.action && Number.isFinite(qty) && qty > 0 && (!isLimit || p.limitPrice));
+      const limitPriceOk = !isLimit ||
+        Number.isFinite(parseFloat((p.limitPrice || '').replace(/,/g, '')));
+      return !!(p.symbol && p.action && Number.isFinite(qty) && qty > 0 && limitPriceOk);
     }
 
     // Options — need symbol, a parseable price, and at least one complete leg
