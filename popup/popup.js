@@ -63,6 +63,20 @@
   }
 
   // --- Settings ---
+  // Element references cached at DOMContentLoaded time — saveSettings fires on
+  // every settings change event, so avoiding repeated getElementById calls here
+  // mirrors the same optimisation used for status elements in getStatusEls().
+  let settingsEls = null;
+  function getSettingsEls() {
+    if (settingsEls) return settingsEls;
+    settingsEls = {
+      enabled:   document.getElementById('setting-enabled'),
+      threshold: document.getElementById('setting-threshold'),
+      debounce:  document.getElementById('setting-debounce')
+    };
+    return settingsEls;
+  }
+
   async function loadSettings() {
     if (!chrome.storage?.sync) {
       console.warn('[FMC-Popup] chrome.storage.sync unavailable — using default settings');
@@ -71,9 +85,7 @@
     try {
       const result = await chrome.storage.sync.get(STORAGE_KEY_SETTINGS);
       const s = { ...DEFAULT_SETTINGS, ...result[STORAGE_KEY_SETTINGS] };
-      const enabledEl = document.getElementById('setting-enabled');
-      const thresholdEl = document.getElementById('setting-threshold');
-      const debounceEl = document.getElementById('setting-debounce');
+      const { enabled: enabledEl, threshold: thresholdEl, debounce: debounceEl } = getSettingsEls();
       if (enabledEl) enabledEl.checked = s.enabled;
       if (thresholdEl) thresholdEl.value = s.debitWarningThreshold;
       if (debounceEl) {
@@ -89,9 +101,7 @@
 
   function saveSettings() {
     if (!chrome.storage?.sync) return;
-    const enabledEl = document.getElementById('setting-enabled');
-    const thresholdEl = document.getElementById('setting-threshold');
-    const debounceEl = document.getElementById('setting-debounce');
+    const { enabled: enabledEl, threshold: thresholdEl, debounce: debounceEl } = getSettingsEls();
     if (!enabledEl || !thresholdEl || !debounceEl) return;
     const threshold = parseInt(thresholdEl.value, 10);
     const debounce = parseInt(debounceEl.value, 10);
@@ -132,10 +142,9 @@
     // Load settings
     await loadSettings();
 
-    // Settings change handlers
-    const settingIds = ['setting-enabled', 'setting-threshold', 'setting-debounce'];
-    for (const id of settingIds) {
-      const el = document.getElementById(id);
+    // Settings change handlers — use getSettingsEls() so IDs stay in one place
+    const { enabled: enabledEl, threshold: thresholdEl, debounce: debounceEl } = getSettingsEls();
+    for (const el of [enabledEl, thresholdEl, debounceEl]) {
       if (el) el.addEventListener('change', saveSettings);
     }
 
