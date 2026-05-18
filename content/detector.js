@@ -262,7 +262,7 @@ const TradeDetector = (() => {
   }
 
   function isLegComplete(leg) {
-    const qty = parseFloat(leg.quantity);
+    const qty = parsePriceInput(leg.quantity);
     return !!(leg.action && Number.isFinite(qty) && qty > 0 && leg.callPut && leg.expiration && leg.strike);
   }
 
@@ -332,9 +332,9 @@ const TradeDetector = (() => {
     const orders = [];
     for (const leg of params.legs) {
       const orderAction = mapAction(leg.action);
-      // Use Math.round(parseFloat(...)) to match buildEquityOrders: consistent rounding
-      // vs parseInt, which would silently truncate fractional inputs.
-      const qty = Math.round(parseFloat(leg.quantity));
+      // Use Math.round(parsePriceInput(...)) to strip thousands-separator commas before
+      // parsing — consistent with how prices are parsed and with isLegComplete.
+      const qty = Math.round(parsePriceInput(leg.quantity));
       if (!orderAction || !Number.isFinite(qty) || qty <= 0) continue;
 
       const orderSymbol = buildOrderSymbol(
@@ -356,10 +356,11 @@ const TradeDetector = (() => {
   function buildEquityOrders() {
     const params = getEquityTradeParams();
     const orderAction = mapAction(params.action);
-    // Use Math.round to match the parseFloat-based completeness check in hasRequiredFields;
+    // Use Math.round(parsePriceInput(...)) to strip thousands-separator commas before
+    // parsing — consistent with how prices are parsed and with hasRequiredFields.
     // parseInt would silently truncate fractional quantities (e.g. 1.9 → 1), while
     // rounding is more accurate and consistent with what the user entered.
-    const qty = Math.round(parseFloat(params.quantity));
+    const qty = Math.round(parsePriceInput(params.quantity));
     if (!orderAction || !Number.isFinite(qty) || qty <= 0 || !params.symbol) return [];
 
     // Market orders may not have a price — use 0.
@@ -389,7 +390,8 @@ const TradeDetector = (() => {
       // partially-typed values like "." or "1a" are truthy but parse to NaN, which would
       // cause buildEquityOrders to send price:0 to the margin API, producing wrong results.
       // Mirrors the Number.isFinite guard already present in the options branch below.
-      const qty = parseFloat(p.quantity);
+      // Use parsePriceInput to strip commas consistently with buildEquityOrders.
+      const qty = parsePriceInput(p.quantity);
       const limitPriceOk = !isLimitOrderType(p.orderType) ||
         Number.isFinite(parsePriceInput(p.limitPrice));
       return !!(p.symbol && p.action && Number.isFinite(qty) && qty > 0 && limitPriceOk);
