@@ -229,7 +229,7 @@ const TradeDetector = (() => {
   }
 
   function isLegComplete(leg) {
-    return !!(leg.action && leg.quantity && leg.callPut && leg.expiration && leg.strike);
+    return !!(leg.action && parseFloat(leg.quantity) > 0 && leg.callPut && leg.expiration && leg.strike);
   }
 
   // --- Options trade params (all legs) ---
@@ -353,7 +353,7 @@ const TradeDetector = (() => {
       const p = getEquityTradeParams();
       // Limit orders require a price — submitting with price=0 produces wrong margin results
       const isLimit = p.orderType && p.orderType.toLowerCase().includes('limit');
-      return !!(p.symbol && p.action && p.quantity && (!isLimit || p.limitPrice));
+      return !!(p.symbol && p.action && parseFloat(p.quantity) > 0 && (!isLimit || p.limitPrice));
     }
 
     // Options — need symbol, price, and at least one complete leg
