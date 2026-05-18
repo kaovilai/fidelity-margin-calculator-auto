@@ -130,14 +130,6 @@ importScripts('/lib/constants.js');
         sendResponse(checkRateLimit(msg.payload.accountNum));
         return false;
 
-      case 'GET_STATE':
-        sendResponse({
-          activeAccount: tabId != null ? (tabAccounts.get(tabId) || null) : null,
-          cacheSize: cache.size,
-          lastApiCall: apiCallLog.get(msg.payload?.accountNum) || 0
-        });
-        return false;
-
       case 'SET_BADGE': {
         const badgeTarget = tabId !== undefined ? { tabId } : {};
         if (msg.payload?.text) {

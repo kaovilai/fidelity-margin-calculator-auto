@@ -123,7 +123,8 @@ body {
 /* Settings */
 .settings-body {
   overflow: hidden;
-  transition: max-height 0.2s;
+  max-height: 200px; /* explicit numeric value required for max-height transition to animate */
+  transition: max-height 0.2s ease-out;
 }
 
 .settings-body.collapsed {
@@ -220,6 +221,15 @@ input:focus-visible + .slider {
 .btn-refresh:focus-visible {
   outline: 2px solid var(--fmc-green);
   outline-offset: 2px;
+}
+
+/* Refresh status text shown below the Force Recalculate button */
+.refresh-status {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--fmc-muted);
+  min-height: 1em; /* reserve space to prevent layout shift when text appears */
 }
 
 /* Visually hidden but available to screen readers */
