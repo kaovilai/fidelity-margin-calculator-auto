@@ -190,7 +190,7 @@ const TradeDetector = (() => {
     // Match the LAST parenthetical to avoid picking up account type labels
     // that Fidelity sometimes prefixes, e.g. "Individual (non-retirement) (X12345678)".
     const matches = [...el.textContent.matchAll(/\(([^)]+)\)/g)];
-    return matches.length ? matches[matches.length - 1][1].trim() : null;
+    return matches.at(-1)?.[1].trim() ?? null;
   }
 
   // --- Call/Put for leg N ---
