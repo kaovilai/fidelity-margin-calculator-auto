@@ -216,7 +216,7 @@ const TradeDetector = (() => {
   function formatStrike(strikeStr) {
     if (!strikeStr) return '';
     const num = parseFloat(strikeStr.replace(/,/g, ''));
-    if (Number.isNaN(num)) return '';
+    if (!Number.isFinite(num)) return '';
     return num.toString();
   }
 
