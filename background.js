@@ -105,32 +105,32 @@ importScripts('/lib/constants.js');
     const tabId = sender.tab?.id;
 
     switch (msg.type) {
-      case 'CACHE_GET':
+      case FMC_CONSTANTS.MESSAGE_TYPES.CACHE_GET:
         if (!msg.payload?.key) { sendResponse({ hit: false, data: null, age: 0 }); return false; }
         sendResponse(cacheGet(msg.payload.key));
         return false;
 
-      case 'CACHE_SET':
+      case FMC_CONSTANTS.MESSAGE_TYPES.CACHE_SET:
         if (!msg.payload?.key) { sendResponse({ ok: false }); return false; }
         sendResponse(cacheSet(msg.payload.key, msg.payload.data, msg.payload.ttl ?? DEFAULT_CACHE_TTL));
         return false;
 
-      case 'CACHE_INVALIDATE':
+      case FMC_CONSTANTS.MESSAGE_TYPES.CACHE_INVALIDATE:
         if (!msg.payload) { sendResponse({ ok: false, cleared: 0 }); return false; }
         sendResponse(cacheInvalidate(msg.payload.key, msg.payload.pattern));
         return false;
 
-      case 'ACCOUNT_CHANGED':
+      case FMC_CONSTANTS.MESSAGE_TYPES.ACCOUNT_CHANGED:
         if (!msg.payload?.accountNum) { sendResponse({ ok: false, error: 'missing accountNum' }); return false; }
         sendResponse(handleAccountChanged(tabId, msg.payload.accountNum, msg.payload.previousAccountNum));
         return false;
 
-      case 'LOG_API_CALL':
+      case FMC_CONSTANTS.MESSAGE_TYPES.LOG_API_CALL:
         if (!msg.payload?.accountNum) { sendResponse({ rateLimited: false }); return false; }
         sendResponse(checkRateLimit(msg.payload.accountNum));
         return false;
 
-      case 'SET_BADGE': {
+      case FMC_CONSTANTS.MESSAGE_TYPES.SET_BADGE: {
         const badgeTarget = tabId !== undefined ? { tabId } : {};
         if (msg.payload?.text) {
           chrome.action?.setBadgeText({ text: msg.payload.text, ...badgeTarget })?.catch(() => {});
@@ -142,7 +142,7 @@ importScripts('/lib/constants.js');
         return false;
       }
 
-      case 'HEARTBEAT':
+      case FMC_CONSTANTS.MESSAGE_TYPES.HEARTBEAT:
         sendResponse({ ok: true });
         return false;
 
