@@ -429,6 +429,11 @@
           // Reset lastResult so the next ticket open computes delta from a fresh
           // baseline rather than a potentially stale previous projection.
           lastResult = null;
+          // Clear account/orders so a force-recalc from the popup does not attempt
+          // a stale calculation (and set an error badge) after the ticket is closed.
+          // They will be repopulated when the next 'ready' event fires.
+          lastAccountNum = null;
+          lastOrders = null;
           MarginInjector.remove();
           break;
 
