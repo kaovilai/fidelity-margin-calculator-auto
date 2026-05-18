@@ -86,6 +86,9 @@ body {
   color: var(--fmc-secondary);
   transition: transform 0.2s;
 }
+@media (prefers-reduced-motion: reduce) {
+  .toggle-arrow { transition: none; }
+}
 
 .toggle-arrow.collapsed {
   transform: rotate(-90deg);
@@ -143,6 +146,9 @@ body {
   overflow: hidden;
   max-height: 200px; /* explicit numeric value required for max-height transition to animate */
   transition: max-height 0.2s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-body { transition: none; }
 }
 
 .settings-body.collapsed {
@@ -221,6 +227,10 @@ input:checked + .slider:before { transform: translateX(16px); }
 input:focus-visible + .slider {
   outline: 2px solid var(--fmc-green);
   outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .slider,
+  .slider:before { transition: none; }
 }
 
 /* Footer */
