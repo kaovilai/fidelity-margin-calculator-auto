@@ -132,6 +132,9 @@
       // Delete expired entry eagerly to prevent stale objects accumulating over long sessions.
       fallbackCache.delete(key);
     }
+    // Run cleanup on reads too: if setCache is never called (background always responds),
+    // expired entries can linger in the fallback map until the next write.
+    cleanFallbackCache();
     return null;
   }
 
