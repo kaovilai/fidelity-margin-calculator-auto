@@ -207,5 +207,8 @@ importScripts('/lib/constants.js');
     log('Extension installed/updated');
     // Clear any stale badge text left over from the previous version
     chrome.action?.setBadgeText({ text: '' })?.catch(() => {});
+    // Clear stale status data so the popup shows a clean state after updates
+    // rather than potentially-outdated status from the previous version.
+    chrome.storage.local.remove(FMC_CONSTANTS.STORAGE_KEY_STATUS).catch(() => {});
   });
 })();

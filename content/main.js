@@ -365,8 +365,13 @@
           // If the extension was just disabled, remove the panel and disconnect the
           // observer so Angular's frequent DOM mutations no longer trigger DOM queries.
           if (wasEnabled && !settings.enabled) {
+            // Invalidate any in-flight handleTradeReady so it cannot overwrite the
+            // INACTIVE status below with a stale ACTIVE status once its awaits resolve.
+            currentRequest++;
             MarginInjector.remove();
             TradeDetector.disconnect();
+            setBadge('', null);
+            reportStatus(FMC_CONSTANTS.STATUS_STATE.INACTIVE);
           }
           // Re-observe with new debounce so the change takes effect without a page reload.
           // Also re-observe when re-enabling: if the trade form was already filled in and
