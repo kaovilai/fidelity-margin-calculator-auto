@@ -70,8 +70,9 @@
     } else {
       try {
         const result = await chrome.storage.sync.get(STORAGE_KEY_SETTINGS);
-        if (result[STORAGE_KEY_SETTINGS]) {
-          settings = { ...settings, ...result[STORAGE_KEY_SETTINGS] };
+        const loaded = result[STORAGE_KEY_SETTINGS];
+        if (loaded && typeof loaded === 'object' && !Array.isArray(loaded)) {
+          settings = { ...settings, ...loaded };
         }
       } catch (err) {
         log('Warning: could not load settings:', err.message);
@@ -335,10 +336,11 @@
     // Listen for settings changes
     if (chrome.storage?.onChanged) {
       chrome.storage.onChanged.addListener((changes, area) => {
-        if (area === 'sync' && changes[STORAGE_KEY_SETTINGS]?.newValue) {
+        const newValue = changes[STORAGE_KEY_SETTINGS]?.newValue;
+        if (area === 'sync' && newValue && typeof newValue === 'object' && !Array.isArray(newValue)) {
           const wasEnabled = settings.enabled;
           const prevDebounceMs = settings.debounceMs;
-          settings = { ...settings, ...changes[STORAGE_KEY_SETTINGS].newValue };
+          settings = { ...settings, ...newValue };
           // Clamp debounceMs to a safe minimum to prevent runaway polling from corrupted storage
           settings.debounceMs = clampDebounceMs(settings.debounceMs);
           MarginInjector.setWarningThreshold(settings.debitWarningThreshold);

@@ -182,7 +182,7 @@ importScripts('/lib/constants.js');
   });
 
   // Clean up tab tracking when tabs close
-  chrome.tabs.onRemoved.addListener((tabId) => {
+  chrome.tabs?.onRemoved?.addListener((tabId) => {
     const accountNum = tabAccounts.get(tabId);
     tabAccounts.delete(tabId);
     // Only remove from apiCallLog if no other open tab is still using this account.
@@ -199,7 +199,7 @@ importScripts('/lib/constants.js');
     }
   });
 
-  chrome.runtime.onInstalled.addListener(() => {
+  chrome.runtime?.onInstalled?.addListener(() => {
     log('Extension installed/updated');
     // Clear any stale badge text left over from the previous version
     chrome.action?.setBadgeText({ text: '' })?.catch(() => {});
