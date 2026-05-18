@@ -48,6 +48,20 @@ const MarginInjector = (() => {
   // the panel is removed from the document and no other references remain.
   const panelRefs = new WeakMap();
 
+  // Hides the debug log element and resets the debug button to its default state.
+  // Called from showLoading() and updatePanel() when transitioning away from the error
+  // state — the Debug button lives inside the hidden error row, so the user would have
+  // no way to close the log without this reset.
+  function hideDebugLog(logEl, btnEl) {
+    if (!logEl || logEl.style.display === 'none') return;
+    logEl.style.display = 'none';
+    if (btnEl) {
+      btnEl.textContent = 'Debug';
+      btnEl.setAttribute('aria-label', 'Show debug log');
+      btnEl.setAttribute('aria-expanded', 'false');
+    }
+  }
+
   let retryCallback = null;
   let debugLog = []; // ring buffer of debug entries
   const MAX_LOG = FMC_CONSTANTS.MAX_DEBUG_LOG_ENTRIES;
@@ -294,16 +308,7 @@ const MarginInjector = (() => {
     if (loading) loading.style.display = 'flex';
     if (error) error.style.display = 'none';
     // Hide the debug log if it was left open from a previous error state.
-    // The Debug button lives inside the error row which is now hidden, so the user
-    // would have no way to close the log without this reset.
-    if (debugLogEl && debugLogEl.style.display !== 'none') {
-      debugLogEl.style.display = 'none';
-      if (debugBtnEl) {
-        debugBtnEl.textContent = 'Debug';
-        debugBtnEl.setAttribute('aria-label', 'Show debug log');
-        debugBtnEl.setAttribute('aria-expanded', 'false');
-      }
-    }
+    hideDebugLog(debugLogEl, debugBtnEl);
   }
 
   /**
@@ -359,14 +364,7 @@ const MarginInjector = (() => {
     // Hide the debug log if it was left open from a previous error state — same
     // rationale as in showLoading(): the Debug button is inside the hidden error row,
     // so the user would have no way to close it after results are displayed.
-    if (debugLogEl && debugLogEl.style.display !== 'none') {
-      debugLogEl.style.display = 'none';
-      if (debugBtnEl) {
-        debugBtnEl.textContent = 'Debug';
-        debugBtnEl.setAttribute('aria-label', 'Show debug log');
-        debugBtnEl.setAttribute('aria-expanded', 'false');
-      }
-    }
+    hideDebugLog(debugLogEl, debugBtnEl);
 
     const status = getStatus(impact.projectedCreditDebit);
     panel.setAttribute('data-fmc-status', status);
