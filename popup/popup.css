@@ -1,12 +1,25 @@
 /* Popup styles — matches Fidelity color palette */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Brand color tokens */
+:root {
+  --fmc-green:        #368727;
+  --fmc-red:          #c81818;
+  --fmc-border:       #e9e9e9;
+  --fmc-text:         #333;
+  --fmc-muted:        #717171;
+  --fmc-secondary:    #999;
+  --fmc-bg:           #fff;
+  --fmc-hover-bg:     #f5f5f5;
+  --fmc-input-border: #ccc;
+}
+
 body {
   width: 320px;
   font-family: "Fidelity Sans", Roboto, Arial, sans-serif;
   font-size: 13px;
-  color: #333;
-  background: #fff;
+  color: var(--fmc-text);
+  background: var(--fmc-bg);
 }
 
 .popup-container {
@@ -19,18 +32,18 @@ body {
   align-items: center;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #e9e9e9;
+  border-bottom: 1px solid var(--fmc-border);
 }
 
 .popup-title {
   font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: var(--fmc-text);
 }
 
 .popup-version {
   font-size: 11px;
-  color: #999;
+  color: var(--fmc-secondary);
 }
 
 .popup-section {
@@ -44,25 +57,25 @@ body {
   font-weight: 600;
   font-size: 12px;
   font-family: inherit;
-  color: #333;
+  color: var(--fmc-text);
   cursor: pointer;
   padding: 4px 0;
   margin-bottom: 6px;
   background: none;
   border: none;
-  border-bottom: 1px solid #e9e9e9;
+  border-bottom: 1px solid var(--fmc-border);
   width: 100%;
   text-align: left;
   user-select: none;
 }
 .section-header:focus-visible {
-  outline: 2px solid #368727;
+  outline: 2px solid var(--fmc-green);
   outline-offset: 2px;
 }
 
 .toggle-arrow {
   font-size: 10px;
-  color: #999;
+  color: var(--fmc-secondary);
   transition: transform 0.2s;
 }
 
@@ -81,13 +94,13 @@ body {
 .status-label {
   width: 80px;
   font-size: 12px;
-  color: #717171;
+  color: var(--fmc-muted);
   flex-shrink: 0;
 }
 
 .status-text {
   font-size: 12px;
-  color: #333;
+  color: var(--fmc-text);
 }
 
 .status-dot {
@@ -95,15 +108,15 @@ body {
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-  background: #999;
+  background: var(--fmc-secondary);
 }
 
-.status-dot.active { background: #368727; }
-.status-dot.inactive { background: #999; }
-.status-dot.error { background: #c81818; }
+.status-dot.active { background: var(--fmc-green); }
+.status-dot.inactive { background: var(--fmc-secondary); }
+.status-dot.error { background: var(--fmc-red); }
 
 .status-error-text {
-  color: #c81818;
+  color: var(--fmc-red);
   font-size: 11px;
 }
 
@@ -127,13 +140,13 @@ body {
 
 .setting-label {
   font-size: 12px;
-  color: #333;
+  color: var(--fmc-text);
 }
 
 .setting-input {
   width: 70px;
   padding: 2px 6px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--fmc-input-border);
   border-radius: 2px;
   font-size: 12px;
   text-align: right;
@@ -142,11 +155,11 @@ body {
 
 .setting-select {
   padding: 2px 4px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--fmc-input-border);
   border-radius: 2px;
   font-size: 12px;
   font-family: inherit;
-  background: #fff;
+  background: var(--fmc-bg);
 }
 
 /* Toggle switch */
@@ -161,7 +174,7 @@ body {
   position: absolute;
   cursor: pointer;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: #ccc;
+  background: var(--fmc-input-border);
   border-radius: 20px;
   transition: 0.2s;
 }
@@ -172,40 +185,40 @@ body {
   width: 16px;
   left: 2px;
   bottom: 2px;
-  background: #fff;
+  background: var(--fmc-bg);
   border-radius: 50%;
   transition: 0.2s;
 }
-input:checked + .slider { background: #368727; }
+input:checked + .slider { background: var(--fmc-green); }
 input:checked + .slider:before { transform: translateX(16px); }
 input:focus-visible + .slider {
-  outline: 2px solid #368727;
+  outline: 2px solid var(--fmc-green);
   outline-offset: 2px;
 }
 
 /* Footer */
 .popup-footer {
   padding-top: 8px;
-  border-top: 1px solid #e9e9e9;
+  border-top: 1px solid var(--fmc-border);
   text-align: center;
 }
 
 .btn-refresh {
   padding: 5px 16px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--fmc-input-border);
   border-radius: 2px;
-  background: #fff;
-  color: #333;
+  background: var(--fmc-bg);
+  color: var(--fmc-text);
   font-size: 12px;
   cursor: pointer;
   font-family: inherit;
 }
 .btn-refresh:hover {
-  background: #f5f5f5;
-  border-color: #999;
+  background: var(--fmc-hover-bg);
+  border-color: var(--fmc-secondary);
 }
 .btn-refresh:focus-visible {
-  outline: 2px solid #368727;
+  outline: 2px solid var(--fmc-green);
   outline-offset: 2px;
 }
 
