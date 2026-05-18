@@ -274,7 +274,7 @@ const MarginInjector = (() => {
     panel.setAttribute('data-fmc-state', PANEL_STATE.ERROR);
     panel.setAttribute('aria-busy', 'false');
     const { body, loading, error, errorText, retryBtn } = getPanelElements(panel);
-    if (body) body.style.display = 'none';
+    if (body) { body.style.display = 'none'; body.removeAttribute('aria-hidden'); }
     if (loading) loading.style.display = 'none';
     if (error) {
       error.style.display = 'flex';

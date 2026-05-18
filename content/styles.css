@@ -243,3 +243,17 @@
     border-bottom: none;
   }
 }
+
+@media (prefers-color-scheme: dark) {
+  .fmc-margin-panel {
+    --fmc-border:       #3a3a3a;
+    --fmc-text:         #e8e8e8;
+    --fmc-muted:        #9a9a9a;
+    --fmc-secondary:    #aaaaaa;
+    --fmc-bg:           #1e1e1e;
+    --fmc-hover-bg:     #2a2a2a;
+    --fmc-input-border: #555555;
+    --fmc-debug-bg:     #0d0d0d;
+    --fmc-debug-text:   #d4d4d4;
+  }
+}
