@@ -425,7 +425,10 @@ const TradeDetector = (() => {
     const legParts = p.legs.map(l =>
       `${l.action}:${l.quantity}:${l.callPut}:${l.expiration}:${l.strike}`
     ).join('|');
-    return `OPT|${accountNum}|${p.symbol}|${legParts}|${p.limitPrice}`;
+    // Include orderType so switching between limit and market orders (which changes the
+    // price sent to the API from limitPrice to 0) produces a distinct fingerprint and
+    // triggers a fresh API call rather than reusing a stale cached limit-order result.
+    return `OPT|${accountNum}|${p.symbol}|${p.orderType}|${legParts}|${p.limitPrice}`;
   }
 
   // --- Input listener ID helpers ---
