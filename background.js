@@ -136,7 +136,9 @@ importScripts('/lib/constants.js');
         return false;
 
       case FMC_CONSTANTS.MESSAGE_TYPES.SET_BADGE: {
-        const badgeTarget = tabId !== undefined ? { tabId } : {};
+        // Use != null (loose) to guard against both undefined (popup sender, no tab) and
+        // null, consistent with the tabId == null guard used in handleAccountChanged.
+        const badgeTarget = tabId != null ? { tabId } : {};
         if (msg.payload?.text) {
           chrome.action?.setBadgeText({ text: msg.payload.text, ...badgeTarget })?.catch(() => {});
           chrome.action?.setBadgeBackgroundColor({ color: msg.payload.color || FMC_CONSTANTS.BADGE_COLORS.ERROR, ...badgeTarget })?.catch(() => {});

@@ -646,7 +646,9 @@ const TradeDetector = (() => {
       // but observe() is only called at runtime (from main.js init), by which point
       // all content scripts are loaded and MarginInjector is available.
       const panel = (typeof MarginInjector !== 'undefined') ? MarginInjector.getPanel() : null;
-      if (panel && mutations.every(m => panel === m.target || panel.contains(m.target))) return;
+      // Node.contains() returns true when the argument is the node itself (DOM spec),
+      // so panel === m.target is already covered and the redundant check can be omitted.
+      if (panel && mutations.every(m => panel.contains(m.target))) return;
       scheduleCheck();
     });
     observer.observe(document.body, {
