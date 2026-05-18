@@ -213,7 +213,8 @@
       // A new request may have arrived while waiting for background response
       if (requestId !== currentRequest) return;
       if (!rateCheck.fallback && rateCheck.rateLimited) {
-        await new Promise(r => setTimeout(r, Math.max(0, Math.min(rateCheck.retryAfter || 0, FMC_CONSTANTS.MAX_RATE_LIMIT_WAIT_MS))));
+        const waitMs = Math.max(0, Math.min(rateCheck.retryAfter || 0, FMC_CONSTANTS.MAX_RATE_LIMIT_WAIT_MS));
+        await new Promise(r => setTimeout(r, waitMs));
         if (requestId !== currentRequest) return;
       }
 
