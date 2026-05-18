@@ -524,7 +524,20 @@ const TradeDetector = (() => {
       }
 
       const fp = getParamsFingerprint(ctx);
-      if (fp === lastFingerprint) return;
+      if (fp === lastFingerprint) {
+        // Trade params unchanged — but if the injection target is present and the panel
+        // was removed by an Angular re-render, clear the fingerprint so the ready event
+        // re-fires and the panel is re-injected.  Only clear when the target element
+        // itself is still in the DOM; if it is gone too (Fidelity layout change), keep
+        // the fingerprint to avoid a retry storm on every mutation.
+        if (typeof MarginInjector !== 'undefined' &&
+            !MarginInjector.getPanel() &&
+            document.getElementById(FMC_CONSTANTS.INJECTION.TARGET_ID)) {
+          lastFingerprint = '';
+        } else {
+          return;
+        }
+      }
       lastFingerprint = fp;
       lastEventType = 'ready';
 
