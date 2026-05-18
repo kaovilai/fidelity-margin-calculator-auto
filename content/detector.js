@@ -80,19 +80,34 @@ const TradeDetector = (() => {
 
   // --- Shared parsing helpers ---
 
-  // Parse a price/quantity string that may contain thousands-separator commas.
+  /**
+   * Parses a price or quantity string that may contain thousands-separator commas.
+   * @param {string} str - Input string (e.g. `'1,234.56'`).
+   * @returns {number} Parsed float, or `NaN` if not parseable.
+   */
   function parsePriceInput(str) {
     return parseFloat((str || '').replace(/,/g, ''));
   }
 
-  // Returns true when the order type string indicates a limit order.
+  /**
+   * Returns `true` when the order type string indicates a limit order.
+   * @param {string} orderType - Order type label from the trade ticket dropdown.
+   * @returns {boolean}
+   */
   function isLimitOrderType(orderType) {
     return !!orderType?.toLowerCase().includes('limit');
   }
 
-  // Returns the numeric order price, or null if a limit order has an unparseable price.
-  // Logs a warning and returns null to signal the caller should abort building the order.
-  // For non-limit orders an empty/missing price field is expected; returns 0 in that case.
+  /**
+   * Returns the numeric order price to send to the margin API.
+   * For limit orders with an unparseable price, logs a warning and returns `null` to
+   * signal the caller to abort building the order. For non-limit orders (where an
+   * empty price field is expected), returns `0`.
+   * @param {string} limitPriceStr - Raw limit price string from the ticket input.
+   * @param {string} orderType - Order type label from the ticket dropdown.
+   * @param {string} symbol - Underlying symbol (used in the warning message).
+   * @returns {number|null} Numeric price, `0` for market orders, or `null` to abort.
+   */
   function resolveOrderPrice(limitPriceStr, orderType, symbol) {
     const price = parsePriceInput(limitPriceStr);
     if (!Number.isFinite(price)) {
@@ -107,9 +122,13 @@ const TradeDetector = (() => {
 
   // --- Page context detection ---
 
-  // Returns true if an element has a non-hidden inline display style.
-  // Fidelity's Angular popup uses JS to set style.display directly; checking
-  // for 'block' only would break if they switch to 'flex' or 'inline-block'.
+  /**
+   * Returns `true` if an element has a non-`none` inline `display` style.
+   * Fidelity's Angular popup sets `style.display` directly via JS; checking for
+   * `'block'` only would break if they switch to `'flex'` or `'inline-block'`.
+   * @param {Element|null} el - DOM element to inspect.
+   * @returns {boolean}
+   */
   function isInlineVisible(el) {
     if (!el) return false;
     const d = el.style.display;
@@ -155,10 +174,20 @@ const TradeDetector = (() => {
 
   // --- Helpers ---
 
+  /**
+   * Reads the text content of a Fidelity dropdown binding span.
+   * @param {string} selector - CSS selector for the `.binding-val` span.
+   * @returns {string} Trimmed text, or `''` if the element is not found.
+   */
   function getDropdownValue(selector) {
     return document.querySelector(selector)?.textContent.trim() ?? '';
   }
 
+  /**
+   * Reads the trimmed value of a form input element.
+   * @param {string} selector - CSS selector for the input.
+   * @returns {string} Trimmed value, or `''` if the element is not found.
+   */
   function getInputValue(selector) {
     return document.querySelector(selector)?.value.trim() ?? '';
   }
@@ -182,6 +211,12 @@ const TradeDetector = (() => {
     return el.textContent.trim().replace(/[()]/g, '').trim();
   }
 
+  /**
+   * Extracts the brokerage account number from the floating equity ticket header.
+   * Reads the last parenthetical in the account label to avoid capturing account-type
+   * prefixes that Fidelity sometimes includes (e.g. `"Individual (non-retirement) (X12345678)"`).
+   * @returns {string|null} Account number, or `null` if no parenthetical is found.
+   */
   function getEquityAccountNumber() {
     // Try primary selector first, fall back to secondary
     const el = document.querySelector(`${DOM.EQUITY_CONTAINER} ${DOM.EQ_ACCOUNT_LABEL}`) ||
@@ -195,6 +230,12 @@ const TradeDetector = (() => {
 
   // --- Call/Put for leg N ---
 
+  /**
+   * Reads the selected call/put radio value for a given option leg.
+   * Checks both `aria-checked` (Angular custom components) and `.checked` (native input).
+   * @param {number} legIndex - Zero-based leg index.
+   * @returns {'C'|'P'|''} `'C'` for call, `'P'` for put, `''` if neither is selected.
+   */
   function getCallPut(legIndex) {
     const callRadio = document.getElementById(`${DOM.LEG_CALL_PREFIX}-${legIndex}-call`);
     if (callRadio?.getAttribute('aria-checked') === 'true' || callRadio?.checked) return 'C';
@@ -205,7 +246,13 @@ const TradeDetector = (() => {
 
   // --- Expiration / Strike parsing ---
 
-  // "May 22, 2026" -> "260522"
+  /**
+   * Converts a Fidelity expiration date string to the API format `YYMMDD`.
+   * Example: `'May 22, 2026'` → `'260522'`.
+   * Logs a warning and returns `''` if the format is unrecognized.
+   * @param {string} expStr - Expiration string as displayed in the trade ticket.
+   * @returns {string} Six-character date code, or `''` if parsing fails.
+   */
   function parseExpiration(expStr) {
     if (!expStr) return '';
     const match = expStr.match(/(\w+)\s+(\d+),\s+(\d{4})/);
@@ -221,9 +268,14 @@ const TradeDetector = (() => {
     return yy + mm + dd;
   }
 
-  // "370.00" -> "370", "16.50" -> "16.5", "1,234.00" -> "1234"
-  // Strips thousand-separator commas before parsing — Fidelity may display high-priced
-  // strikes (e.g. AMZN, BRK) with commas, which would cause parseFloat to truncate.
+  /**
+   * Strips trailing zeros and thousands-separator commas from a strike price string.
+   * Example: `'370.00'` → `'370'`, `'16.50'` → `'16.5'`, `'1,234.00'` → `'1234'`.
+   * Commas must be stripped before parsing — high-priced strikes (e.g. AMZN, BRK) may
+   * be displayed with commas, which would cause `parseFloat` to truncate the value.
+   * @param {string} strikeStr - Strike price string from the ticket dropdown.
+   * @returns {string} Normalized strike string, or `''` if not parseable.
+   */
   function formatStrike(strikeStr) {
     if (!strikeStr) return '';
     const num = parseFloat(strikeStr.replace(/,/g, ''));
@@ -267,6 +319,12 @@ const TradeDetector = (() => {
   const MAX_LEGS = FMC_CONSTANTS.DETECTOR.MAX_LEGS; // Fidelity supports up to 4 legs; 8 is a safe upper bound
   const OBSERVER_THROTTLE_MS = FMC_CONSTANTS.DETECTOR.OBSERVER_THROTTLE_MS; // throttle MutationObserver → check() to reduce DOM queries
 
+  /**
+   * Counts the number of active option legs by probing for `leg-row-{i}` elements.
+   * Returns at least `1` even if `leg-row-0` is absent (single-leg tickets may not
+   * render the row wrapper).
+   * @returns {number} Number of active legs (≥ 1).
+   */
   function getLegCount() {
     let count = 0;
     while (count < MAX_LEGS && document.getElementById(`${DOM.LEG_ROW_PREFIX}-${count}`)) {
@@ -275,6 +333,11 @@ const TradeDetector = (() => {
     return Math.max(count, 1); // at least 1 leg even if leg-row-0 missing
   }
 
+  /**
+   * Returns the raw form values for a single option leg.
+   * @param {number} legIndex - Zero-based leg index.
+   * @returns {{action: string, quantity: string, callPut: string, expiration: string, strike: string}}
+   */
   function getLegParams(legIndex) {
     return {
       action: getDropdownValue(`${DOM.LEG_ACTION_SEL_BASE}-${legIndex} .binding-val`),
@@ -285,6 +348,12 @@ const TradeDetector = (() => {
     };
   }
 
+  /**
+   * Returns `true` when all required fields for an option leg are filled in:
+   * action, a positive finite quantity, call/put selection, expiration, and strike.
+   * @param {{action: string, quantity: string, callPut: string, expiration: string, strike: string}} leg
+   * @returns {boolean}
+   */
   function isLegComplete(leg) {
     const qty = parsePriceInput(leg.quantity);
     return !!(leg.action && Number.isFinite(qty) && qty > 0 && leg.callPut && leg.expiration && leg.strike);
@@ -292,6 +361,11 @@ const TradeDetector = (() => {
 
   // --- Options trade params (all legs) ---
 
+  /**
+   * Reads all raw parameters from the options trade ticket for all active legs.
+   * @returns {{symbol: string, limitPrice: string, orderType: string,
+   *   legs: Array<{action: string, quantity: string, callPut: string, expiration: string, strike: string}>}}
+   */
   function getOptionsTradeParams() {
     const symbol = getInputValue(DOM.OPT_SYMBOL).toUpperCase();
     const limitPrice = getInputValue(DOM.OPT_LIMIT_PRICE);
@@ -308,6 +382,12 @@ const TradeDetector = (() => {
 
   // --- Equity trade params ---
 
+  /**
+   * Reads all raw parameters from the floating equity trade ticket.
+   * Falls back to secondary selectors for action, order type, and limit price fields
+   * where Fidelity uses two alternate selector patterns.
+   * @returns {{symbol: string, action: string, quantity: string, orderType: string, limitPrice: string}}
+   */
   function getEquityTradeParams() {
     const c = DOM.EQUITY_CONTAINER;
     const symbol = getInputValue(`${c} ${DOM.EQ_SYMBOL}`);
@@ -358,6 +438,12 @@ const TradeDetector = (() => {
     return buildOptionsOrders();
   }
 
+  /**
+   * Converts raw options trade parameters to margin API order objects for all complete legs.
+   * Skips legs with an unrecognized action, non-positive quantity, or unparseable order symbol.
+   * Returns an empty array if the limit price is unparseable for a limit order.
+   * @returns {Array<{orderSymbol: string, orderType: string, orderAction: string, orderQty: number, price: number}>}
+   */
   function buildOptionsOrders() {
     const params = getOptionsTradeParams();
     const orderPrice = resolveOrderPrice(params.limitPrice, params.orderType, params.symbol);
@@ -387,6 +473,12 @@ const TradeDetector = (() => {
     return orders;
   }
 
+  /**
+   * Converts raw equity trade parameters to a single-element margin API order array.
+   * Returns an empty array if action, symbol, or quantity is missing/invalid, or if
+   * the limit price is unparseable for a limit order.
+   * @returns {Array<{orderSymbol: string, orderType: string, orderAction: string, orderQty: number, price: number}>}
+   */
   function buildEquityOrders() {
     const params = getEquityTradeParams();
     const orderAction = mapAction(params.action);
@@ -481,9 +573,14 @@ const TradeDetector = (() => {
 
   // --- Input listener ID helpers ---
   // Derived once from DOM constants so observe() re-calls do not recompute them.
-  // selectorId strips the leading '#' from a CSS ID selector (e.g. '#foo' -> 'foo').
-  // Using a guard so a future refactor that drops the '#' prefix produces an obvious
-  // error rather than silently matching nothing.
+  /**
+   * Strips the leading `#` from a CSS ID selector string.
+   * Example: `'#foo'` → `'foo'`.
+   * Logs a warning if the selector does not start with `#` so a future refactor
+   * that drops the prefix produces an obvious error rather than silently matching nothing.
+   * @param {string} sel - CSS ID selector (must start with `'#'`).
+   * @returns {string} Raw element ID without the leading `#`.
+   */
   function selectorId(sel) {
     if (!sel.startsWith('#')) {
       warn('selectorId: expected a CSS ID selector starting with "#", got:', sel);
