@@ -197,11 +197,7 @@ importScripts('/lib/constants.js');
     // Removing it while another tab holds the same account would reset the rate limit
     // window for that account, allowing back-to-back calls from the surviving tab.
     if (accountNum) {
-      let accountStillInUse = false;
-      for (const v of tabAccounts.values()) {
-        if (v === accountNum) { accountStillInUse = true; break; }
-      }
-      if (!accountStillInUse) apiCallLog.delete(accountNum);
+      if (![...tabAccounts.values()].includes(accountNum)) apiCallLog.delete(accountNum);
     }
   });
 
