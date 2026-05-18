@@ -185,7 +185,7 @@ const TradeDetector = (() => {
   function formatStrike(strikeStr) {
     if (!strikeStr) return '';
     const num = parseFloat(strikeStr.replace(/,/g, ''));
-    if (isNaN(num)) return '';
+    if (Number.isNaN(num)) return '';
     return num.toString();
   }
 
@@ -296,7 +296,7 @@ const TradeDetector = (() => {
   function buildOptionsOrders() {
     const params = getOptionsTradeParams();
     const price = parseFloat(params.limitPrice.replace(/,/g, ''));
-    if (isNaN(price)) {
+    if (Number.isNaN(price)) {
       // Only warn when the symbol is already set — unparseable price with a symbol present
       // likely means a limit price selector stopped matching after a Fidelity page update.
       if (params.symbol) {
@@ -335,7 +335,7 @@ const TradeDetector = (() => {
 
     if (!orderAction || !qty || !params.symbol) return [];
     // Market orders may not have a price — use 0
-    const orderPrice = isNaN(price) ? 0 : price;
+    const orderPrice = Number.isNaN(price) ? 0 : price;
 
     return [{
       orderSymbol: params.symbol,
