@@ -680,8 +680,7 @@ const TradeDetector = (() => {
         // re-fires and the panel is re-injected.  Only clear when the target element
         // itself is still in the DOM; if it is gone too (Fidelity layout change), keep
         // the fingerprint to avoid a retry storm on every mutation.
-        if (typeof MarginInjector !== 'undefined' &&
-            !MarginInjector.getPanel() &&
+        if (!MarginInjector?.getPanel() &&
             document.getElementById(FMC_CONSTANTS.INJECTION.TARGET_ID)) {
           lastFingerprint = '';
         } else {
@@ -742,7 +741,7 @@ const TradeDetector = (() => {
       // MarginInjector is defined in injector.js which is loaded after detector.js,
       // but observe() is only called at runtime (from main.js init), by which point
       // all content scripts are loaded and MarginInjector is available.
-      const panel = (typeof MarginInjector !== 'undefined') ? MarginInjector.getPanel() : null;
+      const panel = MarginInjector?.getPanel() ?? null;
       // Node.contains() returns true when the argument is the node itself (DOM spec),
       // so panel === m.target is already covered and the redundant check can be omitted.
       if (panel && mutations.every(m => panel.contains(m.target))) return;
