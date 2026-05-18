@@ -136,7 +136,11 @@
     const bgResult = await sendToBackground('CACHE_GET', { key });
     if (!bgResult.fallback && bgResult.hit) return bgResult.data;
     const entry = fallbackCache[key];
-    if (entry && Date.now() < entry.expires) return entry.data;
+    if (entry) {
+      if (Date.now() < entry.expires) return entry.data;
+      // Delete expired entry eagerly to prevent stale objects accumulating over long sessions.
+      delete fallbackCache[key];
+    }
     return null;
   }
 
