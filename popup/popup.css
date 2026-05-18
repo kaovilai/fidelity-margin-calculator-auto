@@ -83,6 +83,16 @@ body {
   transform: rotate(-90deg);
 }
 
+/* Status section heading — matches the settings section-header button visually */
+.section-heading {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--fmc-text);
+  padding: 4px 0;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--fmc-border);
+}
+
 /* Status rows */
 .status-row {
   display: flex;
