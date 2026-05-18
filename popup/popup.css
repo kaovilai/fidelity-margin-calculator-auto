@@ -152,6 +152,10 @@ body {
 .status-dot.inactive { background: var(--fmc-secondary); }
 .status-dot.error { background: var(--fmc-red); }
 
+#status-error-row {
+  display: none;
+}
+
 .status-error-text {
   color: var(--fmc-red);
   font-size: 11px;
