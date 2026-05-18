@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Fidelity Margin Calculator Auto",
   "version": "0.1.0",
-  "minimum_chrome_version": "102",
+  "minimum_chrome_version": "111",
   "description": "Automatically shows margin impact when entering trades on Fidelity",
   "host_permissions": [
     "https://digital.fidelity.com/*"
