@@ -30,21 +30,23 @@
   let settings = { ...FMC_CONSTANTS.DEFAULT_SETTINGS };
 
   // Fallback in-memory cache when background is unavailable
-  let fallbackCache = {};
+  let fallbackCache = new Map();
   const FALLBACK_CACHE_MAX = FMC_CONSTANTS.CONTENT_FALLBACK_CACHE_MAX;
 
   // Remove expired entries from fallbackCache to prevent memory growth over long sessions.
   // Also evicts oldest entry if the cache exceeds FALLBACK_CACHE_MAX entries.
   function cleanFallbackCache() {
     const now = Date.now();
-    for (const key of Object.keys(fallbackCache)) {
-      if (now >= fallbackCache[key].expires) delete fallbackCache[key];
+    for (const [key, entry] of fallbackCache) {
+      if (now >= entry.expires) fallbackCache.delete(key);
     }
-    const keys = Object.keys(fallbackCache);
-    if (keys.length > FALLBACK_CACHE_MAX) {
+    if (fallbackCache.size > FALLBACK_CACHE_MAX) {
       // Evict the entry with the earliest expiry
-      keys.sort((a, b) => fallbackCache[a].expires - fallbackCache[b].expires);
-      delete fallbackCache[keys[0]];
+      let oldestKey = null, oldestExpiry = Infinity;
+      for (const [key, entry] of fallbackCache) {
+        if (entry.expires < oldestExpiry) { oldestExpiry = entry.expires; oldestKey = key; }
+      }
+      if (oldestKey !== null) fallbackCache.delete(oldestKey);
     }
   }
 
@@ -122,24 +124,24 @@
   async function getCached(key) {
     const bgResult = await sendToBackground('CACHE_GET', { key });
     if (!bgResult.fallback && bgResult.hit) return bgResult.data;
-    const entry = fallbackCache[key];
+    const entry = fallbackCache.get(key);
     if (entry) {
       if (Date.now() < entry.expires) return entry.data;
       // Delete expired entry eagerly to prevent stale objects accumulating over long sessions.
-      delete fallbackCache[key];
+      fallbackCache.delete(key);
     }
     return null;
   }
 
   async function setCache(key, data, ttl) {
-    fallbackCache[key] = { data, expires: Date.now() + ttl };
+    fallbackCache.set(key, { data, expires: Date.now() + ttl });
     cleanFallbackCache();
     await sendToBackground('CACHE_SET', { key, data, ttl });
   }
 
   async function invalidateCache(pattern) {
-    for (const key of Object.keys(fallbackCache)) {
-      if (key.startsWith(pattern)) delete fallbackCache[key];
+    for (const key of fallbackCache.keys()) {
+      if (key.startsWith(pattern)) fallbackCache.delete(key);
     }
     await sendToBackground('CACHE_INVALIDATE', { pattern });
   }
@@ -321,7 +323,7 @@
         if (msg && msg._fmc && msg.type === 'FORCE_RECALC' && chrome.runtime?.id && sender.id === chrome.runtime.id) {
           sendResponse({ ok: true }); // acknowledge immediately so popup can confirm receipt
           (async () => {
-            fallbackCache = {};
+            fallbackCache.clear();
             lastResult = null;
             if (lastAccountNum) {
               await invalidateAccountCache(lastAccountNum);
