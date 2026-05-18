@@ -31,6 +31,23 @@
   let apiCallCount = 0;
   let settings = { ...FMC_CONSTANTS.DEFAULT_SETTINGS };
 
+  // Heartbeat timer — keeps the MV3 service worker alive while a trade ticket is open.
+  // Set by startHeartbeat() when the ticket opens, cleared by stopHeartbeat() when it closes.
+  let heartbeatTimer = null;
+
+  function startHeartbeat() {
+    if (heartbeatTimer) return; // already running
+    heartbeatTimer = setInterval(() => {
+      sendToBackground(MSG.HEARTBEAT, {});
+    }, FMC_CONSTANTS.HEARTBEAT_INTERVAL_MS);
+  }
+
+  function stopHeartbeat() {
+    if (!heartbeatTimer) return;
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+
   // Circuit breaker state — tracks consecutive retryable failures and blocks
   // API calls for OPEN_DURATION_MS after FAILURE_THRESHOLD failures in a row.
   let consecutiveFailures = 0;
@@ -492,6 +509,8 @@
             break;
           }
           if (event.orders?.length > 0) {
+            // Keep the service worker alive while the trade ticket is open.
+            startHeartbeat();
             if (previousAccountNum && previousAccountNum !== event.accountNum) {
               sendToBackground(MSG.ACCOUNT_CHANGED, {
                 accountNum: event.accountNum,
@@ -519,6 +538,8 @@
           break;
 
         case 'closed':
+          // Stop heartbeat — service worker no longer needs to be kept alive.
+          stopHeartbeat();
           // Increment currentRequest so any in-flight handleTradeReady call
           // sees a stale requestId and exits early without touching the DOM.
           currentRequest++;
