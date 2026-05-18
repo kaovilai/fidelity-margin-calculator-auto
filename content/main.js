@@ -100,6 +100,7 @@
   }
 
   const log = makeLogFn(LOG_PREFIX, console.log);
+  const warn = makeWarnLog(LOG_PREFIX);
 
   /**
    * Loads user settings from `chrome.storage.sync` and applies them to the
@@ -111,7 +112,7 @@
   // --- Settings ---
   async function loadSettings() {
     if (!chrome.storage?.sync) {
-      log('Warning: chrome.storage.sync unavailable — using default settings');
+      warn('chrome.storage.sync unavailable — using default settings');
     } else {
       try {
         const result = await chrome.storage.sync.get(STORAGE_KEY_SETTINGS);
@@ -120,7 +121,7 @@
           settings = { ...settings, ...loaded };
         }
       } catch (err) {
-        log('Warning: could not load settings:', err.message);
+        warn('could not load settings:', err.message);
       }
     }
     // Always clamp debounceMs — guards against corrupted/pre-guard stored values
@@ -371,7 +372,7 @@
     if (!MarginInjector.getPanel()) {
       if (!MarginInjector.inject()) {
         // Injection target not found — panel cannot be shown. Log so it's not silent.
-        log('Warning: cannot show error panel — injection target not found. Error was:', msg);
+        warn('cannot show error panel — injection target not found. Error was:', msg);
         return;
       }
     }
@@ -412,7 +413,7 @@
     if (!MarginInjector.getPanel()) {
       if (!MarginInjector.inject()) {
         const injErrMsg = 'Injection target not found — Fidelity page layout may have changed';
-        log('Warning:', injErrMsg);
+        warn(injErrMsg);
         setBadge('!', BADGE_COLOR_ERROR);
         reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: injErrMsg });
         return;
@@ -482,7 +483,7 @@
           // genuinely has no positions. Short TTL lets the user retry quickly.
           await setCache(priceListKey, priceList, PRICELIST_EMPTY_TTL);
           if (requestId !== currentRequest) return;
-          log('Warning: no positions found — margin API requires existing positions');
+          warn('no positions found — margin API requires existing positions');
           // Use showErrorInPanel rather than MarginInjector.showError directly — Angular
           // may have removed the panel during the preceding awaits, and showErrorInPanel
           // re-injects it if needed so the error is never silently lost.
@@ -678,7 +679,7 @@
             // overwrite this error panel with stale results once it resolves.
             currentRequest++;
             // Inject the panel and show a meaningful error so the user isn't left wondering.
-            log('Warning: ready event with empty orders — trade form may be incomplete or in an unexpected format');
+            warn('ready event with empty orders — trade form may be incomplete or in an unexpected format');
             showErrorInPanel('Could not parse trade details — verify the form is filled in correctly.', false);
           }
           break;
