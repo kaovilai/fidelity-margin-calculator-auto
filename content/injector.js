@@ -18,6 +18,14 @@ const MarginInjector = (() => {
     DEBIT: 'debit'
   });
 
+  // Dynamically-applied CSS class names — centralised so a rename in styles.css
+  // only requires a single edit here rather than hunting through updatePanel.
+  const CSS = Object.freeze({
+    NEUTRAL:  'fmc-neutral',
+    POSITIVE: 'fmc-positive',
+    NEGATIVE: 'fmc-negative'
+  });
+
   // IDs for elements inside the panel — used in both the HTML template and querySelector calls
   const EL_ID = Object.freeze({
     CREDIT_DEBIT:            'fmc-credit-debit',
@@ -60,11 +68,9 @@ const MarginInjector = (() => {
   }
 
   // Returns STATUS.CREDIT | STATUS.WARNING | STATUS.DEBIT based on projected value.
-  // Guards against NaN: NaN comparisons are always false, which would incorrectly
-  // return STATUS.CREDIT — fall back to STATUS.DEBIT (conservative safe default).
+  // Guards against NaN/non-finite: both are treated as DEBIT (conservative safe default).
   function getStatus(projectedCreditDebit) {
-    if (!Number.isFinite(projectedCreditDebit)) return STATUS.DEBIT;
-    if (projectedCreditDebit < 0) return STATUS.DEBIT;
+    if (!Number.isFinite(projectedCreditDebit) || projectedCreditDebit < 0) return STATUS.DEBIT;
     if (projectedCreditDebit <= warningThreshold) return STATUS.WARNING;
     return STATUS.CREDIT;
   }
@@ -313,7 +319,7 @@ const MarginInjector = (() => {
       if (impact.delta !== null) {
         deltaEl.textContent = `${formatDelta(impact.delta)} from current`;
         deltaEl.className = ['fmc-sublabel',
-          impact.delta < 0 ? 'fmc-negative' : impact.delta > 0 ? 'fmc-positive' : null
+          impact.delta < 0 ? CSS.NEGATIVE : impact.delta > 0 ? CSS.POSITIVE : null
         ].filter(Boolean).join(' ');
       } else {
         deltaEl.textContent = 'projected with trade';
@@ -324,7 +330,7 @@ const MarginInjector = (() => {
     // Column 2: Cash Withdrawable
     if (cashEl) {
       cashEl.textContent = formatCurrency(impact.cashWithdrawable);
-      cashEl.className = `fmc-value ${impact.cashWithdrawable > 0 ? `fmc-status-${STATUS.CREDIT}` : 'fmc-neutral'}`;
+      cashEl.className = `fmc-value ${impact.cashWithdrawable > 0 ? `fmc-status-${STATUS.CREDIT}` : CSS.NEUTRAL}`;
     }
 
     // Column 3: Buying Power
