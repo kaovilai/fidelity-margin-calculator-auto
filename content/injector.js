@@ -40,7 +40,7 @@ const MarginInjector = (() => {
 
   let retryCallback = null;
   let debugLog = []; // ring buffer of debug entries
-  const MAX_LOG = 50;
+  const MAX_LOG = FMC_CONSTANTS.MAX_DEBUG_LOG_ENTRIES;
 
   function formatCurrency(value) {
     // Guard against NaN/Infinity — can occur if API returns an unexpected type.
