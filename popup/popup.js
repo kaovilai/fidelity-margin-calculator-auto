@@ -196,7 +196,11 @@
         const isCollapsed = body.classList.toggle('collapsed');
         arrow.classList.toggle('collapsed');
         toggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
-        body.setAttribute('aria-hidden', isCollapsed ? 'true' : 'false');
+        // Use toggleAttribute/removeAttribute rather than setAttribute('aria-hidden','false'):
+        // aria-hidden="false" is an antipattern — removing the attribute is the correct way
+        // to mark an element as accessible (setting it to "false" is defined to have no effect
+        // and some screen readers treat it inconsistently).
+        body.toggleAttribute('aria-hidden', isCollapsed);
         // inert prevents keyboard users from tabbing into inputs hidden by the CSS
         // max-height collapse (aria-hidden alone only hides from screen readers, not focus).
         if (isCollapsed) {
