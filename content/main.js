@@ -395,7 +395,7 @@
             showErrorInPanel('Could not detect account number — try refreshing the page.', false);
             break;
           }
-          if (event.orders.length > 0) {
+          if (event.orders?.length > 0) {
             if (previousAccountNum && previousAccountNum !== event.accountNum) {
               sendToBackground(MSG.ACCOUNT_CHANGED, {
                 accountNum: event.accountNum,

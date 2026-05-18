@@ -203,7 +203,7 @@ importScripts('/lib/constants.js');
     }
   });
 
-  chrome.runtime?.onInstalled?.addListener(() => {
+  chrome.runtime.onInstalled.addListener(() => {
     log('Extension installed/updated');
     // Clear any stale badge text left over from the previous version
     chrome.action?.setBadgeText({ text: '' })?.catch(() => {});
