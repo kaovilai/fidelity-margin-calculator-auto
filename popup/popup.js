@@ -21,14 +21,26 @@
   }
 
   // --- Status display ---
+  // Element references cached at DOMContentLoaded time — updateStatus is called on every
+  // storage change so avoiding repeated getElementById calls reduces redundant DOM lookups.
+  let statusEls = null;
+  function getStatusEls() {
+    if (statusEls) return statusEls;
+    statusEls = {
+      dot:    document.getElementById('status-dot'),
+      text:   document.getElementById('status-text'),
+      acct:   document.getElementById('status-account'),
+      calc:   document.getElementById('status-last-calc'),
+      calls:  document.getElementById('status-api-calls'),
+      errRow: document.getElementById('status-error-row'),
+      err:    document.getElementById('status-error')
+    };
+    return statusEls;
+  }
+
   function updateStatus(status) {
-    const dotEl = document.getElementById('status-dot');
-    const textEl = document.getElementById('status-text');
-    const acctEl = document.getElementById('status-account');
-    const calcEl = document.getElementById('status-last-calc');
-    const callsEl = document.getElementById('status-api-calls');
-    const errRow = document.getElementById('status-error-row');
-    const errEl = document.getElementById('status-error');
+    const { dot: dotEl, text: textEl, acct: acctEl, calc: calcEl,
+            calls: callsEl, errRow, err: errEl } = getStatusEls();
 
     if (!status) {
       if (textEl) textEl.textContent = 'Not connected';

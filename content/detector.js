@@ -128,9 +128,8 @@ const TradeDetector = (() => {
 
   // --- Account number ---
 
-  // _ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
-  function getAccountNumber(_ctx) {
-    const ctx = _ctx !== undefined ? _ctx : detectPageContext();
+  // ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
+  function getAccountNumber(ctx = detectPageContext()) {
     if (ctx === CTX.POPUP_EQUITY) {
       return getEquityAccountNumber();
     }
@@ -276,9 +275,8 @@ const TradeDetector = (() => {
 
   // --- Unified getTradeParams ---
 
-  // _ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
-  function getTradeParams(_ctx) {
-    const ctx = _ctx !== undefined ? _ctx : detectPageContext();
+  // ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
+  function getTradeParams(ctx = detectPageContext()) {
     if (ctx === CTX.POPUP_EQUITY) return getEquityTradeParams();
     if (ctx === CTX.POPUP_OPTIONS || ctx === CTX.DEDICATED_OPTIONS) return getOptionsTradeParams();
     return null;
@@ -286,9 +284,8 @@ const TradeDetector = (() => {
 
   // --- Build API orders ---
 
-  // _ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
-  function buildOrders(_ctx) {
-    const ctx = _ctx !== undefined ? _ctx : detectPageContext();
+  // ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
+  function buildOrders(ctx = detectPageContext()) {
     if (ctx === CTX.POPUP_EQUITY) return buildEquityOrders();
     return buildOptionsOrders();
   }
@@ -349,8 +346,7 @@ const TradeDetector = (() => {
   // --- Completeness checks ---
 
   // _ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
-  function hasRequiredFields(_ctx) {
-    const ctx = _ctx !== undefined ? _ctx : detectPageContext();
+  function hasRequiredFields(ctx = detectPageContext()) {
     if (!ctx) return false;
 
     if (ctx === CTX.POPUP_EQUITY) {
@@ -368,9 +364,8 @@ const TradeDetector = (() => {
 
   // --- Fingerprinting for change detection ---
 
-  // _ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
-  function getParamsFingerprint(_ctx) {
-    const ctx = _ctx !== undefined ? _ctx : detectPageContext();
+  // ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
+  function getParamsFingerprint(ctx = detectPageContext()) {
     if (!ctx) return '';
 
     if (ctx === CTX.POPUP_EQUITY) {
