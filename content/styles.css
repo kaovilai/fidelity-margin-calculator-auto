@@ -6,7 +6,7 @@
 .fmc-margin-panel {
   --fmc-green:      #368727;
   --fmc-red:        #c81818;
-  --fmc-yellow:     #b8860b;
+  --fmc-yellow:     #8b6508;
   --fmc-border:     #e9e9e9;
   --fmc-text:       #333;
   --fmc-muted:      #717171;
@@ -255,9 +255,11 @@
     --fmc-input-border: #555555;
     --fmc-debug-bg:     #0d0d0d;
     --fmc-debug-text:   #d4d4d4;
-    /* Lightened for WCAG AA contrast (≥4.5:1) against #1e1e1e dark background.
-       Original #368727 ≈ 4.4:1 and #c81818 ≈ 2.8:1 both fail the minimum ratio. */
+    /* Adjusted for WCAG AA contrast (≥4.5:1) against #1e1e1e dark background.
+       Original #368727 ≈ 3.8:1, #c81818 ≈ 2.8:1, and #8b6508 ≈ 2.5:1 all fail
+       the minimum ratio, so each is replaced with a lighter accessible alternative. */
     --fmc-green:        #55b04a;
     --fmc-red:          #f05555;
+    --fmc-yellow:       #d4a820;
   }
 }
