@@ -261,7 +261,10 @@
           await setCache(priceListKey, priceList, PRICELIST_EMPTY_TTL);
           if (requestId !== currentRequest) return;
           log('Warning: no positions found — margin API requires existing positions');
-          MarginInjector.showError(
+          // Use showErrorInPanel rather than MarginInjector.showError directly — Angular
+          // may have removed the panel during the preceding awaits, and showErrorInPanel
+          // re-injects it if needed so the error is never silently lost.
+          showErrorInPanel(
             'No positions found for this account. Margin calculation requires at least one existing position.',
             false
           );
@@ -294,7 +297,9 @@
       // Compute impact — use lastResult as baseline for delta if available
       const impact = MarginCalc.computeImpact(projectedData, lastResult);
       if (!impact) {
-        MarginInjector.showError('No margin data available for this account.', false);
+        // Use showErrorInPanel rather than MarginInjector.showError directly — Angular
+        // may have removed the panel during the preceding awaits.
+        showErrorInPanel('No margin data available for this account.', false);
         setBadge('!', BADGE_COLOR_ERROR);
         reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: 'No margin data' });
         return;

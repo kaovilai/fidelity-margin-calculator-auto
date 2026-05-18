@@ -59,6 +59,13 @@
     if (!status) {
       if (textEl) textEl.textContent = 'Not connected';
       if (dotEl) dotEl.className = `status-dot ${FMC_CONSTANTS.STATUS_STATE.INACTIVE}`;
+      // Reset all other fields to defaults so stale data from a previous status is
+      // not displayed after the extension status is cleared (e.g. after update/reinstall).
+      if (acctEl) acctEl.textContent = '--';
+      if (calcEl) calcEl.textContent = '--';
+      if (callsEl) callsEl.textContent = '0';
+      if (errRow) errRow.style.display = 'none';
+      if (errEl) errEl.textContent = '';
       return;
     }
 
