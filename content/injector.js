@@ -395,7 +395,10 @@ const MarginInjector = (() => {
    */
   function addDebugLog(entry) {
     const ts = new Date().toLocaleTimeString();
-    debugLog.push(`[${ts}] ${entry}`);
+    const raw = `[${ts}] ${entry}`;
+    const maxLen = FMC_CONSTANTS.MAX_LOG_ENTRY_LEN;
+    const truncated = raw.length > maxLen ? raw.slice(0, maxLen) + '\u2026' : raw;
+    debugLog.push(truncated);
     if (debugLog.length > MAX_LOG) debugLog.shift();
     // Update visible log if open — use panelRefs to avoid a global getElementById
     // call that could theoretically find a detached element from a stale panel.
