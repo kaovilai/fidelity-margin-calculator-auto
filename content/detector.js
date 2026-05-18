@@ -565,7 +565,21 @@ const TradeDetector = (() => {
     // produces hundreds of mutations per second during navigation and rendering.
     // Running check() on every mutation wastes CPU — OBSERVER_THROTTLE_MS throttle
     // keeps the UI responsive while avoiding redundant DOM queries between mutations.
-    observer = new MutationObserver(scheduleCheck);
+    //
+    // Additionally, filter out mutations that originate exclusively from the extension's
+    // own injected panel. Every showLoading/showError/updatePanel call modifies style and
+    // class attributes on panel child elements, which would otherwise trigger a redundant
+    // scheduleCheck() → check() cycle (the fingerprint check in check() would short-circuit
+    // it, but the extra setTimeout + DOM query overhead is wasteful and adds up during
+    // active trades where the panel is updated frequently).
+    observer = new MutationObserver((mutations) => {
+      // MarginInjector is defined in injector.js which is loaded after detector.js,
+      // but observe() is only called at runtime (from main.js init), by which point
+      // all content scripts are loaded and MarginInjector is available.
+      const panel = (typeof MarginInjector !== 'undefined') ? MarginInjector.getPanel() : null;
+      if (panel && mutations.every(m => panel === m.target || panel.contains(m.target))) return;
+      scheduleCheck();
+    });
     observer.observe(document.body, {
       childList: true,
       subtree: true,
