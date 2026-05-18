@@ -335,7 +335,11 @@
     // Listen for force-recalc from popup
     if (chrome.runtime?.onMessage) {
       chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-        if (msg && msg._fmc && msg.type === MSG.FORCE_RECALC && chrome.runtime?.id && sender.id === chrome.runtime.id) {
+        // Validate sender first — reject messages from other extensions (or spoofed _fmc markers)
+        // before sending any response. Mirrors the guard in background.js and prevents
+        // information leakage about the _fmc handler to other installed extensions.
+        if (!msg?._fmc || !chrome.runtime?.id || sender.id !== chrome.runtime.id) return false;
+        if (msg.type === MSG.FORCE_RECALC) {
           sendResponse({ ok: true }); // acknowledge immediately so popup can confirm receipt
           (async () => {
             fallbackCache.clear();
@@ -347,7 +351,7 @@
               await handleTradeReady(lastAccountNum, lastOrders);
             }
           })().catch(err => log('Error during force-recalc:', err));
-        } else if (msg?._fmc) {
+        } else {
           // Unexpected _fmc message type — acknowledge to avoid "port closed before response" warnings.
           sendResponse({ error: 'unhandled message type' });
         }
