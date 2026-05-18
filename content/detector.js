@@ -89,7 +89,7 @@ const TradeDetector = (() => {
 
   // Returns true when the order type string indicates a limit order.
   function isLimitOrderType(orderType) {
-    return !!(orderType && orderType.toLowerCase().includes('limit'));
+    return !!orderType?.toLowerCase().includes('limit');
   }
 
   // Returns the numeric order price, or null if a limit order has an unparseable price.
@@ -447,6 +447,9 @@ const TradeDetector = (() => {
   // Escape LEG_QTY_BASE before embedding in a regex — guards against a future rename
   // introducing special regex characters that would silently produce wrong matches.
   const legQtyRe     = new RegExp(`^${LEG_QTY_BASE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-\\d+$`);
+  // Set of static input IDs the input listener watches. Set.has() is O(1) vs O(n)
+  // repeated === checks and keeps the condition in inputListener easier to maintain.
+  const WATCHED_INPUT_IDS = new Set([OPT_LIMIT_ID, EQ_QTY_ID, EQ_LIMIT_ID, EQ_SYM_ID, OPT_SYM_ID]);
 
   // --- Observer ---
 
@@ -577,12 +580,7 @@ const TradeDetector = (() => {
     // still guards the actual API call regardless.
     inputListener = (e) => {
       const id = e.target?.id ?? '';
-      if (legQtyRe.test(id) ||
-          id === OPT_LIMIT_ID ||
-          id === EQ_QTY_ID ||
-          id === EQ_LIMIT_ID ||
-          id === EQ_SYM_ID ||
-          id === OPT_SYM_ID) {
+      if (legQtyRe.test(id) || WATCHED_INPUT_IDS.has(id)) {
         scheduleCheck();
       }
     };
