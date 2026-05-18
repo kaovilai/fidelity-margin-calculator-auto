@@ -36,6 +36,12 @@
   let consecutiveFailures = 0;
   let circuitOpenUntil = 0; // epoch ms; 0 means circuit is closed
 
+  // Session-expiry flag — set when any API call returns SESSION_EXPIRED.
+  // Prevents pointless repeated calls on subsequent form changes since every call
+  // will fail until the user refreshes the page and re-authenticates.
+  // Cleared explicitly by force-recalculate so the user's manual retry goes through.
+  let sessionExpired = false;
+
   // Fallback in-memory cache when background is unavailable
   let fallbackCache = new Map();
   const FALLBACK_CACHE_MAX = FMC_CONSTANTS.CONTENT_FALLBACK_CACHE_MAX;
@@ -212,6 +218,7 @@
   function showApiError(err, fallbackMsg) {
     const isSession = err?.type === FMC_CONSTANTS.ERROR_TYPES.SESSION_EXPIRED;
     const msg = isSession ? MSG_SESSION_EXPIRED : (err?.message || fallbackMsg);
+    if (isSession) sessionExpired = true;
     showErrorInPanel(msg, !isSession);
     setBadge('!', isSession ? BADGE_COLOR_WARNING : BADGE_COLOR_ERROR);
     reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: msg });
@@ -233,6 +240,11 @@
   // --- Main handler ---
   async function handleTradeReady(accountNum, orders) {
     if (!settings.enabled) return;
+
+    // Short-circuit: session has expired and the user has not yet force-recalculated.
+    // Every API call will fail with SESSION_EXPIRED until the page is refreshed, so
+    // skip the call entirely and keep the existing error panel visible.
+    if (sessionExpired) return;
 
     lastAccountNum = accountNum;
     lastOrders = orders;
@@ -388,6 +400,9 @@
       // consecutiveFailures is intentionally NOT reset: if this probe also fails,
       // recordApiFailure() will immediately reopen the circuit for another OPEN_DURATION_MS.
       circuitOpenUntil = 0;
+      // Clear session-expiry flag so the retry can attempt a fresh API call in case
+      // the user has re-authenticated (e.g. opened Fidelity in a new tab and logged back in).
+      sessionExpired = false;
       if (lastAccountNum && lastOrders) {
         handleTradeReady(lastAccountNum, lastOrders).catch(err => log('Error in retry handler:', err));
       }
@@ -405,10 +420,12 @@
           (async () => {
             fallbackCache.clear();
             lastResult = null;
-            // Also fully reset the circuit breaker so a manual recalculate is never
-            // silently blocked — the user is explicitly requesting a fresh attempt.
+            // Also fully reset the circuit breaker and session-expiry flag so a manual
+            // recalculate is never silently blocked — the user is explicitly requesting
+            // a fresh attempt (they may have re-authenticated in another tab).
             consecutiveFailures = 0;
             circuitOpenUntil = 0;
+            sessionExpired = false;
             if (lastAccountNum) {
               await invalidateAccountCache(lastAccountNum);
             }
@@ -513,6 +530,9 @@
           // They will be repopulated when the next 'ready' event fires.
           lastAccountNum = null;
           lastOrders = null;
+          // Reset session-expiry flag on ticket close: the user may have navigated away
+          // to re-authenticate and then returned to open a new trade ticket.
+          sessionExpired = false;
           MarginInjector.remove();
           break;
 
