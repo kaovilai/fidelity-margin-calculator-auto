@@ -49,7 +49,7 @@ importScripts('/lib/constants.js');
 
   function cacheSet(key, data, ttl) {
     const now = Date.now();
-    const safeTtl = (typeof ttl === 'number' && isFinite(ttl) && ttl > 0) ? ttl : DEFAULT_CACHE_TTL;
+    const safeTtl = (typeof ttl === 'number' && Number.isFinite(ttl) && ttl > 0) ? ttl : DEFAULT_CACHE_TTL;
     cache.set(key, { data, expires: now + safeTtl, ttl: safeTtl, lastAccess: now });
     evictIfNeeded();
     return { ok: true };
