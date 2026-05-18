@@ -178,7 +178,7 @@ importScripts('/lib/constants.js');
     }
   })();
   chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name !== CLEANUP_ALARM) return;
+    if (!alarm || alarm.name !== CLEANUP_ALARM) return;
     const now = Date.now();
     let cleaned = 0;
     for (const [key, entry] of cache) {
