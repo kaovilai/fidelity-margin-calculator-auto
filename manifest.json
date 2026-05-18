@@ -41,7 +41,7 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'"
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'"
   },
   "background": {
     "service_worker": "background.js"

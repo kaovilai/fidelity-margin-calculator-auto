@@ -164,7 +164,10 @@ importScripts('/lib/constants.js');
   const CLEANUP_ALARM = 'fmc-cache-cleanup';
   chrome.alarms.get(CLEANUP_ALARM).then(existing => {
     if (!existing) chrome.alarms.create(CLEANUP_ALARM, { periodInMinutes: CLEANUP_INTERVAL_MINUTES });
-  }).catch(err => log('Could not create cleanup alarm:', err.message));
+  }).catch(err => {
+    log('Could not query cleanup alarm, attempting creation anyway:', err.message);
+    chrome.alarms.create(CLEANUP_ALARM, { periodInMinutes: CLEANUP_INTERVAL_MINUTES }).catch(e => log('Could not create cleanup alarm:', e.message));
+  });
   chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name !== CLEANUP_ALARM) return;
     const now = Date.now();
@@ -174,7 +177,7 @@ importScripts('/lib/constants.js');
   });
 
   // Clean up tab tracking when tabs close
-  chrome.tabs?.onRemoved?.addListener((tabId) => {
+  chrome.tabs.onRemoved.addListener((tabId) => {
     const accountNum = tabAccounts.get(tabId);
     tabAccounts.delete(tabId);
     // Only remove from apiCallLog if no other open tab is still using this account.
