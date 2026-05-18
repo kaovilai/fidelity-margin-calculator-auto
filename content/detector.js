@@ -123,7 +123,7 @@ const TradeDetector = (() => {
   }
 
   function getInputValue(selector) {
-    return document.querySelector(selector)?.value ?? '';
+    return document.querySelector(selector)?.value.trim() ?? '';
   }
 
   // --- Account number ---
