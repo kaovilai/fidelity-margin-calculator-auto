@@ -440,7 +440,9 @@ const TradeDetector = (() => {
   const EQ_QTY_ID    = selectorId(DOM.EQ_QTY);             // 'eqt-shared-quantity'
   const EQ_LIMIT_ID  = selectorId(DOM.EQ_LIMIT_PRIMARY);   // 'eqt-shared-limit-price'
   const LEG_QTY_BASE = selectorId(DOM.LEG_QTY_SEL_BASE);  // 'quantity' (quantity-{i})
-  const legQtyRe     = new RegExp(`^${LEG_QTY_BASE}-\\d+$`);
+  // Escape LEG_QTY_BASE before embedding in a regex — guards against a future rename
+  // introducing special regex characters that would silently produce wrong matches.
+  const legQtyRe     = new RegExp(`^${LEG_QTY_BASE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-\\d+$`);
 
   // --- Observer ---
 
