@@ -12,7 +12,7 @@ permissions:
   actions: read
 tools:
   edit:
-  bash: ["git log", "git diff", "git status", "find", "grep", "cat", "ls", "wc", "head", "tail"]
+  bash: ["git log", "git diff", "git status", "find", "grep", "cat", "ls", "wc", "head", "tail", "cd", "echo", "node"]
   github:
     toolsets: [repos, issues, pull_requests]
 safe-outputs:
