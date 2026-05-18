@@ -8,8 +8,8 @@
 <body>
   <div class="popup-container">
     <div class="popup-header">
-      <span class="popup-title">Margin Calculator</span>
-      <span class="popup-version" id="version"></span>
+      <h1 class="popup-title">Margin Calculator</h1>
+      <span class="popup-version" id="version" aria-label="Extension version"></span>
     </div>
 
     <!-- Status Section -->
@@ -39,12 +39,14 @@
     </section>
 
     <!-- Settings Section -->
-    <section class="popup-section" role="region" aria-labelledby="settings-heading">
-      <button class="section-header" id="settings-toggle" type="button"
-              aria-expanded="true" aria-controls="settings-body">
-        <span id="settings-heading">Settings</span>
-        <span class="toggle-arrow" id="settings-arrow" aria-hidden="true">&#9662;</span>
-      </button>
+    <section class="popup-section" role="region" aria-labelledby="settings-toggle">
+      <h2 class="section-heading-wrap">
+        <button class="section-header" id="settings-toggle" type="button"
+                aria-expanded="true" aria-controls="settings-body">
+          Settings
+          <span class="toggle-arrow" id="settings-arrow" aria-hidden="true">&#9662;</span>
+        </button>
+      </h2>
       <div class="settings-body" id="settings-body">
         <div class="setting-row">
           <label class="setting-label" for="setting-enabled">Enabled</label>

@@ -143,7 +143,7 @@ const MarginInjector = (() => {
     const debugLogDiv = mkEl('div', { className: 'fmc-debug-log', id: EL_ID.DEBUG_LOG, role: 'log', 'aria-label': 'Debug log', tabindex: '0' });
     debugLogDiv.style.display = 'none';
 
-    const attribution = mkEl('div', { className: 'fmc-attribution' },
+    const attribution = mkEl('div', { className: 'fmc-attribution', 'aria-hidden': 'true' },
       mkEl('span', { className: 'fmc-ext-badge', 'aria-hidden': 'true', textContent: 'Margin Calc' })
     );
 
