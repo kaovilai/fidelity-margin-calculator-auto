@@ -127,6 +127,11 @@ importScripts('/lib/constants.js');
 
       case FMC_CONSTANTS.MESSAGE_TYPES.LOG_API_CALL:
         if (!msg.payload?.accountNum) { sendResponse({ rateLimited: false }); return false; }
+        // Track this tab→account mapping so the apiCallLog entry can be cleaned up
+        // when the tab closes. Without this, the first trade on a tab never sends
+        // ACCOUNT_CHANGED (previousAccountNum is null), so tabAccounts never gets set
+        // and the apiCallLog entry for that account leaks until the service worker restarts.
+        if (tabId != null) tabAccounts.set(tabId, msg.payload.accountNum);
         sendResponse(checkRateLimit(msg.payload.accountNum));
         return false;
 
