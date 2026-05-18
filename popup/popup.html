@@ -2,18 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Margin Calculator</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <div class="popup-container">
-    <div class="popup-header">
+    <header class="popup-header">
       <h1 class="popup-title">Margin Calculator</h1>
       <span class="popup-version" id="version"></span>
-    </div>
-
-    <!-- Status Section -->
-    <section class="popup-section" role="region" aria-labelledby="status-heading">
+    </header>
+    <section class="popup-section" aria-labelledby="status-heading">
       <h2 class="section-heading" id="status-heading">Status</h2>
       <div class="status-row">
         <span class="status-label">Status</span>
@@ -39,7 +38,7 @@
     </section>
 
     <!-- Settings Section -->
-    <section class="popup-section" role="region" aria-labelledby="settings-toggle">
+    <section class="popup-section" aria-labelledby="settings-toggle">
       <h2 class="section-heading-wrap">
         <button class="section-header" id="settings-toggle" type="button"
                 aria-expanded="true" aria-controls="settings-body">
@@ -70,10 +69,10 @@
       </div>
     </section>
 
-    <div class="popup-footer">
+    <footer class="popup-footer">
       <button class="btn-refresh" id="btn-refresh" aria-describedby="btn-refresh-status">Force Recalculate</button>
       <span id="btn-refresh-status" aria-live="polite" aria-atomic="true" class="refresh-status"></span>
-    </div>
+    </footer>
   </div>
   <script src="../lib/constants.js"></script>
   <script src="popup.js"></script>
