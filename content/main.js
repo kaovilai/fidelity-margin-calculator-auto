@@ -476,6 +476,10 @@
             // Invalidate any in-flight handleTradeReady so it cannot overwrite the
             // INACTIVE status below with a stale ACTIVE status once its awaits resolve.
             currentRequest++;
+            // Stop heartbeat — TradeDetector.disconnect() will not fire a 'closed' event,
+            // so the interval would otherwise keep pinging the background service worker
+            // even though no trade ticket is being tracked.
+            stopHeartbeat();
             MarginInjector.remove();
             TradeDetector.disconnect();
             setBadge('', null);
