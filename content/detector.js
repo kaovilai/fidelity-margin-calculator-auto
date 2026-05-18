@@ -97,7 +97,7 @@ const TradeDetector = (() => {
     const price = parsePriceInput(limitPriceStr);
     if (!Number.isFinite(price)) {
       if (isLimitOrderType(orderType) && symbol) {
-        warn('Limit price is unparseable — selector may have changed: ' + limitPriceStr);
+        warn(`Limit price is unparseable — selector may have changed: ${limitPriceStr}`);
         return null;
       }
       return 0;
@@ -184,8 +184,8 @@ const TradeDetector = (() => {
 
   function getEquityAccountNumber() {
     // Try primary selector first, fall back to secondary
-    const el = document.querySelector(DOM.EQUITY_CONTAINER + ' ' + DOM.EQ_ACCOUNT_LABEL) ||
-               document.querySelector(DOM.EQUITY_CONTAINER + ' ' + DOM.EQ_ACCOUNT_DD);
+    const el = document.querySelector(`${DOM.EQUITY_CONTAINER} ${DOM.EQ_ACCOUNT_LABEL}`) ||
+               document.querySelector(`${DOM.EQUITY_CONTAINER} ${DOM.EQ_ACCOUNT_DD}`);
     if (!el) return null;
     // Match the LAST parenthetical to avoid picking up account type labels
     // that Fidelity sometimes prefixes, e.g. "Individual (non-retirement) (X12345678)".
@@ -213,7 +213,7 @@ const TradeDetector = (() => {
     const [, month, day, year] = match;
     const mm = MONTH_MAP[month];
     if (!mm) {
-      warn('Unrecognized month abbreviation in expiration — Fidelity may have changed format: ' + expStr);
+      warn(`Unrecognized month abbreviation in expiration — Fidelity may have changed format: ${expStr}`);
       return '';
     }
     const yy = year.slice(2);
@@ -257,7 +257,7 @@ const TradeDetector = (() => {
     if (!actionText) return '';
     const mapped = ACTION_MAP_LOWER[actionText.trim().toLowerCase()];
     if (!mapped) {
-      warn('Unrecognized trade action — Fidelity may have added a new action type: ' + actionText);
+      warn(`Unrecognized trade action — Fidelity may have added a new action type: ${actionText}`);
     }
     return mapped || '';
   }
