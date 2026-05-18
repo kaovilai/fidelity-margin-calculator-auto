@@ -130,11 +130,15 @@
       } catch { /* storage unavailable */ }
     }
 
-    // Live status updates
+    // Live status updates and settings refresh
     if (chrome.storage?.onChanged) {
       chrome.storage.onChanged.addListener((changes, area) => {
         if (area === 'local' && changes[STORAGE_KEY_STATUS]) {
           updateStatus(changes[STORAGE_KEY_STATUS].newValue);
+        }
+        // Refresh settings display if they change via Chrome Sync from another device
+        if (area === 'sync' && changes[STORAGE_KEY_SETTINGS]) {
+          loadSettings().catch(err => console.warn('[FMC-Popup] Could not refresh settings:', err.message));
         }
       });
     }
