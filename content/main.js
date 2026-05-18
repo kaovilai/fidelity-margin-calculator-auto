@@ -13,6 +13,7 @@
 
   const STORAGE_KEY_SETTINGS = FMC_CONSTANTS.STORAGE_KEY_SETTINGS;
   const STORAGE_KEY_STATUS = FMC_CONSTANTS.STORAGE_KEY_STATUS;
+  const MSG = FMC_CONSTANTS.MESSAGE_TYPES;
   const MSG_SESSION_EXPIRED = 'Session expired. Please refresh the page.';
 
   // Clamp debounceMs to a safe minimum to prevent runaway polling
@@ -89,7 +90,7 @@
   }
 
   function setBadge(text, color) {
-    sendToBackground('SET_BADGE', { text, color });
+    sendToBackground(MSG.SET_BADGE, { text, color });
   }
 
   // --- Background message helper ---
@@ -123,7 +124,7 @@
 
   // --- Cache ---
   async function getCached(key) {
-    const bgResult = await sendToBackground('CACHE_GET', { key });
+    const bgResult = await sendToBackground(MSG.CACHE_GET, { key });
     if (!bgResult.fallback && bgResult.hit) return bgResult.data;
     const entry = fallbackCache.get(key);
     if (entry) {
@@ -137,14 +138,14 @@
   async function setCache(key, data, ttl) {
     fallbackCache.set(key, { data, expires: Date.now() + ttl });
     cleanFallbackCache();
-    await sendToBackground('CACHE_SET', { key, data, ttl });
+    await sendToBackground(MSG.CACHE_SET, { key, data, ttl });
   }
 
   async function invalidateCache(pattern) {
     for (const key of fallbackCache.keys()) {
       if (key.startsWith(pattern)) fallbackCache.delete(key);
     }
-    await sendToBackground('CACHE_INVALIDATE', { pattern });
+    await sendToBackground(MSG.CACHE_INVALIDATE, { pattern });
   }
 
   // Invalidates both priceList and projected caches for the given account.
@@ -208,7 +209,7 @@
       }
 
       // Also check background rate limit (advisory)
-      const rateCheck = await sendToBackground('LOG_API_CALL', { accountNum });
+      const rateCheck = await sendToBackground(MSG.LOG_API_CALL, { accountNum });
       // A new request may have arrived while waiting for background response
       if (requestId !== currentRequest) return;
       if (!rateCheck.fallback && rateCheck.rateLimited) {
@@ -326,7 +327,7 @@
     // Listen for force-recalc from popup
     if (chrome.runtime?.onMessage) {
       chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-        if (msg && msg._fmc && msg.type === 'FORCE_RECALC' && chrome.runtime?.id && sender.id === chrome.runtime.id) {
+        if (msg && msg._fmc && msg.type === MSG.FORCE_RECALC && chrome.runtime?.id && sender.id === chrome.runtime.id) {
           sendResponse({ ok: true }); // acknowledge immediately so popup can confirm receipt
           (async () => {
             fallbackCache.clear();
@@ -381,7 +382,7 @@
           }
           if (event.orders.length > 0) {
             if (previousAccountNum && previousAccountNum !== event.accountNum) {
-              sendToBackground('ACCOUNT_CHANGED', {
+              sendToBackground(MSG.ACCOUNT_CHANGED, {
                 accountNum: event.accountNum,
                 previousAccountNum
               });

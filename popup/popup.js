@@ -171,7 +171,7 @@
       try {
         const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
         if (tabs[0]?.id != null) {
-          const resp = await chrome.tabs.sendMessage(tabs[0].id, { type: 'FORCE_RECALC', _fmc: true })
+          const resp = await chrome.tabs.sendMessage(tabs[0].id, { type: FMC_CONSTANTS.MESSAGE_TYPES.FORCE_RECALC, _fmc: true })
             .catch(() => null); // Content script may not be loaded on this tab — ignore
           if (refreshStatus) refreshStatus.textContent = resp?.ok ? 'Recalculate requested.' : 'Not active on this tab.';
         } else {
