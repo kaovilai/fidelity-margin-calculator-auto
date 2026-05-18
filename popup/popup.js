@@ -5,10 +5,20 @@
   const STORAGE_KEY_SETTINGS = FMC_CONSTANTS.STORAGE_KEY_SETTINGS;
   const STORAGE_KEY_STATUS = FMC_CONSTANTS.STORAGE_KEY_STATUS;
 
+  // How often (ms) to refresh the "Last Calc" timeAgo display while the popup is open.
+  const TIME_REFRESH_INTERVAL_MS = 5000;
+  // How long (ms) to show the force-recalculate button's feedback before clearing it.
+  const REFRESH_FEEDBACK_CLEAR_MS = 1500;
+
+  // Account masking parameters — first N chars + '...' + last M chars.
+  const MASK_MIN_LEN = 6;    // only mask accounts long enough to safely truncate
+  const MASK_PREFIX = 2;     // chars to show at the start
+  const MASK_SUFFIX = 4;     // chars to show at the end
+
   // Mask account number for privacy: Z2...8273
   function maskAccount(acct) {
-    if (!acct || acct.length < 6) return acct || '--';
-    return `${acct.slice(0, 2)}...${acct.slice(-4)}`;
+    if (!acct || acct.length < MASK_MIN_LEN) return acct || '--';
+    return `${acct.slice(0, MASK_PREFIX)}...${acct.slice(-MASK_SUFFIX)}`;
   }
 
   function timeAgo(ts) {
@@ -21,6 +31,10 @@
   }
 
   // --- Status display ---
+  // Cached copy of the most recent status object — lets the TIME_REFRESH_INTERVAL_MS
+  // timer re-render timeAgo() without a storage read on every tick.
+  let lastStatus = null;
+
   // Element references cached at DOMContentLoaded time — updateStatus is called on every
   // storage change so avoiding repeated getElementById calls reduces redundant DOM lookups.
   let statusEls = null;
@@ -129,15 +143,24 @@
     if (chrome.storage?.local) {
       try {
         const result = await chrome.storage.local.get(STORAGE_KEY_STATUS);
-        updateStatus(result[STORAGE_KEY_STATUS]);
+        lastStatus = result[STORAGE_KEY_STATUS] ?? null;
+        updateStatus(lastStatus);
       } catch { /* storage unavailable */ }
     }
+
+    // Periodically refresh the "Last Calc" timeAgo display while the popup is open.
+    // Storage onChanged handles real updates; this keeps the relative time accurate
+    // between updates (e.g. "30s ago" → "35s ago") without polling storage.
+    setInterval(() => {
+      if (lastStatus) updateStatus(lastStatus);
+    }, TIME_REFRESH_INTERVAL_MS);
 
     // Live status updates and settings refresh
     if (chrome.storage?.onChanged) {
       chrome.storage.onChanged.addListener((changes, area) => {
         if (area === 'local' && changes[STORAGE_KEY_STATUS]) {
-          updateStatus(changes[STORAGE_KEY_STATUS].newValue);
+          lastStatus = changes[STORAGE_KEY_STATUS].newValue ?? null;
+          updateStatus(lastStatus);
         }
         // Refresh settings display if they change via Chrome Sync from another device
         if (area === 'sync' && changes[STORAGE_KEY_SETTINGS]) {
@@ -197,7 +220,7 @@
         setTimeout(() => {
           if (refreshStatus) refreshStatus.textContent = '';
           refreshBtn.disabled = false;
-        }, 1500);
+        }, REFRESH_FEEDBACK_CLEAR_MS);
       }
     });
   }
