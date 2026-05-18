@@ -102,6 +102,7 @@
   const log = makeLogFn(LOG_PREFIX, console.log);
   const warn = makeWarnLog(LOG_PREFIX);
 
+  // --- Settings ---
   /**
    * Loads user settings from `chrome.storage.sync` and applies them to the
    * module-level `settings` object.  Falls back to `DEFAULT_SETTINGS` when storage
@@ -109,7 +110,6 @@
    * applies `debitWarningThreshold` to the injector.
    * @returns {Promise<void>}
    */
-  // --- Settings ---
   async function loadSettings() {
     if (!chrome.storage?.sync) {
       warn('chrome.storage.sync unavailable — using default settings');
@@ -130,6 +130,7 @@
     MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
   }
 
+  // --- Status reporting ---
   /**
    * Writes a status snapshot to `chrome.storage.local` so the popup can display
    * the current extension state without an active message channel to the content script.
@@ -137,7 +138,6 @@
    * @param {Object} [extra] - Additional fields merged into the status object
    *   (e.g. `{ lastError: 'Session expired' }`).
    */
-  // --- Status reporting ---
   function reportStatus(state, extra) {
     if (!chrome.storage?.local) return;
     const status = {
@@ -162,17 +162,13 @@
     sendToBackground(MSG.SET_BADGE, { text, color });
   }
 
+  // --- Circuit breaker ---
   /**
    * Records a retryable API failure (NETWORK_ERROR or API_ERROR) and opens the
    * circuit breaker once `FAILURE_THRESHOLD` consecutive failures are reached.
    * Session-expiry and CLIENT_ERROR are permanent states — callers must check
    * `err.type` and only call this for retryable error types.
    */
-  // --- Circuit breaker ---
-  // Records a retryable failure (NETWORK_ERROR or API_ERROR).  Opens the circuit
-  // once the threshold is reached, blocking further API calls until the cool-down
-  // expires.  Session-expiry and client errors are permanent states, not transient
-  // failures, so callers must check err.type before calling this.
   function recordApiFailure() {
     consecutiveFailures++;
     if (consecutiveFailures >= FMC_CONSTANTS.CIRCUIT_BREAKER.FAILURE_THRESHOLD && !circuitOpenUntil) {
@@ -186,7 +182,6 @@
    * consecutive failure counter so the circuit does not re-open until the threshold
    * is reached again from scratch.
    */
-  // Records a successful API call, closing the circuit and resetting the failure count.
   function recordApiSuccess() {
     consecutiveFailures = 0;
     circuitOpenUntil = 0;
@@ -199,10 +194,6 @@
    * if it fails, `recordApiFailure()` reopens it for another `OPEN_DURATION_MS`.
    * @returns {boolean}
    */
-  // Returns true when the circuit is open and the API call should be skipped.
-  // After OPEN_DURATION_MS elapses, clears circuitOpenUntil to allow one probe
-  // request through.  If the probe succeeds, recordApiSuccess() closes the circuit;
-  // if it fails, recordApiFailure() will reopen it for another OPEN_DURATION_MS.
   function isCircuitOpen() {
     if (!circuitOpenUntil) return false;
     if (Date.now() < circuitOpenUntil) return true;
@@ -210,6 +201,7 @@
     return false;
   }
 
+  // --- Background message helper ---
   /**
    * Sends a typed message to the background service worker and returns a Promise
    * that resolves with the response.  Never rejects — on timeout, extension context
@@ -220,7 +212,6 @@
    * @param {number} [timeoutMs] - Max ms to wait for a response before falling back.
    * @returns {Promise<Object>} Background response, or `{ fallback: true }` on failure.
    */
-  // --- Background message helper ---
   function sendToBackground(type, payload, timeoutMs = BG_MESSAGE_TIMEOUT_MS) {
     return new Promise((resolve) => {
       if (!chrome.runtime?.sendMessage) {
@@ -249,6 +240,7 @@
     });
   }
 
+  // --- Cache ---
   /**
    * Retrieves a cached value by key, preferring the background service worker's
    * shared cache and falling back to the in-memory `fallbackCache` when the
@@ -256,7 +248,6 @@
    * @param {string} key - Cache key.
    * @returns {Promise<*>} Cached value, or `null` if not found or expired.
    */
-  // --- Cache ---
   async function getCached(key) {
     const bgResult = await sendToBackground(MSG.CACHE_GET, { key });
     if (!bgResult.fallback && bgResult.hit) return bgResult.data;
@@ -306,8 +297,6 @@
    * @param {string} accountNum - Brokerage account number whose cache entries to clear.
    * @returns {Promise<void>}
    */
-  // Invalidates both priceList and projected caches for the given account.
-  // Called on account switch and force-recalc to ensure stale data is not used.
   function invalidateAccountCache(accountNum) {
     return Promise.all([
       invalidateCache(`${CACHE_KEYS.PRICELIST}${accountNum}`),
@@ -315,6 +304,7 @@
     ]);
   }
 
+  // --- Orders hash ---
   /**
    * Builds a stable string key from an array of order objects for use as a cache key.
    * Includes all fields that affect the margin calculation result so that any change
@@ -325,7 +315,6 @@
    *   orderQty: number, price: number}>} orders - Trade orders from `TradeDetector.buildOrders`.
    * @returns {string} Cache key suffix for the projected-margin cache.
    */
-  // --- Orders hash ---
   function hashOrders(orders) {
     return orders
       .map(o => `${o.orderSymbol}|${o.orderType}|${o.orderAction}|${o.orderQty}|${o.price}`)
@@ -333,6 +322,7 @@
       .join(';;');
   }
 
+  // --- Helpers ---
   /**
    * Shows a typed API error in the margin panel, sets the badge, and updates the
    * stored status.  Detects session-expiry from `err.type` and:
@@ -343,12 +333,6 @@
    * @param {Error & {type?: string}} err - Typed error from MarginAPI or PositionsAPI.
    * @param {string} fallbackMsg - Message to display if `err.message` is absent.
    */
-  // --- Helpers ---
-
-  // Shows an API error in the panel, setting the appropriate badge and status.
-  // Determines session-expiry vs generic error from err.type; falls back to fallbackMsg
-  // if err.message is absent. Mirrors the same logic in both error-handling paths in
-  // handleTradeReady, extracted here to avoid duplicating the three-step pattern.
   function showApiError(err, fallbackMsg) {
     const isSession = err?.type === FMC_CONSTANTS.ERROR_TYPES.SESSION_EXPIRED;
     const msg = isSession ? MSG_SESSION_EXPIRED : (err?.message || fallbackMsg);
@@ -366,8 +350,6 @@
    * @param {string} msg - Human-readable error message to display.
    * @param {boolean} canRetry - Whether to show the Retry button in the panel.
    */
-  // Ensures the panel is present then shows an error message.
-  // Use in contexts where the trade ticket is visible but the extension cannot calculate.
   function showErrorInPanel(msg, canRetry) {
     if (!MarginInjector.getPanel()) {
       if (!MarginInjector.inject()) {
@@ -379,6 +361,7 @@
     MarginInjector.showError(msg, canRetry);
   }
 
+  // --- Main handler ---
   /**
    * Main trade handler — orchestrates the full margin calculation flow for a
    * detected trade.  Runs the following pipeline:
@@ -397,7 +380,6 @@
    *   orderQty: number, price: number}>} orders - Trade orders from `TradeDetector.buildOrders`.
    * @returns {Promise<void>}
    */
-  // --- Main handler ---
   async function handleTradeReady(accountNum, orders) {
     if (!settings.enabled) return;
 
