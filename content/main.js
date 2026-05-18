@@ -8,7 +8,7 @@
   const BADGE_COLOR_WARNING = FMC_CONSTANTS.BADGE_COLORS.WARNING;
   const BG_MESSAGE_TIMEOUT_MS = FMC_CONSTANTS.BG_MESSAGE_TIMEOUT_MS;
 
-  const CACHE_KEY = FMC_CONSTANTS.CACHE_KEY_PREFIX;
+  const CACHE_KEYS = FMC_CONSTANTS.CACHE_KEY_PREFIX;
 
   const STORAGE_KEY_SETTINGS = FMC_CONSTANTS.STORAGE_KEY_SETTINGS;
   const STORAGE_KEY_STATUS = FMC_CONSTANTS.STORAGE_KEY_STATUS;
@@ -214,7 +214,7 @@
       }
 
       // Fetch priceList from portfolio API (cached)
-      const priceListKey = `${CACHE_KEY.PRICELIST}${accountNum}`;
+      const priceListKey = `${CACHE_KEYS.PRICELIST}${accountNum}`;
       let priceList = await getCached(priceListKey);
       if (!priceList) {
         log('Fetching positions for', accountNum);
@@ -247,7 +247,7 @@
       }
 
       // Fetch projected margin (cached by orders hash)
-      const projectedKey = `${CACHE_KEY.PROJECTED}${accountNum}:${hashOrders(orders)}`;
+      const projectedKey = `${CACHE_KEYS.PROJECTED}${accountNum}:${hashOrders(orders)}`;
       let projectedData = await getCached(projectedKey);
       if (!projectedData) {
         log('Fetching projected margin for', orders);
@@ -320,8 +320,8 @@
             lastResult = null;
             if (lastAccountNum) {
               await Promise.all([
-                invalidateCache(`${CACHE_KEY.PRICELIST}${lastAccountNum}`),
-                invalidateCache(`${CACHE_KEY.PROJECTED}${lastAccountNum}`)
+                invalidateCache(`${CACHE_KEYS.PRICELIST}${lastAccountNum}`),
+                invalidateCache(`${CACHE_KEYS.PROJECTED}${lastAccountNum}`)
               ]);
             }
             if (lastAccountNum && lastOrders) {
@@ -379,8 +379,8 @@
               // async but the fallback cache is cleared synchronously inside the function,
               // so the next getCached() call immediately sees a miss. Background cache
               // invalidation completes shortly after without needing to block here.
-              invalidateCache(`${CACHE_KEY.PRICELIST}${previousAccountNum}`);
-              invalidateCache(`${CACHE_KEY.PROJECTED}${previousAccountNum}`);
+              invalidateCache(`${CACHE_KEYS.PRICELIST}${previousAccountNum}`);
+              invalidateCache(`${CACHE_KEYS.PROJECTED}${previousAccountNum}`);
               lastResult = null;
             }
             previousAccountNum = event.accountNum;
