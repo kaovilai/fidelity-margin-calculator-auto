@@ -268,8 +268,7 @@ const TradeDetector = (() => {
       action,
       quantity,
       orderType,
-      limitPrice,
-      legs: [{ action, quantity }]
+      limitPrice
     };
   }
 
