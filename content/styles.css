@@ -212,6 +212,11 @@
   word-break: break-all;
 }
 
+.fmc-debug-log:focus {
+  outline: 2px solid var(--fmc-green);
+  outline-offset: 1px;
+}
+
 /* Attribution badge */
 .fmc-attribution {
   text-align: right;

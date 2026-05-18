@@ -140,7 +140,7 @@ const MarginInjector = (() => {
     retryBtnEl.style.display = 'none';
 
     // Debug log (hidden until toggled)
-    const debugLogDiv = mkEl('div', { className: 'fmc-debug-log', id: EL_ID.DEBUG_LOG, role: 'log', 'aria-label': 'Debug log' });
+    const debugLogDiv = mkEl('div', { className: 'fmc-debug-log', id: EL_ID.DEBUG_LOG, role: 'log', 'aria-label': 'Debug log', tabindex: '0' });
     debugLogDiv.style.display = 'none';
 
     const attribution = mkEl('div', { className: 'fmc-attribution' },
