@@ -304,7 +304,7 @@
     // Wire retry button
     MarginInjector.setRetryCallback(() => {
       if (lastAccountNum && lastOrders) {
-        handleTradeReady(lastAccountNum, lastOrders);
+        handleTradeReady(lastAccountNum, lastOrders).catch(err => log('Error in retry handler:', err));
       }
     });
 
@@ -372,6 +372,10 @@
                 accountNum: event.accountNum,
                 previousAccountNum
               });
+              // Fire-and-forget: tradeEventCallback is synchronous; invalidateCache is
+              // async but the fallback cache is cleared synchronously inside the function,
+              // so the next getCached() call immediately sees a miss. Background cache
+              // invalidation completes shortly after without needing to block here.
               invalidateCache(`${CACHE_KEY.PRICELIST}${previousAccountNum}`);
               invalidateCache(`${CACHE_KEY.PROJECTED}${previousAccountNum}`);
               lastResult = null;
