@@ -40,6 +40,9 @@
       "run_at": "document_idle"
     }
   ],
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'"
+  },
   "background": {
     "service_worker": "background.js"
   },
