@@ -171,9 +171,11 @@ importScripts('/lib/constants.js');
   chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name !== CLEANUP_ALARM) return;
     const now = Date.now();
+    let cleaned = 0;
     for (const [key, entry] of cache) {
-      if (now > entry.expires) cache.delete(key);
+      if (now > entry.expires) { cache.delete(key); cleaned++; }
     }
+    if (cleaned > 0) log(`Cache cleanup: removed ${cleaned} expired entries (${cache.size} remaining)`);
   });
 
   // Clean up tab tracking when tabs close
