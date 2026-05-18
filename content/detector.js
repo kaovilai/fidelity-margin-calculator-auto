@@ -489,7 +489,12 @@ const TradeDetector = (() => {
   // selectorId strips the leading '#' from a CSS ID selector (e.g. '#foo' -> 'foo').
   // Using a guard so a future refactor that drops the '#' prefix produces an obvious
   // error rather than silently matching nothing.
-  function selectorId(sel) { return sel.startsWith('#') ? sel.slice(1) : sel; }
+  function selectorId(sel) {
+    if (!sel.startsWith('#')) {
+      console.warn('[FMC-DET] selectorId: expected a CSS ID selector starting with "#", got:', sel);
+    }
+    return sel.startsWith('#') ? sel.slice(1) : sel;
+  }
   const OPT_LIMIT_ID = selectorId(DOM.OPT_LIMIT_PRICE);   // 'dest-limitPrice'
   const OPT_SYM_ID   = selectorId(DOM.OPT_SYMBOL);         // 'symbol_search'
   const EQ_SYM_ID    = selectorId(DOM.EQ_SYMBOL);          // 'eq-ticket-dest-symbol'
