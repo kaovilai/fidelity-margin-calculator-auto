@@ -492,8 +492,9 @@ const TradeDetector = (() => {
   function selectorId(sel) {
     if (!sel.startsWith('#')) {
       warn('selectorId: expected a CSS ID selector starting with "#", got:', sel);
+      return sel;
     }
-    return sel.startsWith('#') ? sel.slice(1) : sel;
+    return sel.slice(1);
   }
   const OPT_LIMIT_ID = selectorId(DOM.OPT_LIMIT_PRICE);   // 'dest-limitPrice'
   const OPT_SYM_ID   = selectorId(DOM.OPT_SYMBOL);         // 'symbol_search'
