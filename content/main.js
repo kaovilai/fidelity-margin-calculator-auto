@@ -16,7 +16,13 @@
   const MSG = FMC_CONSTANTS.MESSAGE_TYPES;
   const MSG_SESSION_EXPIRED = 'Session expired. Please refresh the page.';
 
-  // Clamp debounceMs to a safe minimum to prevent runaway polling
+  /**
+   * Clamps a debounce delay to at least `FMC_CONSTANTS.MIN_DEBOUNCE_MS`.
+   * Rejects non-number and non-finite values (e.g. from corrupted storage) and
+   * replaces them with the safe minimum so the observer never polls unboundedly.
+   * @param {*} ms - Candidate debounce delay in milliseconds.
+   * @returns {number} A finite number ≥ MIN_DEBOUNCE_MS.
+   */
   function clampDebounceMs(ms) {
     if (typeof ms !== 'number' || !Number.isFinite(ms) || ms < FMC_CONSTANTS.MIN_DEBOUNCE_MS) {
       return FMC_CONSTANTS.MIN_DEBOUNCE_MS;
@@ -35,6 +41,12 @@
   // Set by startHeartbeat() when the ticket opens, cleared by stopHeartbeat() when it closes.
   let heartbeatTimer = null;
 
+  /**
+   * Starts the background service-worker heartbeat if not already running.
+   * Sends a HEARTBEAT message every `HEARTBEAT_INTERVAL_MS` to prevent the MV3
+   * service worker from being terminated while a trade ticket is open.
+   * No-op if the heartbeat is already running.
+   */
   function startHeartbeat() {
     if (heartbeatTimer) return; // already running
     heartbeatTimer = setInterval(() => {
@@ -42,6 +54,10 @@
     }, FMC_CONSTANTS.HEARTBEAT_INTERVAL_MS);
   }
 
+  /**
+   * Stops the background service-worker heartbeat.
+   * No-op if the heartbeat is not currently running.
+   */
   function stopHeartbeat() {
     if (!heartbeatTimer) return;
     clearInterval(heartbeatTimer);
@@ -63,8 +79,11 @@
   let fallbackCache = new Map();
   const FALLBACK_CACHE_MAX = FMC_CONSTANTS.CONTENT_FALLBACK_CACHE_MAX;
 
-  // Remove expired entries from fallbackCache to prevent memory growth over long sessions.
-  // Also evicts oldest entry if the cache exceeds FALLBACK_CACHE_MAX entries.
+  /**
+   * Removes expired entries from the in-memory fallback cache and evicts the
+   * earliest-expiring entry when the cache exceeds `FALLBACK_CACHE_MAX` entries.
+   * Called on every read and write to bound memory growth during long sessions.
+   */
   function cleanFallbackCache() {
     const now = Date.now();
     for (const [key, entry] of fallbackCache) {
@@ -82,6 +101,13 @@
 
   const log = makeLogFn(LOG_PREFIX, console.log);
 
+  /**
+   * Loads user settings from `chrome.storage.sync` and applies them to the
+   * module-level `settings` object.  Falls back to `DEFAULT_SETTINGS` when storage
+   * is unavailable or returns an invalid value.  Always clamps `debounceMs` and
+   * applies `debitWarningThreshold` to the injector.
+   * @returns {Promise<void>}
+   */
   // --- Settings ---
   async function loadSettings() {
     if (!chrome.storage?.sync) {
@@ -103,6 +129,13 @@
     MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
   }
 
+  /**
+   * Writes a status snapshot to `chrome.storage.local` so the popup can display
+   * the current extension state without an active message channel to the content script.
+   * @param {string} state - One of `FMC_CONSTANTS.STATUS_STATE` values.
+   * @param {Object} [extra] - Additional fields merged into the status object
+   *   (e.g. `{ lastError: 'Session expired' }`).
+   */
   // --- Status reporting ---
   function reportStatus(state, extra) {
     if (!chrome.storage?.local) return;
@@ -117,10 +150,23 @@
     chrome.storage.local.set({ [STORAGE_KEY_STATUS]: status }).catch(() => {});
   }
 
+  /**
+   * Sends a `SET_BADGE` message to the background service worker to update the
+   * extension action badge text and color.  Pass `text: ''` to clear the badge.
+   * Fire-and-forget — errors are silently ignored by the background handler.
+   * @param {string} text - Badge text (empty string clears the badge).
+   * @param {string|null} color - Badge background color hex string, or `null` to use the default.
+   */
   function setBadge(text, color) {
     sendToBackground(MSG.SET_BADGE, { text, color });
   }
 
+  /**
+   * Records a retryable API failure (NETWORK_ERROR or API_ERROR) and opens the
+   * circuit breaker once `FAILURE_THRESHOLD` consecutive failures are reached.
+   * Session-expiry and CLIENT_ERROR are permanent states — callers must check
+   * `err.type` and only call this for retryable error types.
+   */
   // --- Circuit breaker ---
   // Records a retryable failure (NETWORK_ERROR or API_ERROR).  Opens the circuit
   // once the threshold is reached, blocking further API calls until the cool-down
@@ -134,12 +180,24 @@
     }
   }
 
+  /**
+   * Records a successful API call, closing the circuit breaker and resetting the
+   * consecutive failure counter so the circuit does not re-open until the threshold
+   * is reached again from scratch.
+   */
   // Records a successful API call, closing the circuit and resetting the failure count.
   function recordApiSuccess() {
     consecutiveFailures = 0;
     circuitOpenUntil = 0;
   }
 
+  /**
+   * Returns `true` when the circuit breaker is open and API calls should be skipped.
+   * After `OPEN_DURATION_MS` elapses, clears the open timestamp to allow one probe
+   * request through.  If the probe succeeds, `recordApiSuccess()` closes the circuit;
+   * if it fails, `recordApiFailure()` reopens it for another `OPEN_DURATION_MS`.
+   * @returns {boolean}
+   */
   // Returns true when the circuit is open and the API call should be skipped.
   // After OPEN_DURATION_MS elapses, clears circuitOpenUntil to allow one probe
   // request through.  If the probe succeeds, recordApiSuccess() closes the circuit;
@@ -151,6 +209,16 @@
     return false;
   }
 
+  /**
+   * Sends a typed message to the background service worker and returns a Promise
+   * that resolves with the response.  Never rejects — on timeout, extension context
+   * invalidation, or send error the Promise resolves with `{ fallback: true }` so
+   * callers can transparently fall back to the in-memory cache.
+   * @param {string} type - One of `FMC_CONSTANTS.MESSAGE_TYPES`.
+   * @param {Object} payload - Message payload forwarded to the background handler.
+   * @param {number} [timeoutMs] - Max ms to wait for a response before falling back.
+   * @returns {Promise<Object>} Background response, or `{ fallback: true }` on failure.
+   */
   // --- Background message helper ---
   function sendToBackground(type, payload, timeoutMs = BG_MESSAGE_TIMEOUT_MS) {
     return new Promise((resolve) => {
@@ -180,6 +248,13 @@
     });
   }
 
+  /**
+   * Retrieves a cached value by key, preferring the background service worker's
+   * shared cache and falling back to the in-memory `fallbackCache` when the
+   * background is unavailable or the message times out.
+   * @param {string} key - Cache key.
+   * @returns {Promise<*>} Cached value, or `null` if not found or expired.
+   */
   // --- Cache ---
   async function getCached(key) {
     const bgResult = await sendToBackground(MSG.CACHE_GET, { key });
@@ -196,12 +271,26 @@
     return null;
   }
 
+  /**
+   * Stores a value in both the in-memory fallback cache and the background
+   * service worker's shared cache with the given TTL.
+   * @param {string} key - Cache key.
+   * @param {*} data - Value to store.
+   * @param {number} ttl - Time-to-live in milliseconds.
+   * @returns {Promise<void>}
+   */
   async function setCache(key, data, ttl) {
     fallbackCache.set(key, { data, expires: Date.now() + ttl });
     cleanFallbackCache();
     await sendToBackground(MSG.CACHE_SET, { key, data, ttl });
   }
 
+  /**
+   * Removes all entries whose keys start with `pattern` from both the in-memory
+   * fallback cache and the background service worker's shared cache.
+   * @param {string} pattern - Key prefix to match (e.g. `'pricelist:X12345'`).
+   * @returns {Promise<void>}
+   */
   async function invalidateCache(pattern) {
     for (const key of fallbackCache.keys()) {
       if (key.startsWith(pattern)) fallbackCache.delete(key);
@@ -209,6 +298,13 @@
     await sendToBackground(MSG.CACHE_INVALIDATE, { pattern });
   }
 
+  /**
+   * Invalidates both the priceList and projected-margin caches for the given account.
+   * Called on account switch (to prevent stale positions from the old account being used)
+   * and on force-recalculate (to ensure fresh data is fetched).
+   * @param {string} accountNum - Brokerage account number whose cache entries to clear.
+   * @returns {Promise<void>}
+   */
   // Invalidates both priceList and projected caches for the given account.
   // Called on account switch and force-recalc to ensure stale data is not used.
   function invalidateAccountCache(accountNum) {
@@ -218,6 +314,16 @@
     ]);
   }
 
+  /**
+   * Builds a stable string key from an array of order objects for use as a cache key.
+   * Includes all fields that affect the margin calculation result so that any change
+   * to the order parameters produces a distinct key and forces a fresh API call.
+   * The orders are sorted so that multi-leg strategies with the same legs in any
+   * order share the same cache entry.
+   * @param {Array<{orderSymbol: string, orderType: string, orderAction: string,
+   *   orderQty: number, price: number}>} orders - Trade orders from `TradeDetector.buildOrders`.
+   * @returns {string} Cache key suffix for the projected-margin cache.
+   */
   // --- Orders hash ---
   function hashOrders(orders) {
     return orders
@@ -226,6 +332,16 @@
       .join(';;');
   }
 
+  /**
+   * Shows a typed API error in the margin panel, sets the badge, and updates the
+   * stored status.  Detects session-expiry from `err.type` and:
+   *   - shows the localized session-expired message
+   *   - sets `sessionExpired = true` to suppress further API calls until retry
+   *   - uses the WARNING badge color instead of ERROR for session expiry
+   * Falls back to `fallbackMsg` when `err.message` is absent.
+   * @param {Error & {type?: string}} err - Typed error from MarginAPI or PositionsAPI.
+   * @param {string} fallbackMsg - Message to display if `err.message` is absent.
+   */
   // --- Helpers ---
 
   // Shows an API error in the panel, setting the appropriate badge and status.
@@ -241,6 +357,14 @@
     reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: msg });
   }
 
+  /**
+   * Ensures the margin panel is injected into the DOM and then calls
+   * `MarginInjector.showError`.  Re-injects the panel if Angular removed it
+   * during preceding async operations.  Logs a warning and returns without
+   * displaying if the injection target is not found.
+   * @param {string} msg - Human-readable error message to display.
+   * @param {boolean} canRetry - Whether to show the Retry button in the panel.
+   */
   // Ensures the panel is present then shows an error message.
   // Use in contexts where the trade ticket is visible but the extension cannot calculate.
   function showErrorInPanel(msg, canRetry) {
@@ -254,6 +378,24 @@
     MarginInjector.showError(msg, canRetry);
   }
 
+  /**
+   * Main trade handler — orchestrates the full margin calculation flow for a
+   * detected trade.  Runs the following pipeline:
+   * 1. Guards: enabled check, session-expiry check, circuit-breaker check.
+   * 2. Rate limiting: content-side token bucket + background advisory rate limit.
+   * 3. PriceList fetch: retrieves current positions from the portfolio API (cached 5 min).
+   * 4. Margin calc fetch: calls the margin calculator API with the order + priceList
+   *    (cached 30 s per unique order combination).
+   * 5. Impact computation: computes margin credit/debit, delta from last result, and
+   *    buying power, then updates the injected panel.
+   *
+   * Each async step checks `requestId === currentRequest` to discard stale results
+   * if a newer trade event arrived while this call was awaiting.
+   * @param {string} accountNum - Brokerage account number.
+   * @param {Array<{orderSymbol: string, orderType: string, orderAction: string,
+   *   orderQty: number, price: number}>} orders - Trade orders from `TradeDetector.buildOrders`.
+   * @returns {Promise<void>}
+   */
   // --- Main handler ---
   async function handleTradeReady(accountNum, orders) {
     if (!settings.enabled) return;
