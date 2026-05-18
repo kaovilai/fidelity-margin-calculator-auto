@@ -70,16 +70,16 @@ const MarginInjector = (() => {
     // Guard against NaN/Infinity — can occur if API returns an unexpected type.
     if (!Number.isFinite(value)) return '--';
     const abs = Math.abs(value);
-    const formatted = '$' + abs.toLocaleString('en-US', {
+    const formatted = `$${abs.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
-    });
-    return value < 0 ? '-' + formatted : formatted;
+    })}`;
+    return value < 0 ? `-${formatted}` : formatted;
   }
 
   function formatDelta(value) {
     const formatted = formatCurrency(value);
-    return value > 0 ? '+' + formatted : formatted;
+    return value > 0 ? `+${formatted}` : formatted;
   }
 
   // Returns STATUS.CREDIT | STATUS.WARNING | STATUS.DEBIT based on projected value.
