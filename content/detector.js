@@ -392,6 +392,19 @@ const TradeDetector = (() => {
   let inputListener = null;
   let throttleTimer = null;
 
+  /**
+   * Starts observing the Fidelity trade ticket DOM for changes and calls callback
+   * with a typed event whenever the form state changes.
+   * Re-calling replaces the previous observer and cancels any pending debounce.
+   * @param {(event: {
+   *   type: 'ready' | 'incomplete' | 'closed',
+   *   context?: string,
+   *   accountNum?: string | null,
+   *   orders?: Array<{orderSymbol: string, orderType: string, orderAction: string,
+   *     orderQty: number, price: number}>
+   * }) => void} callback - Called when form state changes. 'ready' includes accountNum and orders.
+   * @param {number} [debounceMs=500] - Delay in ms before firing 'ready' after last detected change.
+   */
   function observe(callback, debounceMs = 500) {
     if (observer) observer.disconnect();
     // Cancel any pending debounce from a previous observe() call so the old
