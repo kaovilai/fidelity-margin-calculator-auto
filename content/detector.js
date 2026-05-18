@@ -614,7 +614,7 @@ const TradeDetector = (() => {
     }
 
     if (!document.body) {
-      console.warn('[FMC-DET] observe() called before document.body is available — no observers set up');
+      warn('observe() called before document.body is available — no observers set up');
       return;
     }
 
