@@ -48,6 +48,7 @@ This is a Chrome extension (Manifest V3) that automatically calculates margin re
 
 1. **One PR at a time.** Search for all open PRs with the `improvement` or `automation` label. If one exists, do NOT create another PR. Instead, create an issue describing the next improvement you'd make, and stop.
 2. Search for all open issues with the `improvement` label. Do NOT create duplicates. If an existing issue already covers the same topic, call `noop` instead.
+4. **Check closed issues and PRs** for prior rejections. Search closed issues/PRs for the same topic or file. If a closed issue/PR explains why a change was rejected or reverted, **skip that topic** — do not re-propose the same change.
 3. Check open PRs (even without the label) to understand in-flight changes. Do not touch files or topics already covered by an open PR.
 
 ## Step 2: Scan for Improvements
