@@ -31,6 +31,11 @@
   let apiCallCount = 0;
   let settings = { ...FMC_CONSTANTS.DEFAULT_SETTINGS };
 
+  // Circuit breaker state — tracks consecutive retryable failures and blocks
+  // API calls for OPEN_DURATION_MS after FAILURE_THRESHOLD failures in a row.
+  let consecutiveFailures = 0;
+  let circuitOpenUntil = 0; // epoch ms; 0 means circuit is closed
+
   // Fallback in-memory cache when background is unavailable
   let fallbackCache = new Map();
   const FALLBACK_CACHE_MAX = FMC_CONSTANTS.CONTENT_FALLBACK_CACHE_MAX;
@@ -91,6 +96,36 @@
 
   function setBadge(text, color) {
     sendToBackground(MSG.SET_BADGE, { text, color });
+  }
+
+  // --- Circuit breaker ---
+  // Records a retryable failure (NETWORK_ERROR or API_ERROR).  Opens the circuit
+  // once the threshold is reached, blocking further API calls until the cool-down
+  // expires.  Session-expiry and client errors are permanent states, not transient
+  // failures, so callers must check err.type before calling this.
+  function recordApiFailure() {
+    consecutiveFailures++;
+    if (consecutiveFailures >= FMC_CONSTANTS.CIRCUIT_BREAKER.FAILURE_THRESHOLD && !circuitOpenUntil) {
+      circuitOpenUntil = Date.now() + FMC_CONSTANTS.CIRCUIT_BREAKER.OPEN_DURATION_MS;
+      log(`Circuit breaker opened after ${consecutiveFailures} consecutive failures — API calls paused for ${FMC_CONSTANTS.CIRCUIT_BREAKER.OPEN_DURATION_MS / 1000}s`);
+    }
+  }
+
+  // Records a successful API call, closing the circuit and resetting the failure count.
+  function recordApiSuccess() {
+    consecutiveFailures = 0;
+    circuitOpenUntil = 0;
+  }
+
+  // Returns true when the circuit is open and the API call should be skipped.
+  // After OPEN_DURATION_MS elapses, clears circuitOpenUntil to allow one probe
+  // request through.  If the probe succeeds, recordApiSuccess() closes the circuit;
+  // if it fails, recordApiFailure() will reopen it for another OPEN_DURATION_MS.
+  function isCircuitOpen() {
+    if (!circuitOpenUntil) return false;
+    if (Date.now() < circuitOpenUntil) return true;
+    circuitOpenUntil = 0; // cool-down elapsed — allow probe request
+    return false;
   }
 
   // --- Background message helper ---
@@ -212,6 +247,18 @@
         return;
       }
     }
+
+    // Guard against a runaway-failure loop: if the circuit is open (too many recent
+    // retryable failures), show an error immediately without making another API call.
+    // After OPEN_DURATION_MS the circuit allows one probe request through automatically.
+    if (isCircuitOpen()) {
+      const remainingSec = Math.ceil((circuitOpenUntil - Date.now()) / 1000);
+      MarginInjector.showError(`API temporarily unavailable — pausing ${remainingSec}s`, true);
+      setBadge('!', BADGE_COLOR_WARNING);
+      reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: `Circuit breaker open — ${remainingSec}s remaining` });
+      return;
+    }
+
     MarginInjector.showLoading();
 
     try {
@@ -247,6 +294,10 @@
           priceList = await PositionsAPI.fetchPriceList(accountNum);
         } catch (posErr) {
           if (requestId !== currentRequest) return;
+          if (posErr?.type === FMC_CONSTANTS.ERROR_TYPES.NETWORK_ERROR ||
+              posErr?.type === FMC_CONSTANTS.ERROR_TYPES.API_ERROR) {
+            recordApiFailure();
+          }
           showApiError(posErr, 'Unable to fetch account positions.');
           return;
         }
@@ -308,6 +359,7 @@
       // Cache this result as baseline for next trade change
       lastResult = projectedData;
 
+      recordApiSuccess();
       log('Impact:', impact);
       MarginInjector.updatePanel(impact);
       reportStatus(FMC_CONSTANTS.STATUS_STATE.ACTIVE);
@@ -316,6 +368,10 @@
     } catch (err) {
       if (requestId !== currentRequest) return;
       log('Error:', err);
+      if (err?.type === FMC_CONSTANTS.ERROR_TYPES.NETWORK_ERROR ||
+          err?.type === FMC_CONSTANTS.ERROR_TYPES.API_ERROR) {
+        recordApiFailure();
+      }
       // All typed errors from MarginAPI and PositionsAPI set err.type correctly.
       // showApiError relies on err.type to distinguish session-expiry from other errors.
       showApiError(err, 'Unable to calculate margin impact.');
@@ -327,6 +383,11 @@
 
     // Wire retry button
     MarginInjector.setRetryCallback(() => {
+      // Clear the circuit open state so the user's manual retry acts as a probe
+      // request without waiting for the full cool-down period to elapse.
+      // consecutiveFailures is intentionally NOT reset: if this probe also fails,
+      // recordApiFailure() will immediately reopen the circuit for another OPEN_DURATION_MS.
+      circuitOpenUntil = 0;
       if (lastAccountNum && lastOrders) {
         handleTradeReady(lastAccountNum, lastOrders).catch(err => log('Error in retry handler:', err));
       }
@@ -344,6 +405,10 @@
           (async () => {
             fallbackCache.clear();
             lastResult = null;
+            // Also fully reset the circuit breaker so a manual recalculate is never
+            // silently blocked — the user is explicitly requesting a fresh attempt.
+            consecutiveFailures = 0;
+            circuitOpenUntil = 0;
             if (lastAccountNum) {
               await invalidateAccountCache(lastAccountNum);
             }
