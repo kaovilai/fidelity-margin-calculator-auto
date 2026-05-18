@@ -255,5 +255,9 @@
     --fmc-input-border: #555555;
     --fmc-debug-bg:     #0d0d0d;
     --fmc-debug-text:   #d4d4d4;
+    /* Lightened for WCAG AA contrast (≥4.5:1) against #1e1e1e dark background.
+       Original #368727 ≈ 4.4:1 and #c81818 ≈ 2.8:1 both fail the minimum ratio. */
+    --fmc-green:        #55b04a;
+    --fmc-red:          #f05555;
   }
 }
