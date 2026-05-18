@@ -282,7 +282,7 @@ const MarginInjector = (() => {
     if (!panel) return;
     panel.setAttribute('data-fmc-state', PANEL_STATE.LOADING);
     panel.setAttribute('aria-busy', 'true');
-    const { body, loading, error } = getPanelElements(panel);
+    const { body, loading, error, debugLog: debugLogEl, debugBtn: debugBtnEl } = getPanelElements(panel);
     if (body) {
       body.style.display = '';
       body.style.opacity = '0.5';
@@ -293,6 +293,17 @@ const MarginInjector = (() => {
     }
     if (loading) loading.style.display = 'flex';
     if (error) error.style.display = 'none';
+    // Hide the debug log if it was left open from a previous error state.
+    // The Debug button lives inside the error row which is now hidden, so the user
+    // would have no way to close the log without this reset.
+    if (debugLogEl && debugLogEl.style.display !== 'none') {
+      debugLogEl.style.display = 'none';
+      if (debugBtnEl) {
+        debugBtnEl.textContent = 'Debug';
+        debugBtnEl.setAttribute('aria-label', 'Show debug log');
+        debugBtnEl.setAttribute('aria-expanded', 'false');
+      }
+    }
   }
 
   /**
@@ -341,10 +352,21 @@ const MarginInjector = (() => {
     panel.setAttribute('data-fmc-state', PANEL_STATE.RESULT);
     panel.setAttribute('aria-busy', 'false');
 
-    const { body, loading, error, creditDebit: creditDebitEl, creditDebitLabel, delta: deltaEl, cash: cashEl, buyingPower: bpEl } = getPanelElements(panel);
+    const { body, loading, error, creditDebit: creditDebitEl, creditDebitLabel, delta: deltaEl, cash: cashEl, buyingPower: bpEl, debugLog: debugLogEl, debugBtn: debugBtnEl } = getPanelElements(panel);
     if (body) { body.style.display = ''; body.style.opacity = ''; body.removeAttribute('aria-hidden'); }
     if (loading) loading.style.display = 'none';
     if (error) error.style.display = 'none';
+    // Hide the debug log if it was left open from a previous error state — same
+    // rationale as in showLoading(): the Debug button is inside the hidden error row,
+    // so the user would have no way to close it after results are displayed.
+    if (debugLogEl && debugLogEl.style.display !== 'none') {
+      debugLogEl.style.display = 'none';
+      if (debugBtnEl) {
+        debugBtnEl.textContent = 'Debug';
+        debugBtnEl.setAttribute('aria-label', 'Show debug log');
+        debugBtnEl.setAttribute('aria-expanded', 'false');
+      }
+    }
 
     const status = getStatus(impact.projectedCreditDebit);
     panel.setAttribute('data-fmc-status', status);
