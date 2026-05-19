@@ -144,7 +144,7 @@ importScripts('/lib/constants.js');
 
   // --- Message router ---
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (!msg || !msg._fmc) return false;
+    if (!msg?._fmc) return false;
     // Only process messages from this extension's own scripts (content scripts, popup).
     // Rejects messages from other extensions or external sources that somehow spoof _fmc.
     if (sender.id !== chrome.runtime.id) return false;
@@ -244,7 +244,11 @@ importScripts('/lib/constants.js');
     // Removing it while another tab holds the same account would reset the rate limit
     // window for that account, allowing back-to-back calls from the surviving tab.
     if (accountNum) {
-      if (![...tabAccounts.values()].includes(accountNum)) apiCallLog.delete(accountNum);
+      let accountStillTracked = false;
+      for (const v of tabAccounts.values()) {
+        if (v === accountNum) { accountStillTracked = true; break; }
+      }
+      if (!accountStillTracked) apiCallLog.delete(accountNum);
     }
   });
 
