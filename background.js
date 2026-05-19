@@ -209,4 +209,15 @@ importScripts('/lib/constants.js');
     // rather than potentially-outdated status from the previous version.
     chrome.storage.local.remove(FMC_CONSTANTS.STORAGE_KEY_STATUS).catch(() => {});
   });
+
+  // Clear stale status on every browser startup. Status is persisted to chrome.storage.local
+  // so the popup can read it, but after a browser restart the content scripts have not yet
+  // run and any stored state (e.g. "Active", last error) is stale. Clearing it here ensures
+  // the popup shows "Not connected" on first open after a restart rather than a misleading
+  // leftover state from a previous session.
+  chrome.runtime.onStartup.addListener(() => {
+    log('Browser started — clearing stale session status');
+    chrome.action?.setBadgeText({ text: '' })?.catch(() => {});
+    chrome.storage.local.remove(FMC_CONSTANTS.STORAGE_KEY_STATUS).catch(() => {});
+  });
 })();
