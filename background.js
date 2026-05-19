@@ -15,11 +15,16 @@ importScripts('/lib/constants.js');
   const apiCallLog = new Map(); // accountNum -> lastCallTimestamp
   const tabAccounts = new Map(); // tabId -> accountNum
 
+  /** @param {...*} args - Values forwarded to console.log after the module prefix. */
   function log(...args) {
     console.log(LOG_PREFIX, ...args);
   }
 
   // --- LRU eviction ---
+  /**
+   * Evicts the least-recently-accessed cache entry when the cache exceeds MAX_CACHE_ENTRIES.
+   * Called after every `cacheSet` to enforce the entry cap.
+   */
   function evictIfNeeded() {
     if (cache.size <= MAX_CACHE_ENTRIES) return;
     // Find least recently accessed
@@ -35,6 +40,16 @@ importScripts('/lib/constants.js');
   }
 
   // --- Cache operations ---
+  /**
+   * Retrieves a cached value by key.
+   * Returns a miss (`hit: false`) if the entry is absent or expired (expired entries are deleted).
+   * Updates `lastAccess` on hits to support LRU eviction in `evictIfNeeded`.
+   * @param {string} key - Cache key.
+   * @returns {{ hit: boolean, data: *, age: number }}
+   *   `hit`: whether a live entry was found.
+   *   `data`: the cached value, or `null` on a miss.
+   *   `age`: elapsed ms since the entry was stored, or `0` on a miss.
+   */
   function cacheGet(key) {
     const entry = cache.get(key);
     if (!entry) return { hit: false, data: null, age: 0 };
@@ -47,6 +62,15 @@ importScripts('/lib/constants.js');
     return { hit: true, data: entry.data, age: now - (entry.expires - entry.ttl) };
   }
 
+  /**
+   * Stores a value in the cache under `key` with the given TTL.
+   * Triggers LRU eviction if the cache exceeds MAX_CACHE_ENTRIES after insertion.
+   * Falls back to `DEFAULT_CACHE_TTL` when `ttl` is missing, non-finite, or ≤ 0.
+   * @param {string} key - Cache key.
+   * @param {*} data - Value to store.
+   * @param {number} [ttl] - Time-to-live in milliseconds.
+   * @returns {{ ok: true }}
+   */
   function cacheSet(key, data, ttl) {
     const now = Date.now();
     const safeTtl = (typeof ttl === 'number' && Number.isFinite(ttl) && ttl > 0) ? ttl : DEFAULT_CACHE_TTL;
@@ -55,6 +79,14 @@ importScripts('/lib/constants.js');
     return { ok: true };
   }
 
+  /**
+   * Removes cache entries matching an exact key and/or a key-prefix pattern.
+   * Both `key` and `pattern` are optional; at least one should be provided.
+   * @param {string|null|undefined} key - Exact cache key to delete, or falsy to skip exact match.
+   * @param {string|null|undefined} pattern - Key prefix; all entries whose key starts with this
+   *   string are deleted. Falsy skips prefix matching.
+   * @returns {{ ok: true, cleared: number }} Number of entries removed.
+   */
   function cacheInvalidate(key, pattern) {
     let cleared = 0;
     if (key) {
@@ -72,6 +104,13 @@ importScripts('/lib/constants.js');
   }
 
   // --- Rate limiting ---
+  /**
+   * Checks whether an API call for `accountNum` is within the minimum inter-call interval.
+   * If allowed, records `Date.now()` as the last call time for this account.
+   * @param {string} accountNum - Brokerage account number.
+   * @returns {{ rateLimited: false } | { rateLimited: true, retryAfter: number }}
+   *   `retryAfter`: ms to wait before retrying when rate-limited.
+   */
   function checkRateLimit(accountNum) {
     const last = apiCallLog.get(accountNum) ?? 0;
     const elapsed = Date.now() - last;
@@ -83,6 +122,14 @@ importScripts('/lib/constants.js');
   }
 
   // --- Account tracking ---
+  /**
+   * Records the new account for a tab and invalidates the cache for the previous account.
+   * Called when the content script detects the user switched to a different account.
+   * @param {number|null} tabId - Chrome tab ID of the content script sender.
+   * @param {string} accountNum - Newly active account number.
+   * @param {string|null|undefined} previousAccountNum - Previously active account, or falsy if unknown.
+   * @returns {{ ok: boolean, error?: string }}
+   */
   function handleAccountChanged(tabId, accountNum, previousAccountNum) {
     if (tabId == null) return { ok: false, error: 'no tab context' };
     tabAccounts.set(tabId, accountNum);
