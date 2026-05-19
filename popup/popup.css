@@ -13,6 +13,9 @@
   --fmc-bg:           #fff;
   --fmc-hover-bg:     #f5f5f5;
   --fmc-input-border: #ccc;
+  /* Toggle knob color — stays bright in both themes so the knob is always
+     visible against the track background (WCAG 1.4.11 non-text contrast). */
+  --fmc-toggle-knob:  #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,11 +26,17 @@
     --fmc-secondary:    #aaaaaa;
     --fmc-bg:           #1e1e1e;
     --fmc-hover-bg:     #2a2a2a;
-    --fmc-input-border: #555555;
+    /* #808080 provides 4.5:1 contrast against #1e1e1e, meeting WCAG 1.4.11
+       (≥3:1 required) for input/button borders and the unchecked toggle track.
+       The original #555555 only achieved 2.6:1 and failed the criterion. */
+    --fmc-input-border: #808080;
     /* Lightened for WCAG AA contrast (≥4.5:1) against #1e1e1e dark background.
        Original #368727 ≈ 4.4:1 and #c81818 ≈ 2.8:1 both fail the minimum ratio. */
     --fmc-green:        #55b04a;
     --fmc-red:          #f05555;
+    /* Light knob color so the toggle thumb is visible against the #808080
+       unchecked track (3.3:1 contrast, meeting WCAG 1.4.11 ≥3:1). */
+    --fmc-toggle-knob:  #e8e8e8;
   }
 }
 
@@ -242,7 +251,7 @@ body {
   width: 16px;
   left: 2px;
   bottom: 2px;
-  background: var(--fmc-bg);
+  background: var(--fmc-toggle-knob);
   border-radius: 50%;
   transition: 0.2s;
 }

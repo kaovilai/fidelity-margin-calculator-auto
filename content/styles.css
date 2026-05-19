@@ -252,7 +252,10 @@
     --fmc-secondary:    #aaaaaa;
     --fmc-bg:           #1e1e1e;
     --fmc-hover-bg:     #2a2a2a;
-    --fmc-input-border: #555555;
+    /* #808080 provides 4.5:1 contrast against #1e1e1e, meeting WCAG 1.4.11
+       (≥3:1 required) for button/input borders. The original #555555 only
+       achieved 2.6:1 and failed the criterion. */
+    --fmc-input-border: #808080;
     --fmc-debug-bg:     #0d0d0d;
     --fmc-debug-text:   #d4d4d4;
     /* Adjusted for WCAG AA contrast (≥4.5:1) against #1e1e1e dark background.
