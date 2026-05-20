@@ -695,6 +695,12 @@
           // to re-authenticate and then returned to open a new trade ticket.
           sessionExpired = false;
           MarginInjector.remove();
+          // Clear any error badge and mark the extension as inactive in the popup.
+          // Without these calls the badge persists its last error state (e.g. '!') and
+          // the popup continues to show "Active" or "Error" even though no trade ticket
+          // is open and no further calculations will run until a new one is opened.
+          setBadge('', null);
+          reportStatus(FMC_CONSTANTS.STATUS_STATE.INACTIVE);
           break;
 
         case 'incomplete':
@@ -702,6 +708,10 @@
           // was dispatched before the form became incomplete cannot overwrite the
           // panel with results that no longer match the current form state.
           currentRequest++;
+          // Clear any error badge — the form has changed and the previous error is
+          // no longer relevant to the current (incomplete) input state. The badge
+          // will be re-set when the next 'ready' cycle completes or fails.
+          setBadge('', null);
           break;
       }
     }
