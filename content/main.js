@@ -15,6 +15,8 @@
   const STORAGE_KEY_STATUS = FMC_CONSTANTS.STORAGE_KEY_STATUS;
   const MSG = FMC_CONSTANTS.MESSAGE_TYPES;
   const MSG_SESSION_EXPIRED = 'Session expired. Please refresh the page.';
+  const MSG_NO_POSITIONS = 'No positions found for this account. Margin calculation requires at least one existing position.';
+  const MSG_NO_POSITIONS_SHORT = 'No positions found';
 
   /**
    * Clamps a debounce delay to at least `FMC_CONSTANTS.MIN_DEBOUNCE_MS`.
@@ -378,6 +380,17 @@
     MarginInjector.showError(msg, canRetry);
   }
 
+  /**
+   * Shows the "no positions" error in the panel, sets the error badge, and updates the
+   * stored status. Extracted to avoid duplicating the same three-step sequence in both
+   * the cached-empty-priceList path and the freshly-fetched-empty-priceList path.
+   */
+  function showNoPositionsError() {
+    showErrorInPanel(MSG_NO_POSITIONS, false);
+    setBadge('!', BADGE_COLOR_ERROR);
+    reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: MSG_NO_POSITIONS_SHORT });
+  }
+
   // --- Main handler ---
   /**
    * Main trade handler — orchestrates the full margin calculation flow for a
@@ -465,12 +478,7 @@
       // call with priceList=[], which returns a 400 error instead of the user-friendly
       // "No positions found" message that was shown on the first call.
       if (Array.isArray(priceList) && priceList.length === 0) {
-        showErrorInPanel(
-          'No positions found for this account. Margin calculation requires at least one existing position.',
-          false
-        );
-        setBadge('!', BADGE_COLOR_ERROR);
-        reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: 'No positions found' });
+        showNoPositionsError();
         return;
       }
       if (!priceList) {
@@ -499,12 +507,7 @@
           // Use showErrorInPanel rather than MarginInjector.showError directly — Angular
           // may have removed the panel during the preceding awaits, and showErrorInPanel
           // re-injects it if needed so the error is never silently lost.
-          showErrorInPanel(
-            'No positions found for this account. Margin calculation requires at least one existing position.',
-            false
-          );
-          setBadge('!', BADGE_COLOR_ERROR);
-          reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: 'No positions found' });
+          showNoPositionsError();
           return;
         }
       }
