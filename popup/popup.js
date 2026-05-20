@@ -199,9 +199,13 @@
     const body = document.getElementById('settings-body');
     const arrow = document.getElementById('settings-arrow');
     if (toggle && body && arrow) {
-      const applyToggle = () => {
-        const isCollapsed = body.classList.toggle('collapsed');
-        arrow.classList.toggle('collapsed');
+      const COLLAPSE_KEY = 'fmc_settings_collapsed';
+
+      // Apply collapsed or expanded state to all relevant elements.
+      // isCollapsed: true = settings section hidden, false = settings section shown.
+      const applyCollapsedState = (isCollapsed) => {
+        body.classList.toggle('collapsed', isCollapsed);
+        arrow.classList.toggle('collapsed', isCollapsed);
         toggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
         // Use setAttribute('aria-hidden','true') / removeAttribute rather than
         // setAttribute('aria-hidden','false') or toggleAttribute('aria-hidden', bool):
@@ -223,7 +227,21 @@
           body.removeAttribute('inert');
         }
       };
-      toggle.addEventListener('click', applyToggle);
+
+      // Restore persisted collapse state so the section opens in the same state
+      // the user last left it, rather than always defaulting to expanded.
+      if (chrome.storage?.local) {
+        chrome.storage.local.get(COLLAPSE_KEY).then(result => {
+          if (result[COLLAPSE_KEY] === true) applyCollapsedState(true);
+        }).catch(() => {});
+      }
+
+      toggle.addEventListener('click', () => {
+        const isCollapsed = !body.classList.contains('collapsed');
+        applyCollapsedState(isCollapsed);
+        // Persist the new state so the next popup open restores it.
+        chrome.storage?.local?.set({ [COLLAPSE_KEY]: isCollapsed }).catch(() => {});
+      });
     }
 
     // Force recalculate
