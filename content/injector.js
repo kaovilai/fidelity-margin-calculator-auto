@@ -197,8 +197,12 @@ const MarginInjector = (() => {
     // retryBtnEl is hidden by default; shown/hidden via style.display by showError() based on canRetry.
     retryBtnEl.style.display = 'none';
 
-    // Debug log (hidden until toggled)
-    const debugLogDiv = mkEl('div', { className: 'fmc-debug-log', id: EL_ID.DEBUG_LOG, role: 'log', 'aria-label': 'Debug log', tabindex: '0' });
+    // Debug log (hidden until toggled).
+    // aria-live="off" overrides the implicit aria-live="polite" from role="log":
+    // the log content is replaced wholesale via textContent on every update (not appended),
+    // so polite announcements would read out the entire log on each API call. Since this is
+    // a developer tool opened on demand, users read it manually — no live announcements needed.
+    const debugLogDiv = mkEl('div', { className: 'fmc-debug-log', id: EL_ID.DEBUG_LOG, role: 'log', 'aria-live': 'off', 'aria-label': 'Debug log', tabindex: '0' });
     debugLogDiv.style.display = 'none';
 
     const attribution = mkEl('div', { className: 'fmc-attribution', 'aria-hidden': 'true' },
