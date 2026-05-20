@@ -20,6 +20,32 @@ importScripts('/lib/constants.js');
     console.log(LOG_PREFIX, ...args);
   }
 
+  /**
+   * Sets or clears the extension action badge.
+   * If `text` is non-empty, also updates the badge background color.
+   * @param {Object} badgeTarget - `{ tabId }` to scope the badge to a tab, or `{}` for global.
+   * @param {string} [text] - Badge text; empty string or falsy clears the badge.
+   * @param {string} [color] - Badge background color hex string; defaults to BADGE_COLORS.ERROR.
+   */
+  function setBadge(badgeTarget, text, color) {
+    if (text) {
+      chrome.action?.setBadgeText({ text, ...badgeTarget })?.catch(() => {});
+      chrome.action?.setBadgeBackgroundColor({ color: color || FMC_CONSTANTS.BADGE_COLORS.ERROR, ...badgeTarget })?.catch(() => {});
+    } else {
+      chrome.action?.setBadgeText({ text: '', ...badgeTarget })?.catch(() => {});
+    }
+  }
+
+  /**
+   * Clears any stale badge text and status storage entry left over from a previous session.
+   * Called from both onInstalled and onStartup since both events represent a clean-slate scenario
+   * where old persisted state (error badges, last-active status) should not be shown to the user.
+   */
+  function clearStartupState() {
+    chrome.action?.setBadgeText({ text: '' })?.catch(() => {});
+    chrome.storage.local.remove(FMC_CONSTANTS.STORAGE_KEY_STATUS).catch(() => {});
+  }
+
   // --- LRU eviction ---
   /**
    * Evicts the least-recently-accessed cache entry when the cache exceeds MAX_CACHE_ENTRIES.
@@ -186,12 +212,7 @@ importScripts('/lib/constants.js');
         // Use != null (loose) to guard against both undefined (popup sender, no tab) and
         // null, consistent with the tabId == null guard used in handleAccountChanged.
         const badgeTarget = tabId != null ? { tabId } : {};
-        if (msg.payload?.text) {
-          chrome.action?.setBadgeText({ text: msg.payload.text, ...badgeTarget })?.catch(() => {});
-          chrome.action?.setBadgeBackgroundColor({ color: msg.payload.color || FMC_CONSTANTS.BADGE_COLORS.ERROR, ...badgeTarget })?.catch(() => {});
-        } else {
-          chrome.action?.setBadgeText({ text: '', ...badgeTarget })?.catch(() => {});
-        }
+        setBadge(badgeTarget, msg.payload?.text, msg.payload?.color);
         sendResponse({ ok: true });
         return false;
       }
@@ -255,11 +276,7 @@ importScripts('/lib/constants.js');
 
   chrome.runtime.onInstalled.addListener(() => {
     log('Extension installed/updated');
-    // Clear any stale badge text left over from the previous version
-    chrome.action?.setBadgeText({ text: '' })?.catch(() => {});
-    // Clear stale status data so the popup shows a clean state after updates
-    // rather than potentially-outdated status from the previous version.
-    chrome.storage.local.remove(FMC_CONSTANTS.STORAGE_KEY_STATUS).catch(() => {});
+    clearStartupState();
   });
 
   // Clear stale status on every browser startup. Status is persisted to chrome.storage.local
@@ -269,7 +286,6 @@ importScripts('/lib/constants.js');
   // leftover state from a previous session.
   chrome.runtime.onStartup.addListener(() => {
     log('Browser started — clearing stale session status');
-    chrome.action?.setBadgeText({ text: '' })?.catch(() => {});
-    chrome.storage.local.remove(FMC_CONSTANTS.STORAGE_KEY_STATUS).catch(() => {});
+    clearStartupState();
   });
 })();
