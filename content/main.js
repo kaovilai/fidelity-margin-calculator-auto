@@ -162,6 +162,11 @@
     sendToBackground(MSG.SET_BADGE, { text, color });
   }
 
+  // Set built once from the shared constant so isRetryableError uses the same
+  // membership definition as margin-api.js and positions.js rather than an
+  // independent inline check that could silently drift.
+  const RETRYABLE_ERROR_TYPES = new Set(FMC_CONSTANTS.RETRYABLE_ERROR_TYPES);
+
   // --- Circuit breaker ---
 
   /**
@@ -172,8 +177,7 @@
    * @returns {boolean}
    */
   function isRetryableError(err) {
-    return err?.type === FMC_CONSTANTS.ERROR_TYPES.NETWORK_ERROR ||
-           err?.type === FMC_CONSTANTS.ERROR_TYPES.API_ERROR;
+    return RETRYABLE_ERROR_TYPES.has(err?.type);
   }
 
   /**
