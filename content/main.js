@@ -460,6 +460,19 @@
       const priceListKey = `${CACHE_KEYS.PRICELIST}${accountNum}`;
       let priceList = await getCached(priceListKey);
       if (requestId !== currentRequest) return;
+      // Guard: a cached empty priceList (from a previous call that found no positions) is
+      // truthy (![] is false), so without this check we'd fall through to the margin API
+      // call with priceList=[], which returns a 400 error instead of the user-friendly
+      // "No positions found" message that was shown on the first call.
+      if (Array.isArray(priceList) && priceList.length === 0) {
+        showErrorInPanel(
+          'No positions found for this account. Margin calculation requires at least one existing position.',
+          false
+        );
+        setBadge('!', BADGE_COLOR_ERROR);
+        reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: 'No positions found' });
+        return;
+      }
       if (!priceList) {
         log('Fetching positions for', accountNum);
         try {
