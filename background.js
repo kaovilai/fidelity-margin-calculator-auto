@@ -21,6 +21,11 @@ importScripts('/lib/constants.js');
     console.log(LOG_PREFIX, ...args);
   }
 
+  /** @param {...*} args - Values forwarded to console.warn after the module prefix. */
+  function warn(...args) {
+    console.warn(LOG_PREFIX, ...args);
+  }
+
   /**
    * Sets or clears the extension action badge.
    * If `text` is non-empty, also updates the badge background color.
@@ -178,54 +183,62 @@ importScripts('/lib/constants.js');
 
     const tabId = sender.tab?.id;
 
-    switch (msg.type) {
-      case FMC_CONSTANTS.MESSAGE_TYPES.CACHE_GET:
-        if (!msg.payload?.key) { sendResponse({ hit: false, data: null, age: 0 }); return false; }
-        sendResponse(cacheGet(msg.payload.key));
-        return false;
+    try {
+      switch (msg.type) {
+        case FMC_CONSTANTS.MESSAGE_TYPES.CACHE_GET:
+          if (!msg.payload?.key) { sendResponse({ hit: false, data: null, age: 0 }); return false; }
+          sendResponse(cacheGet(msg.payload.key));
+          return false;
 
-      case FMC_CONSTANTS.MESSAGE_TYPES.CACHE_SET:
-        if (!msg.payload?.key) { sendResponse({ ok: false }); return false; }
-        sendResponse(cacheSet(msg.payload.key, msg.payload.data, msg.payload.ttl ?? DEFAULT_CACHE_TTL));
-        return false;
+        case FMC_CONSTANTS.MESSAGE_TYPES.CACHE_SET:
+          if (!msg.payload?.key) { sendResponse({ ok: false }); return false; }
+          sendResponse(cacheSet(msg.payload.key, msg.payload.data, msg.payload.ttl ?? DEFAULT_CACHE_TTL));
+          return false;
 
-      case FMC_CONSTANTS.MESSAGE_TYPES.CACHE_INVALIDATE:
-        if (!msg.payload) { sendResponse({ ok: false, cleared: 0 }); return false; }
-        sendResponse(cacheInvalidate(msg.payload.key, msg.payload.pattern));
-        return false;
+        case FMC_CONSTANTS.MESSAGE_TYPES.CACHE_INVALIDATE:
+          if (!msg.payload) { sendResponse({ ok: false, cleared: 0 }); return false; }
+          sendResponse(cacheInvalidate(msg.payload.key, msg.payload.pattern));
+          return false;
 
-      case FMC_CONSTANTS.MESSAGE_TYPES.ACCOUNT_CHANGED:
-        if (!msg.payload?.accountNum) { sendResponse({ ok: false, error: 'missing accountNum' }); return false; }
-        sendResponse(handleAccountChanged(tabId, msg.payload.accountNum, msg.payload.previousAccountNum));
-        return false;
+        case FMC_CONSTANTS.MESSAGE_TYPES.ACCOUNT_CHANGED:
+          if (!msg.payload?.accountNum) { sendResponse({ ok: false, error: 'missing accountNum' }); return false; }
+          sendResponse(handleAccountChanged(tabId, msg.payload.accountNum, msg.payload.previousAccountNum));
+          return false;
 
-      case FMC_CONSTANTS.MESSAGE_TYPES.LOG_API_CALL:
-        if (!msg.payload?.accountNum) { sendResponse({ rateLimited: false }); return false; }
-        // Track this tab→account mapping so the apiCallLog entry can be cleaned up
-        // when the tab closes. Without this, the first trade on a tab never sends
-        // ACCOUNT_CHANGED (previousAccountNum is null), so tabAccounts never gets set
-        // and the apiCallLog entry for that account leaks until the service worker restarts.
-        if (tabId != null) tabAccounts.set(tabId, msg.payload.accountNum);
-        sendResponse(checkRateLimit(msg.payload.accountNum));
-        return false;
+        case FMC_CONSTANTS.MESSAGE_TYPES.LOG_API_CALL:
+          if (!msg.payload?.accountNum) { sendResponse({ rateLimited: false }); return false; }
+          // Track this tab→account mapping so the apiCallLog entry can be cleaned up
+          // when the tab closes. Without this, the first trade on a tab never sends
+          // ACCOUNT_CHANGED (previousAccountNum is null), so tabAccounts never gets set
+          // and the apiCallLog entry for that account leaks until the service worker restarts.
+          if (tabId != null) tabAccounts.set(tabId, msg.payload.accountNum);
+          sendResponse(checkRateLimit(msg.payload.accountNum));
+          return false;
 
-      case FMC_CONSTANTS.MESSAGE_TYPES.SET_BADGE: {
-        // Use != null (loose) to guard against both undefined (popup sender, no tab) and
-        // null, consistent with the tabId == null guard used in handleAccountChanged.
-        const badgeTarget = tabId != null ? { tabId } : {};
-        setBadge(badgeTarget, msg.payload?.text, msg.payload?.color);
-        sendResponse({ ok: true });
-        return false;
+        case FMC_CONSTANTS.MESSAGE_TYPES.SET_BADGE: {
+          // Use != null (loose) to guard against both undefined (popup sender, no tab) and
+          // null, consistent with the tabId == null guard used in handleAccountChanged.
+          const badgeTarget = tabId != null ? { tabId } : {};
+          setBadge(badgeTarget, msg.payload?.text, msg.payload?.color);
+          sendResponse({ ok: true });
+          return false;
+        }
+
+        case FMC_CONSTANTS.MESSAGE_TYPES.HEARTBEAT:
+          sendResponse({ ok: true });
+          return false;
+
+        default:
+          warn('Unhandled _fmc message type:', msg.type);
+          sendResponse({ error: 'unknown message type' });
+          return false;
       }
-
-      case FMC_CONSTANTS.MESSAGE_TYPES.HEARTBEAT:
-        sendResponse({ ok: true });
-        return false;
-
-      default:
-        log('Unhandled _fmc message type:', msg.type);
-        sendResponse({ error: 'unknown message type' });
-        return false;
+    } catch (e) {
+      // Catch unexpected errors so sendResponse is always called — prevents the message
+      // port from staying open until the content script's 3-second timeout elapses.
+      warn('Unexpected error in message handler:', e?.message ?? e);
+      sendResponse({ error: e?.message ?? 'internal error', fallback: true });
+      return false;
     }
   });
 
@@ -244,9 +257,9 @@ importScripts('/lib/constants.js');
       const existing = await chrome.alarms.get(CLEANUP_ALARM);
       if (!existing) await chrome.alarms.create(CLEANUP_ALARM, { periodInMinutes: CLEANUP_INTERVAL_MINUTES });
     } catch (err) {
-      log('Could not query cleanup alarm, attempting creation anyway:', err.message);
+      warn('Could not query cleanup alarm, attempting creation anyway:', err.message);
       chrome.alarms.create(CLEANUP_ALARM, { periodInMinutes: CLEANUP_INTERVAL_MINUTES })
-        .catch(e => log('Could not create cleanup alarm:', e.message));
+        .catch(e => warn('Could not create cleanup alarm:', e.message));
     }
   })();
   chrome.alarms.onAlarm.addListener((alarm) => {
