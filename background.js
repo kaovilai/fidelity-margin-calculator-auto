@@ -243,12 +243,8 @@ importScripts('/lib/constants.js');
     // Only remove from apiCallLog if no other open tab is still using this account.
     // Removing it while another tab holds the same account would reset the rate limit
     // window for that account, allowing back-to-back calls from the surviving tab.
-    if (accountNum) {
-      let accountStillTracked = false;
-      for (const v of tabAccounts.values()) {
-        if (v === accountNum) { accountStillTracked = true; break; }
-      }
-      if (!accountStillTracked) apiCallLog.delete(accountNum);
+    if (accountNum && ![...tabAccounts.values()].includes(accountNum)) {
+      apiCallLog.delete(accountNum);
     }
   });
 

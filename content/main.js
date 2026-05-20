@@ -698,9 +698,7 @@
     TradeDetector.observe(tradeEventCallback, settings.debounceMs);
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => init().catch(err => log('Fatal init error:', err)));
-  } else {
-    init().catch(err => log('Fatal init error:', err));
-  }
+  // run_at: "document_idle" guarantees DOMContentLoaded has fired before any content script
+  // runs, so document.readyState is always 'interactive' or 'complete' here — never 'loading'.
+  init().catch(err => log('Fatal init error:', err));
 })();
