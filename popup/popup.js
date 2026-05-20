@@ -126,11 +126,18 @@
     if (!enabledEl || !thresholdEl || !debounceEl) return;
     const threshold = parseInt(thresholdEl.value, 10);
     const debounce = parseInt(debounceEl.value, 10);
+    const clampedThreshold = Number.isFinite(threshold)
+      ? Math.min(FMC_CONSTANTS.MAX_WARNING_THRESHOLD, Math.max(0, threshold))
+      : DEFAULT_SETTINGS.debitWarningThreshold;
+    // Reflect the clamped value back to the input so the user sees what was saved.
+    // Without this, typing "999999" would be saved as 100000 (MAX_WARNING_THRESHOLD)
+    // but the input would still display "999999" — a silent inconsistency.
+    if (String(clampedThreshold) !== thresholdEl.value) {
+      thresholdEl.value = clampedThreshold;
+    }
     const settings = {
       enabled: enabledEl.checked,
-      debitWarningThreshold: Number.isFinite(threshold)
-        ? Math.min(FMC_CONSTANTS.MAX_WARNING_THRESHOLD, Math.max(0, threshold))
-        : DEFAULT_SETTINGS.debitWarningThreshold,
+      debitWarningThreshold: clampedThreshold,
       debounceMs: Number.isFinite(debounce) && debounce >= FMC_CONSTANTS.MIN_DEBOUNCE_MS ? debounce : DEFAULT_SETTINGS.debounceMs
     };
     chrome.storage.sync.set({ [STORAGE_KEY_SETTINGS]: settings }).catch((err) => {
