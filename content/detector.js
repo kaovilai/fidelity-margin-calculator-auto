@@ -1,5 +1,6 @@
 // TradeDetector — detects trade ticket presence and extracts trade parameters
 // Supports: options (single + multi-leg) and equity tickets, popup + dedicated page
+'use strict';
 const TradeDetector = (() => {
   const warn = makeWarnLog('[FMC-DET]');
 
