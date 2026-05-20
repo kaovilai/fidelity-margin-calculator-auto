@@ -748,6 +748,11 @@
           // no longer relevant to the current (incomplete) input state. The badge
           // will be re-set when the next 'ready' cycle completes or fails.
           setBadge('', null);
+          // If the panel is visible with stale results (or an error), transition it
+          // to loading state so the user is not misled by data that no longer reflects
+          // the current (incomplete) form state. showLoading() is idempotent — safe to
+          // call even if the panel is already loading.
+          if (MarginInjector.getPanel()) MarginInjector.showLoading();
           break;
       }
     }
