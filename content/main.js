@@ -101,7 +101,7 @@
     }
   }
 
-  const log = makeLogFn(LOG_PREFIX, console.log);
+  const log = makeDebugLog(LOG_PREFIX);
   const warn = makeWarnLog(LOG_PREFIX);
 
   // --- Settings ---
