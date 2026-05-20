@@ -108,7 +108,14 @@
       const s = { ...DEFAULT_SETTINGS, ...result[STORAGE_KEY_SETTINGS] };
       const { enabled: enabledEl, threshold: thresholdEl, debounce: debounceEl } = getSettingsEls();
       if (enabledEl) enabledEl.checked = s.enabled;
-      if (thresholdEl) thresholdEl.value = s.debitWarningThreshold;
+      if (thresholdEl) {
+        // Clamp before display so corrupted or manually-edited storage values are
+        // normalised to a valid range, consistent with the clamping in saveSettings().
+        const rawThreshold = Number(s.debitWarningThreshold);
+        thresholdEl.value = Number.isFinite(rawThreshold)
+          ? Math.min(FMC_CONSTANTS.MAX_WARNING_THRESHOLD, Math.max(0, rawThreshold))
+          : DEFAULT_SETTINGS.debitWarningThreshold;
+      }
       if (debounceEl) {
         debounceEl.value = String(s.debounceMs);
         // HTMLSelectElement.value silently stays empty if the value doesn't match
@@ -184,6 +191,12 @@
         }
       });
     }
+
+    // Sync the threshold input's max attribute from the constant so changing
+    // MAX_WARNING_THRESHOLD in constants.js is automatically reflected here
+    // without requiring a separate HTML edit that could drift out of sync.
+    const { threshold: thresholdConstraintEl } = getSettingsEls();
+    if (thresholdConstraintEl) thresholdConstraintEl.max = String(FMC_CONSTANTS.MAX_WARNING_THRESHOLD);
 
     // Load settings
     await loadSettings();
