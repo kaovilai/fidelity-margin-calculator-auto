@@ -198,7 +198,7 @@
   border: 1px solid var(--fmc-input-border);
   border-radius: 2px;
   background: var(--fmc-bg);
-  color: var(--fmc-secondary);
+  color: #6b6b6b; /* #999 fails WCAG AA (2.85:1); #6b6b6b passes (4.6:1 on white) */
   cursor: pointer;
   font-family: inherit;
 }
