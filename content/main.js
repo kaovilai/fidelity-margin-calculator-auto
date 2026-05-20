@@ -682,6 +682,11 @@
             // with stale results. Mirrors the same guard used in the 'incomplete' case.
             currentRequest++;
             showErrorInPanel('Could not detect account number — try refreshing the page.', false);
+            // Sync badge and popup status so the user sees the error reflected everywhere,
+            // not just in the injected panel. Mirrors the pattern used in handleTradeReady
+            // and showApiError where every error path updates all three surfaces.
+            setBadge('!', BADGE_COLOR_ERROR);
+            reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: 'Could not detect account number' });
             break;
           }
           if (event.orders?.length > 0) {
@@ -710,6 +715,10 @@
             // Inject the panel and show a meaningful error so the user isn't left wondering.
             warn('ready event with empty orders — trade form may be incomplete or in an unexpected format');
             showErrorInPanel('Could not parse trade details — verify the form is filled in correctly.', false);
+            // Sync badge and popup status so the error is visible in all three surfaces,
+            // consistent with handleTradeReady and showApiError error handling.
+            setBadge('!', BADGE_COLOR_ERROR);
+            reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: 'Could not parse trade details' });
           }
           break;
 
