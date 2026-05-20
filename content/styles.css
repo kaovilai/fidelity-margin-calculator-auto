@@ -16,6 +16,9 @@
   --fmc-input-border: #ccc;
   --fmc-debug-bg:   #1e1e1e;
   --fmc-debug-text: #d4d4d4;
+  /* Debug button default color: 4.6:1 contrast against #fff (passes WCAG AA small text).
+     Overridden in dark mode to a lighter value that passes against #1e1e1e. */
+  --fmc-debug-btn-color: #6b6b6b;
 
   margin-top: 4px;
   padding: 8px 12px;
@@ -198,7 +201,7 @@
   border: 1px solid var(--fmc-input-border);
   border-radius: 2px;
   background: var(--fmc-bg);
-  color: #6b6b6b; /* #999 fails WCAG AA (2.85:1); #6b6b6b passes (4.6:1 on white) */
+  color: var(--fmc-debug-btn-color);
   cursor: pointer;
   font-family: inherit;
 }
@@ -280,5 +283,17 @@
     --fmc-green:        #55b04a;
     --fmc-red:          #f05555;
     --fmc-yellow:       #d4a820;
+    /* #9a9a9a provides ~6:1 contrast against #1e1e1e (passes WCAG AA ≥4.5:1 for
+       small text). The light-mode value #6b6b6b only achieves ~3.7:1 against
+       #1e1e1e and would fail the criterion. */
+    --fmc-debug-btn-color: #9a9a9a;
+  }
+}
+
+@media print {
+  /* Hide the injected margin panel from printed output — it is only relevant
+     during interactive trading and adds noise to printed trade confirmations. */
+  .fmc-margin-panel {
+    display: none !important;
   }
 }
