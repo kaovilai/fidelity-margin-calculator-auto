@@ -193,7 +193,7 @@ const MarginInjector = (() => {
       retryBtnEl,
       debugBtnEl
     );
-    errorRow.style.display = 'none';
+    // retryBtnEl is hidden by default; shown/hidden via style.display by showError() based on canRetry.
     retryBtnEl.style.display = 'none';
 
     // Debug log (hidden until toggled)
@@ -338,17 +338,15 @@ const MarginInjector = (() => {
     if (!panel) return;
     panel.setAttribute('data-fmc-state', PANEL_STATE.LOADING);
     panel.setAttribute('aria-busy', 'true');
-    const { body, loading, error, debugLog: debugLogEl, debugBtn: debugBtnEl } = getPanelElements(panel);
+    // display/opacity of body, loading spinner, and error row are driven by
+    // data-fmc-state CSS rules — no inline style manipulation needed here.
+    const { body, debugLog: debugLogEl, debugBtn: debugBtnEl } = getPanelElements(panel);
     if (body) {
-      body.style.display = '';
-      body.style.opacity = '0.5';
       // Prevent stale aria-live values from being announced while new data loads.
       // aria-busy="true" on the panel suppresses announcements in most screen readers,
       // but aria-hidden here provides an additional safeguard for older AT.
       body.setAttribute('aria-hidden', 'true');
     }
-    if (loading) loading.style.display = 'flex';
-    if (error) error.style.display = 'none';
     // Hide the debug log if it was left open from a previous error state.
     hideDebugLog(debugLogEl, debugBtnEl);
   }
@@ -364,11 +362,11 @@ const MarginInjector = (() => {
     if (!panel) return;
     panel.setAttribute('data-fmc-state', PANEL_STATE.ERROR);
     panel.setAttribute('aria-busy', 'false');
-    const { body, loading, error, errorText, retryBtn } = getPanelElements(panel);
-    if (body) { body.style.display = 'none'; body.removeAttribute('aria-hidden'); }
-    if (loading) loading.style.display = 'none';
+    // display of body, loading spinner, and error row are driven by
+    // data-fmc-state CSS rules — no inline style manipulation needed here.
+    const { body, error, errorText, retryBtn } = getPanelElements(panel);
+    if (body) body.removeAttribute('aria-hidden');
     if (error) {
-      error.style.display = 'flex';
       if (errorText) errorText.textContent = msg || 'Unknown error';
       if (retryBtn) retryBtn.style.display = canRetry ? 'inline-block' : 'none';
     }
@@ -399,10 +397,10 @@ const MarginInjector = (() => {
     panel.setAttribute('data-fmc-state', PANEL_STATE.RESULT);
     panel.setAttribute('aria-busy', 'false');
 
-    const { body, loading, error, creditDebit: creditDebitEl, creditDebitLabel, delta: deltaEl, cash: cashEl, buyingPower: bpEl, debugLog: debugLogEl, debugBtn: debugBtnEl } = getPanelElements(panel);
-    if (body) { body.style.display = ''; body.style.opacity = ''; body.removeAttribute('aria-hidden'); }
-    if (loading) loading.style.display = 'none';
-    if (error) error.style.display = 'none';
+    // display/opacity of body, loading spinner, and error row are driven by
+    // data-fmc-state CSS rules — no inline style manipulation needed here.
+    const { body, creditDebit: creditDebitEl, creditDebitLabel, delta: deltaEl, cash: cashEl, buyingPower: bpEl, debugLog: debugLogEl, debugBtn: debugBtnEl } = getPanelElements(panel);
+    if (body) body.removeAttribute('aria-hidden');
     // Hide the debug log if it was left open from a previous error state — same
     // rationale as in showLoading(): the Debug button is inside the hidden error row,
     // so the user would have no way to close it after results are displayed.
