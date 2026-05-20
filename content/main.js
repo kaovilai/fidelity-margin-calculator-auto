@@ -564,6 +564,13 @@
     }
   }
 
+  /**
+   * Initializes the content script: loads settings, wires the retry and force-recalc
+   * handlers, registers storage-change and message listeners, and starts the
+   * `TradeDetector` observer.
+   * Called once at `document_idle` time; any fatal error is caught and logged.
+   * @returns {Promise<void>}
+   */
   async function init() {
     log('Initializing...');
 
@@ -659,6 +666,14 @@
     await loadSettings();
     let previousAccountNum = null;
 
+    /**
+     * Handles trade ticket events from `TradeDetector.observe`.
+     * Routes 'ready', 'incomplete', and 'closed' events to the appropriate
+     * handler: starts/stops the heartbeat, detects account switches,
+     * triggers `handleTradeReady`, or tears down the panel and badge.
+     * @param {{ type: 'ready'|'incomplete'|'closed', context?: string,
+     *   accountNum?: string|null, orders?: Array<Object> }} event - Typed event from TradeDetector.
+     */
     function tradeEventCallback(event) {
       switch (event.type) {
         case 'ready':

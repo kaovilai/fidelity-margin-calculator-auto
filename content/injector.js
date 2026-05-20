@@ -48,10 +48,14 @@ const MarginInjector = (() => {
   // the panel is removed from the document and no other references remain.
   const panelRefs = new WeakMap();
 
-  // Hides the debug log element and resets the debug button to its default state.
-  // Called from showLoading() and updatePanel() when transitioning away from the error
-  // state — the Debug button lives inside the hidden error row, so the user would have
-  // no way to close the log without this reset.
+  /**
+   * Hides the debug log element and resets the debug button to its default state.
+   * Called from `showLoading()` and `updatePanel()` when transitioning away from the error
+   * state — the Debug button lives inside the hidden error row, so the user would have
+   * no way to close the log without this reset.
+   * @param {HTMLElement|null} logEl - The debug log container element.
+   * @param {HTMLElement|null} btnEl - The debug toggle button element.
+   */
   function hideDebugLog(logEl, btnEl) {
     if (!logEl || logEl.style.display === 'none') return;
     logEl.style.display = 'none';
@@ -66,6 +70,13 @@ const MarginInjector = (() => {
   let debugLog = []; // ring buffer of debug entries
   const MAX_LOG = FMC_CONSTANTS.MAX_DEBUG_LOG_ENTRIES;
 
+  /**
+   * Formats a dollar amount for display in the panel.
+   * Negative values are prefixed with `-$`; positive with `$`.
+   * Non-finite values (NaN, Infinity) return `'--'`.
+   * @param {number} value - Dollar amount to format.
+   * @returns {string} Formatted currency string (e.g. `'$1,234.56'`, `'-$50.00'`, `'--'`).
+   */
   function formatCurrency(value) {
     // Guard against NaN/Infinity — can occur if API returns an unexpected type.
     if (!Number.isFinite(value)) return '--';
@@ -77,21 +88,38 @@ const MarginInjector = (() => {
     return value < 0 ? `-${formatted}` : formatted;
   }
 
+  /**
+   * Formats a delta (change) value for display, prefixing positive values with `+`.
+   * Delegates to `formatCurrency` for the numeric formatting.
+   * @param {number} value - Delta amount in dollars.
+   * @returns {string} Formatted delta string (e.g. `'+$50.00'`, `'-$20.00'`).
+   */
   function formatDelta(value) {
     const formatted = formatCurrency(value);
     return value > 0 ? `+${formatted}` : formatted;
   }
 
-  // Returns STATUS.CREDIT | STATUS.WARNING | STATUS.DEBIT based on projected value.
-  // Guards against NaN/non-finite: both are treated as DEBIT (conservative safe default).
+  /**
+   * Determines the display status for a projected margin credit/debit value.
+   * Non-finite values (NaN, Infinity) are treated as DEBIT — the conservative safe default.
+   * @param {number} projectedCreditDebit - Projected margin credit (positive) or debit (negative).
+   * @returns {'credit'|'warning'|'debit'} One of the `STATUS` constants.
+   */
   function getStatus(projectedCreditDebit) {
     if (!Number.isFinite(projectedCreditDebit) || projectedCreditDebit < 0) return STATUS.DEBIT;
     if (projectedCreditDebit <= warningThreshold) return STATUS.WARNING;
     return STATUS.CREDIT;
   }
 
-  // Build a DOM element without innerHTML to avoid CSP violations and accidental XSS.
-  // attrs: plain attribute key/value pairs; className and textContent set their properties directly.
+  /**
+   * Creates a DOM element without using `innerHTML`, avoiding CSP violations and XSS.
+   * The special keys `'className'` and `'textContent'` set their respective properties
+   * directly; all other keys are set as attributes via `setAttribute`.
+   * @param {string} tag - HTML tag name (e.g. `'div'`, `'span'`, `'button'`).
+   * @param {Object} [attrs={}] - Attribute key/value pairs (plus `className`/`textContent`).
+   * @param {...(HTMLElement|null|undefined)} children - Child elements to append (nullish skipped).
+   * @returns {HTMLElement} The newly created element.
+   */
   function mkEl(tag, attrs = {}, ...children) {
     const node = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs)) {
@@ -105,6 +133,13 @@ const MarginInjector = (() => {
     return node;
   }
 
+  /**
+   * Creates the margin panel DOM element with all sub-elements and wires up the
+   * retry and debug button event handlers.
+   * Caches inner element references in `panelRefs` to avoid repeated querySelector calls
+   * in `showLoading`, `showError`, `updatePanel`, and `addDebugLog`.
+   * @returns {HTMLDivElement} The fully constructed, detached panel element.
+   */
   function createPanel() {
     const panel = document.createElement('div');
     panel.id = PANEL_ID;
@@ -225,6 +260,13 @@ const MarginInjector = (() => {
     return document.getElementById(PANEL_ID);
   }
 
+  /**
+   * Retrieves the cached inner element references for a panel.
+   * Returns a minimal fallback object with null properties when the panel is not in `panelRefs`
+   * (e.g. a panel created outside the normal `createPanel` path).
+   * @param {HTMLElement} panel - The margin panel element to look up.
+   * @returns {Object} Cached element references, or `{ body: null, loading: null, error: null }`.
+   */
   function getPanelElements(panel) {
     return panelRefs.get(panel) ?? { body: null, loading: null, error: null };
   }
