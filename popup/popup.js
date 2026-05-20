@@ -212,7 +212,7 @@
     const body = document.getElementById('settings-body');
     const arrow = document.getElementById('settings-arrow');
     if (toggle && body && arrow) {
-      const COLLAPSE_KEY = 'fmc_settings_collapsed';
+      const COLLAPSE_KEY = FMC_CONSTANTS.STORAGE_KEY_SETTINGS_COLLAPSED;
 
       // Apply collapsed or expanded state to all relevant elements.
       // isCollapsed: true = settings section hidden, false = settings section shown.
