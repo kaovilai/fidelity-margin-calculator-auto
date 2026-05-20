@@ -141,10 +141,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* The spinner is purely decorative — the loading text is always visible alongside it.
+     Hide it in reduced-motion mode rather than showing a static partial circle. */
   .fmc-spinner {
-    animation: none;
-    border-top-color: var(--fmc-green);
-    opacity: 0.7;
+    display: none;
   }
 }
 
