@@ -243,7 +243,7 @@
       }, timeoutMs);
       try {
         chrome.runtime.sendMessage(
-          { type, payload, _fmc: true, _ts: Date.now() },
+          { type, payload, _fmc: true },
           (response) => {
             clearTimeout(timer);
             if (chrome.runtime.lastError) {
