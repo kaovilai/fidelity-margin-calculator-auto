@@ -437,14 +437,12 @@
 
     try {
       // Rate limiter (content-side token bucket)
-      if (RateLimiter != null) {
-        const rl = await RateLimiter.acquire();
-        if (rl.cancelled) return;
-        // A new request may have arrived while waiting for a token
-        if (requestId !== currentRequest) return;
-        // Extension may have been disabled during the wait
-        if (!settings.enabled) return;
-      }
+      const rl = await RateLimiter.acquire();
+      if (rl.cancelled) return;
+      // A new request may have arrived while waiting for a token
+      if (requestId !== currentRequest) return;
+      // Extension may have been disabled during the wait
+      if (!settings.enabled) return;
 
       // Also check background rate limit (advisory)
       const rateCheck = await sendToBackground(MSG.LOG_API_CALL, { accountNum });
