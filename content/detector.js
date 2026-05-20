@@ -737,6 +737,14 @@ const TradeDetector = (() => {
         // will be triggered by the next mutation to handle the new state.
         const currentCtx = detectPageContext();
         if (currentCtx !== ctx) return;
+        // Re-check completeness after the debounce window. The form may have become
+        // incomplete during the 50ms throttle+debounce gap (e.g. the user deleted a
+        // field value just before the debounce fired). If we skip this guard,
+        // buildOrders() returns [] and tradeEventCallback shows a confusing
+        // "Could not parse trade details" error even though the user is mid-edit.
+        // Skipping silently here is safe: the pending MutationObserver throttle will
+        // fire check() within OBSERVER_THROTTLE_MS and emit the 'incomplete' event.
+        if (!hasRequiredFields(currentCtx)) return;
         try {
           callback({
             type: 'ready',
