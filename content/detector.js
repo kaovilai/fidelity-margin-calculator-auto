@@ -78,6 +78,13 @@ const TradeDetector = (() => {
     Object.entries(ACTION_MAP).map(([k, v]) => [k.toLowerCase(), v])
   );
 
+  // DOM-value guard constants — generous upper bounds that catch structural DOM changes
+  // (e.g. Fidelity redesigns their trade ticket) without rejecting any real-world values.
+  // A value exceeding these indicates garbled DOM text, not a genuine user input.
+  const MAX_ACCOUNT_NUM_LEN = 30;  // Fidelity account numbers are typically ≤9 chars
+  const MAX_SYMBOL_LEN = 15;       // Ticker symbols are typically ≤5 chars (NYSE/NASDAQ)
+  const MAX_ORDER_QTY = 999999;    // Fidelity option limit is 999 contracts; equity ~100k shares
+
   // --- Shared parsing helpers ---
 
   /**
@@ -208,7 +215,14 @@ const TradeDetector = (() => {
     // Options ticket (popup or dedicated) — same selector
     const el = document.querySelector(DOM.OPT_ACCOUNT);
     if (!el) return null;
-    return el.textContent.trim().replace(/[()]/g, '').trim();
+    const acct = el.textContent.trim().replace(/[()]/g, '').trim();
+    // Guard against garbled DOM values (e.g. Fidelity page redesign) — a string that
+    // exceeds a generous upper bound is not a real account number and would corrupt cache keys.
+    if (acct.length > MAX_ACCOUNT_NUM_LEN) {
+      warn(`Account number unexpectedly long (${acct.length} chars) — Fidelity DOM may have changed`);
+      return null;
+    }
+    return acct || null;
   }
 
   /**
@@ -225,7 +239,12 @@ const TradeDetector = (() => {
     // Match the LAST parenthetical to avoid picking up account type labels
     // that Fidelity sometimes prefixes, e.g. "Individual (non-retirement) (X12345678)".
     const matches = [...el.textContent.matchAll(/\(([^)]+)\)/g)];
-    return matches.at(-1)?.[1].trim() ?? null;
+    const acct = matches.at(-1)?.[1].trim() ?? null;
+    if (acct && acct.length > MAX_ACCOUNT_NUM_LEN) {
+      warn(`Equity account number unexpectedly long (${acct.length} chars) — Fidelity DOM may have changed`);
+      return null;
+    }
+    return acct;
   }
 
   // --- Call/Put for leg N ---
@@ -446,12 +465,23 @@ const TradeDetector = (() => {
     const orderPrice = resolveOrderPrice(params.limitPrice, params.orderType, params.symbol);
     if (orderPrice === null) return [];
 
+    // Guard against a garbled underlying symbol from the DOM
+    if (params.symbol.length > MAX_SYMBOL_LEN) {
+      warn(`Options underlying symbol unexpectedly long (${params.symbol.length} chars) — Fidelity DOM may have changed`);
+      return [];
+    }
+
     return params.legs.flatMap(leg => {
       const orderAction = mapAction(leg.action);
       // Use Math.round(parsePriceInput(...)) to strip thousands-separator commas before
       // parsing — consistent with how prices are parsed and with isLegComplete.
       const qty = Math.round(parsePriceInput(leg.quantity));
       if (!orderAction || !Number.isFinite(qty) || qty <= 0) return [];
+      // Guard against unrealistically large quantities that indicate garbled DOM text.
+      if (qty > MAX_ORDER_QTY) {
+        warn(`Options order quantity unrealistically large (${qty}) — Fidelity DOM may have changed`);
+        return [];
+      }
 
       const orderSymbol = buildOrderSymbol(
         params.symbol, leg.expiration, leg.callPut, leg.strike
@@ -477,6 +507,15 @@ const TradeDetector = (() => {
     // rounding is more accurate and consistent with what the user entered.
     const qty = Math.round(parsePriceInput(params.quantity));
     if (!orderAction || !Number.isFinite(qty) || qty <= 0 || !params.symbol) return [];
+    // Guard against a garbled symbol or unrealistically large quantity from the DOM.
+    if (params.symbol.length > MAX_SYMBOL_LEN) {
+      warn(`Equity symbol unexpectedly long (${params.symbol.length} chars) — Fidelity DOM may have changed`);
+      return [];
+    }
+    if (qty > MAX_ORDER_QTY) {
+      warn(`Equity order quantity unrealistically large (${qty}) — Fidelity DOM may have changed`);
+      return [];
+    }
 
     // Market orders may not have a price — use 0.
     // Limit orders should always have a numeric price at this point because hasRequiredFields
