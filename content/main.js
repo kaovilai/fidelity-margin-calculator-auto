@@ -424,7 +424,10 @@
     // After OPEN_DURATION_MS the circuit allows one probe request through automatically.
     if (isCircuitOpen()) {
       const remainingSec = Math.ceil((circuitOpenUntil - Date.now()) / 1000);
-      MarginInjector.showError(`API temporarily unavailable — pausing ${remainingSec}s`, true);
+      // Use showErrorInPanel rather than MarginInjector.showError directly — mirrors the
+      // same defensive pattern used elsewhere in handleTradeReady so the panel is
+      // re-injected if Angular removed it between the check above and this display call.
+      showErrorInPanel(`API temporarily unavailable — pausing ${remainingSec}s`, true);
       setBadge('!', BADGE_COLOR_WARNING);
       reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: `Circuit breaker open — ${remainingSec}s remaining` });
       return;
