@@ -500,14 +500,17 @@ const TradeDetector = (() => {
    * For limit orders, this includes a parseable limit price. For options, at least one
    * complete leg (action, quantity, call/put, expiration, strike) must be present.
    * @param {string} [ctx] - Pre-computed page context from `detectPageContext()`.
+   * @param {Object} [params] - Pre-computed trade params from `getTradeParams(ctx)`.
+   *   When provided, skips the internal `getTradeParams` DOM read — callers that already
+   *   hold the params object should pass it to avoid a redundant DOM traversal.
    * @returns {boolean}
    */
   // _ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
-  function hasRequiredFields(ctx = detectPageContext()) {
+  function hasRequiredFields(ctx = detectPageContext(), params) {
     if (!ctx) return false;
 
     if (ctx === CTX.POPUP_EQUITY) {
-      const p = getEquityTradeParams();
+      const p = params ?? getEquityTradeParams();
       // Limit orders require a parseable price — truthy-only check is insufficient because
       // partially-typed values like "." or "1a" are truthy but parse to NaN, which would
       // cause buildEquityOrders to send price:0 to the margin API, producing wrong results.
@@ -521,7 +524,7 @@ const TradeDetector = (() => {
 
     // Options — need symbol, at least one complete leg, and for limit orders a parseable price.
     // Market orders intentionally have no limit price; they should still trigger a calculation.
-    const p = getOptionsTradeParams();
+    const p = params ?? getOptionsTradeParams();
     if (!p.symbol) return false;
     if (isLimitOrderType(p.orderType) && !Number.isFinite(parsePriceInput(p.limitPrice))) return false;
     return p.legs.some(isLegComplete);
@@ -534,10 +537,13 @@ const TradeDetector = (() => {
    * Used to detect changes between `MutationObserver` callbacks and avoid
    * redundant API calls when the form hasn't actually changed.
    * @param {string} [ctx] - Pre-computed page context from `detectPageContext()`.
+   * @param {Object} [params] - Pre-computed trade params from `getTradeParams(ctx)`.
+   *   When provided, skips the internal `getTradeParams` DOM read — callers that already
+   *   hold the params object should pass it to avoid a redundant DOM traversal.
    * @returns {string} Fingerprint string, or `''` if no ticket is visible.
    */
   // ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
-  function getParamsFingerprint(ctx = detectPageContext()) {
+  function getParamsFingerprint(ctx = detectPageContext(), params) {
     if (!ctx) return '';
 
     // Include account number so that switching accounts with identical trade params
@@ -546,11 +552,11 @@ const TradeDetector = (() => {
     const accountNum = getAccountNumber(ctx) ?? '';
 
     if (ctx === CTX.POPUP_EQUITY) {
-      const p = getEquityTradeParams();
+      const p = params ?? getEquityTradeParams();
       return `EQ|${accountNum}|${p.symbol}|${p.action}|${p.quantity}|${p.orderType}|${p.limitPrice}`;
     }
 
-    const p = getOptionsTradeParams();
+    const p = params ?? getOptionsTradeParams();
     const legParts = p.legs.map(l =>
       `${l.action}:${l.quantity}:${l.callPut}:${l.expiration}:${l.strike}`
     ).join('|');
@@ -647,7 +653,10 @@ const TradeDetector = (() => {
         return;
       }
 
-      if (!hasRequiredFields(ctx)) {
+      // Read trade params once: used by both hasRequiredFields and getParamsFingerprint
+      // to avoid a redundant DOM traversal and ensure both see the same snapshot.
+      const params = getTradeParams(ctx);
+      if (!hasRequiredFields(ctx, params)) {
         // Cancel pending 'ready' debounce — form is no longer complete.
         clearTimeout(debounceTimer);
         debounceTimer = null;
@@ -662,7 +671,7 @@ const TradeDetector = (() => {
         return;
       }
 
-      const fp = getParamsFingerprint(ctx);
+      const fp = getParamsFingerprint(ctx, params);
       if (fp === lastFingerprint) {
         // Trade params unchanged — but if the injection target is present and the panel
         // was removed by an Angular re-render, clear the fingerprint so the ready event
