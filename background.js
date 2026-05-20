@@ -222,6 +222,7 @@ importScripts('/lib/constants.js');
         return false;
 
       default:
+        log('Unhandled _fmc message type:', msg.type);
         sendResponse({ error: 'unknown message type' });
         return false;
     }
