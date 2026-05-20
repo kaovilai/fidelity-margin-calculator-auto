@@ -1,4 +1,5 @@
 // MarginInjector — injects margin impact panel into trade ticket DOM
+'use strict';
 const MarginInjector = (() => {
   const warn = makeWarnLog('[FMC]');
   const PANEL_ID = 'fmc-margin-panel';
