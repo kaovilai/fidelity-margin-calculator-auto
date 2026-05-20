@@ -116,6 +116,16 @@
   display: none;
 }
 
+/* Panel body: semi-transparent while loading; hidden in error state.
+   Visibility is driven by data-fmc-state so JS only manages semantic
+   attributes (aria-hidden, textContent) — not inline display/opacity. */
+.fmc-margin-panel[data-fmc-state="loading"] .fmc-panel-body {
+  opacity: 0.5;
+}
+.fmc-margin-panel[data-fmc-state="error"] .fmc-panel-body {
+  display: none;
+}
+
 .fmc-spinner {
   display: inline-block;
   width: 14px;
@@ -146,6 +156,12 @@
   gap: 8px;
   font-size: 12px;
   padding: 4px 0;
+}
+
+/* Show the error row only when the panel is in error state — driven by
+   data-fmc-state so JS only updates content, not display properties. */
+.fmc-margin-panel[data-fmc-state="error"] .fmc-panel-error {
+  display: flex;
 }
 
 .fmc-error-icon {
