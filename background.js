@@ -1,5 +1,6 @@
 // Background service worker — cache manager, rate limiter, account tracker
 // API calls stay in content scripts (same-origin cookies); background coordinates.
+'use strict';
 
 importScripts('/lib/constants.js');
 

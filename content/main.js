@@ -1,5 +1,6 @@
 // Main orchestrator — ties detector, positions API, margin API, calc, and injector together
 // Single-call architecture: portfolio API provides priceList, margin calc API requires order + priceList.
+'use strict';
 (() => {
   const LOG_PREFIX = '[FMC]';
   const PRICELIST_TTL = FMC_CONSTANTS.CACHE_TTL_MS.PRICELIST;

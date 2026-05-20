@@ -1,4 +1,5 @@
 // Popup logic — reads status from chrome.storage.local, manages settings in chrome.storage.sync
+'use strict';
 (() => {
   const DEFAULT_SETTINGS = FMC_CONSTANTS.DEFAULT_SETTINGS;
 
