@@ -163,6 +163,19 @@
   }
 
   // --- Circuit breaker ---
+
+  /**
+   * Returns `true` when the error type indicates a transient failure that should
+   * trigger the circuit breaker: NETWORK_ERROR or API_ERROR.
+   * CLIENT_ERROR and SESSION_EXPIRED are non-retryable and must not open the circuit.
+   * @param {Error & {type?: string}} err - Typed error from MarginAPI or PositionsAPI.
+   * @returns {boolean}
+   */
+  function isRetryableError(err) {
+    return err?.type === FMC_CONSTANTS.ERROR_TYPES.NETWORK_ERROR ||
+           err?.type === FMC_CONSTANTS.ERROR_TYPES.API_ERROR;
+  }
+
   /**
    * Records a retryable API failure (NETWORK_ERROR or API_ERROR) and opens the
    * circuit breaker once `FAILURE_THRESHOLD` consecutive failures are reached.
@@ -448,8 +461,7 @@
           priceList = await PositionsAPI.fetchPriceList(accountNum);
         } catch (posErr) {
           if (requestId !== currentRequest) return;
-          if (posErr?.type === FMC_CONSTANTS.ERROR_TYPES.NETWORK_ERROR ||
-              posErr?.type === FMC_CONSTANTS.ERROR_TYPES.API_ERROR) {
+          if (isRetryableError(posErr)) {
             recordApiFailure();
           }
           showApiError(posErr, 'Unable to fetch account positions.');
@@ -522,8 +534,7 @@
     } catch (err) {
       if (requestId !== currentRequest) return;
       log('Error:', err);
-      if (err?.type === FMC_CONSTANTS.ERROR_TYPES.NETWORK_ERROR ||
-          err?.type === FMC_CONSTANTS.ERROR_TYPES.API_ERROR) {
+      if (isRetryableError(err)) {
         recordApiFailure();
       }
       // All typed errors from MarginAPI and PositionsAPI set err.type correctly.
