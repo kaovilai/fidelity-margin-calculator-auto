@@ -20,6 +20,11 @@
      Overridden in dark mode to a lighter value that passes against #1e1e1e. */
   --fmc-debug-btn-color: #6b6b6b;
 
+  /* Declare support for both light and dark color schemes so the browser
+     renders native controls (e.g. the debug log scrollbar) in the correct
+     theme rather than inheriting Fidelity's page color-scheme (light only). */
+  color-scheme: light dark;
+
   margin-top: 4px;
   padding: 8px 12px;
   border-top: 1px solid var(--fmc-border);
@@ -265,6 +270,7 @@
 
 @media (prefers-color-scheme: dark) {
   .fmc-margin-panel {
+    color-scheme: dark;
     --fmc-border:       #3a3a3a;
     --fmc-text:         #e8e8e8;
     --fmc-muted:        #9a9a9a;
