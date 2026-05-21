@@ -4,6 +4,7 @@
 /* Brand color tokens — scoped to the panel to avoid polluting Fidelity's page CSS namespace.
    All child rules inherit these via the cascade. */
 .fmc-margin-panel {
+  direction: ltr; /* prevent RTL OS/browser settings from mirroring the 3-column layout */
   --fmc-green:      #368727;
   --fmc-red:        #c81818;
   --fmc-yellow:     #8b6508;
