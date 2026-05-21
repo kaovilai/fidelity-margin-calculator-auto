@@ -262,6 +262,41 @@ input:focus-visible + .slider {
   .slider:before { transition: none; }
 }
 
+@media (forced-colors: active) {
+  /* Custom toggle switch — restore visibility when OS overrides CSS backgrounds.
+     Use ButtonText/ButtonFace/Highlight system colors so the control matches
+     the OS high-contrast theme and is recognisable as an interactive element.
+     Without these overrides the slider background disappears, leaving only the
+     invisible knob and making the toggle indistinguishable from plain text. */
+  .slider {
+    border: 2px solid ButtonText;
+    background: ButtonFace;
+    forced-color-adjust: none;
+  }
+  .slider:before {
+    background: ButtonText;
+    forced-color-adjust: none;
+  }
+  input:checked + .slider {
+    background: Highlight;
+    border-color: Highlight;
+  }
+  input:checked + .slider:before {
+    background: HighlightText;
+  }
+
+  /* Status dot — add a border so the dot is visible when the fill color is
+     overridden by the OS. background-color alone is suppressed in forced-colors
+     mode, leaving an invisible 8×8 circle with no discernible shape. */
+  .status-dot {
+    border: 2px solid currentColor;
+    background: transparent !important;
+  }
+  .status-dot.active  { color: Highlight; }
+  .status-dot.error   { color: LinkText; }
+  .status-dot.inactive { color: GrayText; }
+}
+
 /* Footer */
 .popup-footer {
   padding-top: 8px;
