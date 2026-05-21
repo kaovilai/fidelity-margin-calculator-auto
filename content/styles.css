@@ -296,6 +296,37 @@
   }
 }
 
+@media (forced-colors: active) {
+  /* Spinner — restore visibility when OS overrides the CSS border colors used
+     to create the spinning-arc effect. Without this, the border colors collapse
+     to a single forced color and the spinner looks like a plain solid circle.
+     forced-color-adjust: none preserves the two-color arc (track + active segment)
+     that makes the spinner recognisable as an animation rather than a static disc. */
+  .fmc-spinner {
+    forced-color-adjust: none;
+    border-color: ButtonFace;
+    border-top-color: Highlight;
+  }
+
+  /* Retry and Debug buttons — ensure the border is always visible. In forced-colors
+     mode, background/color are replaced by system values, but border-color may also
+     be overridden. ButtonText guarantees a visible outline on any OS theme. */
+  .fmc-retry-btn,
+  .fmc-debug-btn {
+    border-color: ButtonText;
+  }
+
+  /* Status value colors — the fmc-status-* classes use CSS custom properties for
+     color, which forced-colors suppresses. Fall back to system semantic colors that
+     convey the same meaning: Highlight for positive/credit, LinkText for negative/debit
+     (red-adjacent in most high-contrast themes), and GrayText for neutral/warning. */
+  .fmc-status-credit  { color: Highlight; }
+  .fmc-status-debit   { color: LinkText; }
+  .fmc-status-warning { color: GrayText; }
+  .fmc-positive       { color: Highlight; }
+  .fmc-negative       { color: LinkText; }
+}
+
 @media print {
   /* Hide the injected margin panel from printed output — it is only relevant
      during interactive trading and adds noise to printed trade confirmations. */
