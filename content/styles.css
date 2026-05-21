@@ -182,7 +182,8 @@
   color: var(--fmc-text);
 }
 
-.fmc-retry-btn {
+/* Base styles shared by the Retry and Debug buttons in the error row */
+.fmc-panel-btn {
   font-size: 11px;
   padding: 2px 10px;
   border: 1px solid var(--fmc-input-border);
@@ -192,33 +193,21 @@
   cursor: pointer;
   font-family: inherit;
 }
-.fmc-retry-btn:hover {
+.fmc-panel-btn:hover {
   background: var(--fmc-hover-bg);
   border-color: var(--fmc-secondary);
 }
-.fmc-retry-btn:focus-visible {
+.fmc-panel-btn:focus-visible {
   outline: 2px solid var(--fmc-green);
   outline-offset: 2px;
 }
 
+/* Debug button uses a muted color to signal it's a developer tool, not a primary action */
 .fmc-debug-btn {
-  font-size: 11px;
-  padding: 2px 10px;
-  border: 1px solid var(--fmc-input-border);
-  border-radius: 2px;
-  background: var(--fmc-bg);
   color: var(--fmc-debug-btn-color);
-  cursor: pointer;
-  font-family: inherit;
 }
 .fmc-debug-btn:hover {
-  background: var(--fmc-hover-bg);
-  border-color: var(--fmc-secondary);
   color: var(--fmc-text);
-}
-.fmc-debug-btn:focus-visible {
-  outline: 2px solid var(--fmc-green);
-  outline-offset: 2px;
 }
 
 /* Debug log */
@@ -312,8 +301,7 @@
   /* Retry and Debug buttons — ensure the border is always visible. In forced-colors
      mode, background/color are replaced by system values, but border-color may also
      be overridden. ButtonText guarantees a visible outline on any OS theme. */
-  .fmc-retry-btn,
-  .fmc-debug-btn {
+  .fmc-panel-btn {
     border-color: ButtonText;
   }
 
