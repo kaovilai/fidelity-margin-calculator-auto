@@ -251,7 +251,7 @@ importScripts('/lib/constants.js');
   // unconditionally resets the period timer every time the service worker is
   // activated (e.g. by cache messages), which can prevent the alarm from ever
   // firing if the worker is woken frequently.
-  const CLEANUP_ALARM = 'fmc-cache-cleanup';
+  const CLEANUP_ALARM = FMC_CONSTANTS.BG_CLEANUP_ALARM_NAME;
   (async () => {
     try {
       const existing = await chrome.alarms.get(CLEANUP_ALARM);
