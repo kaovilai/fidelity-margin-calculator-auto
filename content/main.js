@@ -24,6 +24,10 @@
   const MSG_PARSE_TRADE_FAILED    = FMC_CONSTANTS.USER_MESSAGES.PARSE_TRADE_FAILED;
   const MSG_PARSE_TRADE_SHORT     = FMC_CONSTANTS.USER_MESSAGES.PARSE_TRADE_SHORT;
 
+  const STATUS_STATE    = FMC_CONSTANTS.STATUS_STATE;
+  const ERROR_TYPES     = FMC_CONSTANTS.ERROR_TYPES;
+  const CIRCUIT_BREAKER = FMC_CONSTANTS.CIRCUIT_BREAKER;
+
   /**
    * Clamps a debounce delay to at least `FMC_CONSTANTS.MIN_DEBOUNCE_MS`.
    * Rejects non-number and non-finite values (e.g. from corrupted storage) and
@@ -216,9 +220,9 @@
    */
   function recordApiFailure() {
     consecutiveFailures++;
-    if (consecutiveFailures >= FMC_CONSTANTS.CIRCUIT_BREAKER.FAILURE_THRESHOLD && !circuitOpenUntil) {
-      circuitOpenUntil = Date.now() + FMC_CONSTANTS.CIRCUIT_BREAKER.OPEN_DURATION_MS;
-      log(`Circuit breaker opened after ${consecutiveFailures} consecutive failures — API calls paused for ${FMC_CONSTANTS.CIRCUIT_BREAKER.OPEN_DURATION_MS / 1000}s`);
+    if (consecutiveFailures >= CIRCUIT_BREAKER.FAILURE_THRESHOLD && !circuitOpenUntil) {
+      circuitOpenUntil = Date.now() + CIRCUIT_BREAKER.OPEN_DURATION_MS;
+      log(`Circuit breaker opened after ${consecutiveFailures} consecutive failures — API calls paused for ${CIRCUIT_BREAKER.OPEN_DURATION_MS / 1000}s`);
     }
   }
 
@@ -379,12 +383,12 @@
    * @param {string} fallbackMsg - Message to display if `err.message` is absent.
    */
   function showApiError(err, fallbackMsg) {
-    const isSession = err?.type === FMC_CONSTANTS.ERROR_TYPES.SESSION_EXPIRED;
+    const isSession = err?.type === ERROR_TYPES.SESSION_EXPIRED;
     const msg = isSession ? MSG_SESSION_EXPIRED : (err?.message || fallbackMsg);
     if (isSession) sessionExpired = true;
     showErrorInPanel(msg, !isSession);
     setBadge('!', isSession ? BADGE_COLOR_WARNING : BADGE_COLOR_ERROR);
-    reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: msg });
+    reportStatus(STATUS_STATE.ERROR, { lastError: msg });
   }
 
   /**
@@ -414,7 +418,7 @@
   function showNoPositionsError() {
     showErrorInPanel(MSG_NO_POSITIONS, false);
     setBadge('!', BADGE_COLOR_ERROR);
-    reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: MSG_NO_POSITIONS_SHORT });
+    reportStatus(STATUS_STATE.ERROR, { lastError: MSG_NO_POSITIONS_SHORT });
   }
 
   // --- Main handler ---
@@ -453,7 +457,7 @@
         const injErrMsg = MSG_INJECTION_TARGET_GONE;
         warn(injErrMsg);
         setBadge('!', BADGE_COLOR_ERROR);
-        reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: injErrMsg });
+        reportStatus(STATUS_STATE.ERROR, { lastError: injErrMsg });
         return;
       }
     }
@@ -468,7 +472,7 @@
       // re-injected if Angular removed it between the check above and this display call.
       showErrorInPanel(`API temporarily unavailable — pausing ${remainingSec}s`, true);
       setBadge('!', BADGE_COLOR_WARNING);
-      reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: `Circuit breaker open — ${remainingSec}s remaining` });
+      reportStatus(STATUS_STATE.ERROR, { lastError: `Circuit breaker open — ${remainingSec}s remaining` });
       return;
     }
 
@@ -565,7 +569,7 @@
         // may have removed the panel during the preceding awaits.
         showErrorInPanel('No margin data available for this account.', false);
         setBadge('!', BADGE_COLOR_ERROR);
-        reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: 'No margin data' });
+        reportStatus(STATUS_STATE.ERROR, { lastError: 'No margin data' });
         return;
       }
 
@@ -577,7 +581,7 @@
       lastCalcTime = Date.now(); // update only on successful calculation
       lastImpact = impact; // retain for immediate re-render on threshold setting change
       MarginInjector.updatePanel(impact);
-      reportStatus(FMC_CONSTANTS.STATUS_STATE.ACTIVE);
+      reportStatus(STATUS_STATE.ACTIVE);
       setBadge('', null);
 
     } catch (err) {
@@ -686,7 +690,7 @@
             MarginInjector.remove();
             TradeDetector.disconnect();
             setBadge('', null);
-            reportStatus(FMC_CONSTANTS.STATUS_STATE.INACTIVE);
+            reportStatus(STATUS_STATE.INACTIVE);
           }
           // Re-observe with new debounce so the change takes effect without a page reload.
           // Also re-observe when re-enabling: if the trade form was already filled in and
@@ -725,7 +729,7 @@
             // not just in the injected panel. Mirrors the pattern used in handleTradeReady
             // and showApiError where every error path updates all three surfaces.
             setBadge('!', BADGE_COLOR_ERROR);
-            reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: MSG_NO_ACCOUNT_SHORT });
+            reportStatus(STATUS_STATE.ERROR, { lastError: MSG_NO_ACCOUNT_SHORT });
             break;
           }
           if (event.orders?.length > 0) {
@@ -758,7 +762,7 @@
             // Sync badge and popup status so the error is visible in all three surfaces,
             // consistent with handleTradeReady and showApiError error handling.
             setBadge('!', BADGE_COLOR_ERROR);
-            reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: MSG_PARSE_TRADE_SHORT });
+            reportStatus(STATUS_STATE.ERROR, { lastError: MSG_PARSE_TRADE_SHORT });
           }
           break;
 
@@ -786,7 +790,7 @@
           // the popup continues to show "Active" or "Error" even though no trade ticket
           // is open and no further calculations will run until a new one is opened.
           setBadge('', null);
-          reportStatus(FMC_CONSTANTS.STATUS_STATE.INACTIVE);
+          reportStatus(STATUS_STATE.INACTIVE);
           break;
 
         case 'incomplete':
