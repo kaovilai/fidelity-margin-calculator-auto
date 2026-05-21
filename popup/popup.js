@@ -6,10 +6,8 @@
   const STORAGE_KEY_SETTINGS = FMC_CONSTANTS.STORAGE_KEY_SETTINGS;
   const STORAGE_KEY_STATUS = FMC_CONSTANTS.STORAGE_KEY_STATUS;
 
-  // How often (ms) to refresh the "Last Calc" timeAgo display while the popup is open.
-  const TIME_REFRESH_INTERVAL_MS = 5000;
-  // How long (ms) to show the force-recalculate button's feedback before clearing it.
-  const REFRESH_FEEDBACK_CLEAR_MS = 1500;
+  const TIME_REFRESH_INTERVAL_MS = FMC_CONSTANTS.POPUP.TIME_REFRESH_INTERVAL_MS;
+  const REFRESH_FEEDBACK_CLEAR_MS = FMC_CONSTANTS.POPUP.FEEDBACK_CLEAR_MS;
 
   // Account masking parameters — sourced from FMC_CONSTANTS so a single edit adjusts
   // the masking behaviour in all consumers rather than requiring a change here AND in constants.js.
