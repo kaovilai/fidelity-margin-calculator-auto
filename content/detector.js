@@ -446,24 +446,27 @@ const TradeDetector = (() => {
    * Builds the margin calculator API order array from the current trade ticket form.
    * Returns an empty array if the ticket is not visible or form fields are incomplete.
    * @param {string} [ctx] - Pre-computed page context from `detectPageContext()`.
+   * @param {Object} [params] - Pre-computed result of `getTradeParams(ctx)`.
+   *   Pass this to avoid a redundant DOM traversal when the caller already holds the params.
    * @returns {Array<{orderSymbol: string, orderType: string, orderAction: string,
    *   orderQty: number, price: number}>} Order array (may be empty).
    */
   // ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
-  function buildOrders(ctx = detectPageContext()) {
+  function buildOrders(ctx = detectPageContext(), params) {
     if (!ctx) return [];
-    if (ctx === CTX.POPUP_EQUITY) return buildEquityOrders();
-    return buildOptionsOrders();
+    if (ctx === CTX.POPUP_EQUITY) return buildEquityOrders(params);
+    return buildOptionsOrders(params);
   }
 
   /**
    * Converts raw options trade parameters to margin API order objects for all complete legs.
    * Skips legs with an unrecognized action, non-positive quantity, or unparseable order symbol.
    * Returns an empty array if the limit price is unparseable for a limit order.
+   * @param {Object} [params] - Pre-computed result of `getOptionsTradeParams()`.
+   *   Pass this to avoid a redundant DOM traversal when the caller already holds the params.
    * @returns {Array<{orderSymbol: string, orderType: string, orderAction: string, orderQty: number, price: number}>}
    */
-  function buildOptionsOrders() {
-    const params = getOptionsTradeParams();
+  function buildOptionsOrders(params = getOptionsTradeParams()) {
     const orderPrice = resolveOrderPrice(params.limitPrice, params.orderType, params.symbol);
     if (orderPrice === null) return [];
 
@@ -498,10 +501,11 @@ const TradeDetector = (() => {
    * Converts raw equity trade parameters to a single-element margin API order array.
    * Returns an empty array if action, symbol, or quantity is missing/invalid, or if
    * the limit price is unparseable for a limit order.
+   * @param {Object} [params] - Pre-computed result of `getEquityTradeParams()`.
+   *   Pass this to avoid a redundant DOM traversal when the caller already holds the params.
    * @returns {Array<{orderSymbol: string, orderType: string, orderAction: string, orderQty: number, price: number}>}
    */
-  function buildEquityOrders() {
-    const params = getEquityTradeParams();
+  function buildEquityOrders(params = getEquityTradeParams()) {
     const orderAction = mapAction(params.action);
     // Use Math.round(parsePriceInput(...)) to strip thousands-separator commas before
     // parsing — consistent with how prices are parsed and with hasRequiredFields.
@@ -744,13 +748,18 @@ const TradeDetector = (() => {
         // "Could not parse trade details" error even though the user is mid-edit.
         // Skipping silently here is safe: the pending MutationObserver throttle will
         // fire check() within OBSERVER_THROTTLE_MS and emit the 'incomplete' event.
-        if (!hasRequiredFields(currentCtx)) return;
+        //
+        // Read trade params once: passed to both hasRequiredFields and buildOrders so
+        // both checks see the same DOM snapshot (avoids a redundant DOM traversal and
+        // eliminates a TOCTOU window where the form could change between the two reads).
+        const currentParams = getTradeParams(currentCtx);
+        if (!hasRequiredFields(currentCtx, currentParams)) return;
         try {
           callback({
             type: 'ready',
             context: currentCtx,
             accountNum: getAccountNumber(currentCtx),
-            orders: buildOrders(currentCtx)
+            orders: buildOrders(currentCtx, currentParams)
           });
         } catch (e) { warn('observer callback error:', e); }
       }, debounceMs);
