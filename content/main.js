@@ -52,6 +52,7 @@
   let lastAccountNum = null;
   let lastOrders = null;
   let lastResult = null; // cached previous result for delta computation
+  let lastImpact = null; // most recent computed impact — used to re-render panel when settings change
   let apiCallCount = 0;
   let lastCalcTime = null; // timestamp (ms) of the last successful margin calculation
   let settings = { ...FMC_CONSTANTS.DEFAULT_SETTINGS };
@@ -569,6 +570,7 @@
       recordApiSuccess();
       log('Impact:', impact);
       lastCalcTime = Date.now(); // update only on successful calculation
+      lastImpact = impact; // retain for immediate re-render on threshold setting change
       MarginInjector.updatePanel(impact);
       reportStatus(FMC_CONSTANTS.STATUS_STATE.ACTIVE);
       setBadge('', null);
@@ -622,6 +624,7 @@
           (async () => {
             fallbackCache.clear();
             lastResult = null;
+            lastImpact = null; // panel will enter loading state; stale impact should not persist
             // Also fully reset the circuit breaker and session-expiry flag so a manual
             // recalculate is never silently blocked — the user is explicitly requesting
             // a fresh attempt (they may have re-authenticated in another tab).
@@ -657,6 +660,14 @@
           settings.debitWarningThreshold = clampThreshold(settings.debitWarningThreshold);
           MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
           log('Settings updated:', settings);
+          // If the panel is currently showing a result, re-render it immediately so
+          // the new warning threshold takes effect without waiting for the next trade
+          // form change. Example: a $600 credit shown as WARNING (threshold was $700)
+          // should update to CREDIT as soon as the user lowers the threshold to $500.
+          const panel = MarginInjector.getPanel();
+          if (lastImpact !== null && panel?.getAttribute('data-fmc-state') === 'result') {
+            MarginInjector.updatePanel(lastImpact);
+          }
           // If the extension was just disabled, remove the panel and disconnect the
           // observer so Angular's frequent DOM mutations no longer trigger DOM queries.
           if (wasEnabled && !settings.enabled) {
@@ -726,6 +737,7 @@
               // invalidation completes shortly after without needing to block here.
               invalidateAccountCache(previousAccountNum).catch(err => log('Cache invalidation error on account switch:', err));
               lastResult = null;
+              lastImpact = null; // account changed; panel will refresh with new result
             }
             previousAccountNum = event.accountNum;
             handleTradeReady(event.accountNum, event.orders).catch(err => log('Unhandled error in trade handler:', err));
@@ -754,6 +766,7 @@
           // Reset lastResult so the next ticket open computes delta from a fresh
           // baseline rather than a potentially stale previous projection.
           lastResult = null;
+          lastImpact = null;
           // Clear account/orders so a force-recalc from the popup does not attempt
           // a stale calculation (and set an error badge) after the ticket is closed.
           // They will be repopulated when the next 'ready' event fires.
