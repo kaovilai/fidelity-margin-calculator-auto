@@ -33,6 +33,21 @@
     return ms;
   }
 
+  /**
+   * Clamps a debit warning threshold to `[0, MAX_WARNING_THRESHOLD]`.
+   * Mirrors the clamping already applied in popup.js `saveSettings()` and
+   * `MarginInjector.setWarningThreshold()` so the `settings` object always holds
+   * a valid value — consistent with how `debounceMs` is normalised via `clampDebounceMs`.
+   * Non-finite values (NaN, Infinity, non-number) fall back to the default threshold.
+   * @param {*} val - Candidate threshold value (typically a number from storage).
+   * @returns {number} A finite number in `[0, FMC_CONSTANTS.MAX_WARNING_THRESHOLD]`.
+   */
+  function clampThreshold(val) {
+    const n = Number(val);
+    if (!Number.isFinite(n) || n < 0) return FMC_CONSTANTS.DEFAULT_SETTINGS.debitWarningThreshold;
+    return Math.min(FMC_CONSTANTS.MAX_WARNING_THRESHOLD, n);
+  }
+
   let currentRequest = 0;
   let lastAccountNum = null;
   let lastOrders = null;
@@ -111,7 +126,7 @@
    * Loads user settings from `chrome.storage.sync` and applies them to the
    * module-level `settings` object.  Falls back to `DEFAULT_SETTINGS` when storage
    * is unavailable or returns an invalid value.  Always clamps `debounceMs` and
-   * applies `debitWarningThreshold` to the injector.
+   * `debitWarningThreshold` to valid ranges before applying to the injector.
    * @returns {Promise<void>}
    */
   async function loadSettings() {
@@ -128,9 +143,10 @@
         warn('could not load settings:', err.message);
       }
     }
-    // Always clamp debounceMs — guards against corrupted/pre-guard stored values
-    // and future changes to DEFAULT_SETTINGS.debounceMs below MIN_DEBOUNCE_MS.
+    // Always clamp debounceMs and debitWarningThreshold — guards against corrupted/
+    // pre-guard stored values so the settings object always holds valid values.
     settings.debounceMs = clampDebounceMs(settings.debounceMs);
+    settings.debitWarningThreshold = clampThreshold(settings.debitWarningThreshold);
     MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
   }
 
@@ -635,8 +651,10 @@
           const wasEnabled = settings.enabled;
           const prevDebounceMs = settings.debounceMs;
           settings = { ...settings, ...newValue };
-          // Clamp debounceMs to a safe minimum to prevent runaway polling from corrupted storage
+          // Clamp both debounceMs and debitWarningThreshold to safe ranges to
+          // prevent runaway polling or an out-of-range threshold from corrupted storage.
           settings.debounceMs = clampDebounceMs(settings.debounceMs);
+          settings.debitWarningThreshold = clampThreshold(settings.debitWarningThreshold);
           MarginInjector.setWarningThreshold(settings.debitWarningThreshold);
           log('Settings updated:', settings);
           // If the extension was just disabled, remove the panel and disconnect the
