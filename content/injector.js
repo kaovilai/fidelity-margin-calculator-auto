@@ -176,7 +176,7 @@ const MarginInjector = (() => {
     );
 
     // Loading indicator
-    const loading = mkEl('div', { className: 'fmc-panel-loading', id: EL_ID.LOADING, role: 'status', 'aria-label': 'Calculating margin impact...' },
+    const loading = mkEl('div', { className: 'fmc-panel-loading', id: EL_ID.LOADING, role: 'status' },
       mkEl('span', { className: 'fmc-spinner', 'aria-hidden': 'true' }),
       mkEl('span', { textContent: 'Calculating margin impact...' })
     );

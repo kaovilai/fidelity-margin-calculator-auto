@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <title>Fidelity Margin Calculator Auto</title>
   <link rel="stylesheet" href="popup.css">
 </head>
@@ -57,7 +58,7 @@
         </div>
         <div class="setting-row">
           <label class="setting-label" for="setting-threshold">Warning threshold ($)</label>
-          <input type="number" id="setting-threshold" class="setting-input" value="500" min="0" max="100000" step="50">
+          <input type="number" id="setting-threshold" class="setting-input" value="500" min="0" max="100000" step="50" autocomplete="off">
         </div>
         <div class="setting-row">
           <label class="setting-label" for="setting-debounce">Debounce</label>
