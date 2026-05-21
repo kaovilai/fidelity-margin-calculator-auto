@@ -38,6 +38,7 @@
   let lastOrders = null;
   let lastResult = null; // cached previous result for delta computation
   let apiCallCount = 0;
+  let lastCalcTime = null; // timestamp (ms) of the last successful margin calculation
   let settings = { ...FMC_CONSTANTS.DEFAULT_SETTINGS };
 
   // Heartbeat timer — keeps the MV3 service worker alive while a trade ticket is open.
@@ -137,6 +138,8 @@
   /**
    * Writes a status snapshot to `chrome.storage.local` so the popup can display
    * the current extension state without an active message channel to the content script.
+   * Uses `lastCalcTime` (set only on successful calculations) so the popup's "Last Calc"
+   * field reflects the most recent successful result, not the time of an error or status update.
    * @param {string} state - One of `FMC_CONSTANTS.STATUS_STATE` values.
    * @param {Object} [extra] - Additional fields merged into the status object
    *   (e.g. `{ lastError: 'Session expired' }`).
@@ -146,7 +149,7 @@
     const status = {
       state,
       accountNum: lastAccountNum,
-      lastCalcTime: Date.now(),
+      lastCalcTime,
       apiCallCount,
       lastError: null,
       ...extra
@@ -549,6 +552,7 @@
 
       recordApiSuccess();
       log('Impact:', impact);
+      lastCalcTime = Date.now(); // update only on successful calculation
       MarginInjector.updatePanel(impact);
       reportStatus(FMC_CONSTANTS.STATUS_STATE.ACTIVE);
       setBadge('', null);
