@@ -104,7 +104,7 @@ const TradeDetector = (() => {
    * @returns {boolean}
    */
   function isLimitOrderType(orderType) {
-    return !!orderType?.toLowerCase().includes('limit');
+    return typeof orderType === 'string' && orderType.toLowerCase().includes('limit');
   }
 
   /**
