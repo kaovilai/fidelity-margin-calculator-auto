@@ -15,9 +15,14 @@
   const STORAGE_KEY_SETTINGS = FMC_CONSTANTS.STORAGE_KEY_SETTINGS;
   const STORAGE_KEY_STATUS = FMC_CONSTANTS.STORAGE_KEY_STATUS;
   const MSG = FMC_CONSTANTS.MESSAGE_TYPES;
-  const MSG_SESSION_EXPIRED    = FMC_CONSTANTS.USER_MESSAGES.SESSION_EXPIRED;
-  const MSG_NO_POSITIONS       = FMC_CONSTANTS.USER_MESSAGES.NO_POSITIONS;
-  const MSG_NO_POSITIONS_SHORT = FMC_CONSTANTS.USER_MESSAGES.NO_POSITIONS_SHORT;
+  const MSG_SESSION_EXPIRED       = FMC_CONSTANTS.USER_MESSAGES.SESSION_EXPIRED;
+  const MSG_NO_POSITIONS          = FMC_CONSTANTS.USER_MESSAGES.NO_POSITIONS;
+  const MSG_NO_POSITIONS_SHORT    = FMC_CONSTANTS.USER_MESSAGES.NO_POSITIONS_SHORT;
+  const MSG_INJECTION_TARGET_GONE = FMC_CONSTANTS.USER_MESSAGES.INJECTION_TARGET_GONE;
+  const MSG_NO_ACCOUNT            = FMC_CONSTANTS.USER_MESSAGES.NO_ACCOUNT;
+  const MSG_NO_ACCOUNT_SHORT      = FMC_CONSTANTS.USER_MESSAGES.NO_ACCOUNT_SHORT;
+  const MSG_PARSE_TRADE_FAILED    = FMC_CONSTANTS.USER_MESSAGES.PARSE_TRADE_FAILED;
+  const MSG_PARSE_TRADE_SHORT     = FMC_CONSTANTS.USER_MESSAGES.PARSE_TRADE_SHORT;
 
   /**
    * Clamps a debounce delay to at least `FMC_CONSTANTS.MIN_DEBOUNCE_MS`.
@@ -445,7 +450,7 @@
 
     if (!MarginInjector.getPanel()) {
       if (!MarginInjector.inject()) {
-        const injErrMsg = FMC_CONSTANTS.USER_MESSAGES.INJECTION_TARGET_GONE;
+        const injErrMsg = MSG_INJECTION_TARGET_GONE;
         warn(injErrMsg);
         setBadge('!', BADGE_COLOR_ERROR);
         reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: injErrMsg });
@@ -715,12 +720,12 @@
             // Invalidate any in-flight request so it cannot overwrite this error panel
             // with stale results. Mirrors the same guard used in the 'incomplete' case.
             currentRequest++;
-            showErrorInPanel(FMC_CONSTANTS.USER_MESSAGES.NO_ACCOUNT, false);
+            showErrorInPanel(MSG_NO_ACCOUNT, false);
             // Sync badge and popup status so the user sees the error reflected everywhere,
             // not just in the injected panel. Mirrors the pattern used in handleTradeReady
             // and showApiError where every error path updates all three surfaces.
             setBadge('!', BADGE_COLOR_ERROR);
-            reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: FMC_CONSTANTS.USER_MESSAGES.NO_ACCOUNT_SHORT });
+            reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: MSG_NO_ACCOUNT_SHORT });
             break;
           }
           if (event.orders?.length > 0) {
@@ -749,11 +754,11 @@
             currentRequest++;
             // Inject the panel and show a meaningful error so the user isn't left wondering.
             warn('ready event with empty orders — trade form may be incomplete or in an unexpected format');
-            showErrorInPanel(FMC_CONSTANTS.USER_MESSAGES.PARSE_TRADE_FAILED, false);
+            showErrorInPanel(MSG_PARSE_TRADE_FAILED, false);
             // Sync badge and popup status so the error is visible in all three surfaces,
             // consistent with handleTradeReady and showApiError error handling.
             setBadge('!', BADGE_COLOR_ERROR);
-            reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: FMC_CONSTANTS.USER_MESSAGES.PARSE_TRADE_SHORT });
+            reportStatus(FMC_CONSTANTS.STATUS_STATE.ERROR, { lastError: MSG_PARSE_TRADE_SHORT });
           }
           break;
 
