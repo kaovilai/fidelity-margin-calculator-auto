@@ -54,28 +54,24 @@ importScripts('/lib/constants.js');
 
   // --- LRU eviction ---
   /**
-   * Evicts the least-recently-accessed cache entry when the cache exceeds MAX_CACHE_ENTRIES.
+   * Evicts the least-recently-used cache entry when the cache exceeds MAX_CACHE_ENTRIES.
    * Called after every `cacheSet` to enforce the entry cap.
+   * Uses Map insertion order: `cacheGet` moves accessed entries to the end (MRU),
+   * so the first entry in iteration order is always the LRU candidate — O(1) eviction.
    */
   function evictIfNeeded() {
     if (cache.size <= MAX_CACHE_ENTRIES) return;
-    // Find least recently accessed
-    let oldestKey = null;
-    let oldestAccess = Infinity;
-    for (const [key, entry] of cache) {
-      if (entry.lastAccess < oldestAccess) {
-        oldestAccess = entry.lastAccess;
-        oldestKey = key;
-      }
-    }
-    if (oldestKey) cache.delete(oldestKey);
+    // First entry in Map iteration order is the LRU (least recently accessed).
+    // cacheGet promotes entries to the end on access, so this is always correct.
+    cache.delete(cache.keys().next().value);
   }
 
   // --- Cache operations ---
   /**
    * Retrieves a cached value by key.
    * Returns a miss (`hit: false`) if the entry is absent or expired (expired entries are deleted).
-   * Updates `lastAccess` on hits to support LRU eviction in `evictIfNeeded`.
+   * Promotes the accessed entry to the end of Map insertion order so it is treated as
+   * most-recently-used (MRU) by `evictIfNeeded` — the entry at the front is always LRU.
    * @param {string} key - Cache key.
    * @returns {{ hit: boolean, data: *, age: number }}
    *   `hit`: whether a live entry was found.
@@ -90,14 +86,18 @@ importScripts('/lib/constants.js');
       cache.delete(key);
       return { hit: false, data: null, age: 0 };
     }
-    entry.lastAccess = now;
-    return { hit: true, data: entry.data, age: now - (entry.expires - entry.ttl) };
+    // Promote to MRU by deleting and re-inserting — moves entry to end of Map order.
+    cache.delete(key);
+    cache.set(key, entry);
+    return { hit: true, data: entry.data, age: now - entry.storedAt };
   }
 
   /**
    * Stores a value in the cache under `key` with the given TTL.
    * Triggers LRU eviction if the cache exceeds MAX_CACHE_ENTRIES after insertion.
    * Falls back to `DEFAULT_CACHE_TTL` when `ttl` is missing, non-finite, or ≤ 0.
+   * Deletes any existing entry before inserting so re-sets move the key to the end
+   * of Map insertion order (= MRU), keeping eviction order consistent.
    * @param {string} key - Cache key.
    * @param {*} data - Value to store.
    * @param {number} [ttl] - Time-to-live in milliseconds.
@@ -106,7 +106,9 @@ importScripts('/lib/constants.js');
   function cacheSet(key, data, ttl) {
     const now = Date.now();
     const safeTtl = (typeof ttl === 'number' && Number.isFinite(ttl) && ttl > 0) ? ttl : DEFAULT_CACHE_TTL;
-    cache.set(key, { data, expires: now + safeTtl, ttl: safeTtl, lastAccess: now });
+    // Delete before inserting so an updated entry moves to the end of Map order (MRU).
+    cache.delete(key);
+    cache.set(key, { data, expires: now + safeTtl, ttl: safeTtl, storedAt: now });
     evictIfNeeded();
     return { ok: true };
   }
