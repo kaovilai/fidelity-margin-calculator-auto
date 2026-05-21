@@ -15,6 +15,11 @@
   const MASK_SUFFIX  = FMC_CONSTANTS.ACCOUNT_MASK.SUFFIX_LEN;
   const MASK_MIN_LEN = FMC_CONSTANTS.ACCOUNT_MASK.MIN_LEN;
 
+  const STATUS_STATE        = FMC_CONSTANTS.STATUS_STATE;
+  const STATUS_LABEL        = FMC_CONSTANTS.STATUS_LABEL;
+  const MAX_WARNING_THRESHOLD = FMC_CONSTANTS.MAX_WARNING_THRESHOLD;
+  const MIN_DEBOUNCE_MS     = FMC_CONSTANTS.MIN_DEBOUNCE_MS;
+
   /**
    * Masks an account number for privacy display: e.g. "AB12345678" → "AB...5678".
    * Returns '--' for null/undefined; returns the original string if shorter than MASK_MIN_LEN,
@@ -90,7 +95,7 @@
 
     if (!status) {
       if (textEl) textEl.textContent = 'Not connected';
-      if (dotEl) dotEl.className = `status-dot ${FMC_CONSTANTS.STATUS_STATE.INACTIVE}`;
+      if (dotEl) dotEl.className = `status-dot ${STATUS_STATE.INACTIVE}`;
       // Reset all other fields to defaults so stale data from a previous status is
       // not displayed after the extension status is cleared (e.g. after update/reinstall).
       if (acctEl) acctEl.textContent = '--';
@@ -102,9 +107,9 @@
     }
 
     if (textEl) {
-      textEl.textContent = FMC_CONSTANTS.STATUS_LABEL[status.state] ?? 'Inactive';
+      textEl.textContent = STATUS_LABEL[status.state] ?? 'Inactive';
     }
-    if (dotEl) dotEl.className = `status-dot ${status.state || FMC_CONSTANTS.STATUS_STATE.INACTIVE}`;
+    if (dotEl) dotEl.className = `status-dot ${status.state || STATUS_STATE.INACTIVE}`;
 
     if (acctEl) acctEl.textContent = maskAccount(status.accountNum);
     if (calcEl) calcEl.textContent = timeAgo(status.lastCalcTime);
@@ -158,7 +163,7 @@
         // normalised to a valid range, consistent with the clamping in saveSettings().
         const rawThreshold = Number(s.debitWarningThreshold);
         thresholdEl.value = Number.isFinite(rawThreshold)
-          ? Math.min(FMC_CONSTANTS.MAX_WARNING_THRESHOLD, Math.max(0, rawThreshold))
+          ? Math.min(MAX_WARNING_THRESHOLD, Math.max(0, rawThreshold))
           : DEFAULT_SETTINGS.debitWarningThreshold;
       }
       if (debounceEl) {
@@ -185,7 +190,7 @@
     const threshold = parseInt(thresholdEl.value, 10);
     const debounce = parseInt(debounceEl.value, 10);
     const clampedThreshold = Number.isFinite(threshold)
-      ? Math.min(FMC_CONSTANTS.MAX_WARNING_THRESHOLD, Math.max(0, threshold))
+      ? Math.min(MAX_WARNING_THRESHOLD, Math.max(0, threshold))
       : DEFAULT_SETTINGS.debitWarningThreshold;
     // Reflect the clamped value back to the input so the user sees what was saved.
     // Without this, typing "999999" would be saved as 100000 (MAX_WARNING_THRESHOLD)
@@ -196,7 +201,7 @@
     const settings = {
       enabled: enabledEl.checked,
       debitWarningThreshold: clampedThreshold,
-      debounceMs: Number.isFinite(debounce) && debounce >= FMC_CONSTANTS.MIN_DEBOUNCE_MS ? debounce : DEFAULT_SETTINGS.debounceMs
+      debounceMs: Number.isFinite(debounce) && debounce >= MIN_DEBOUNCE_MS ? debounce : DEFAULT_SETTINGS.debounceMs
     };
     chrome.storage.sync.set({ [STORAGE_KEY_SETTINGS]: settings }).catch((err) => {
       console.warn('[FMC-Popup] Could not save settings:', err.message);
@@ -257,7 +262,7 @@
     // MAX_WARNING_THRESHOLD in constants.js is automatically reflected here
     // without requiring a separate HTML edit that could drift out of sync.
     const { threshold: thresholdConstraintEl } = getSettingsEls();
-    if (thresholdConstraintEl) thresholdConstraintEl.max = String(FMC_CONSTANTS.MAX_WARNING_THRESHOLD);
+    if (thresholdConstraintEl) thresholdConstraintEl.max = String(MAX_WARNING_THRESHOLD);
 
     // Load settings
     await loadSettings();
