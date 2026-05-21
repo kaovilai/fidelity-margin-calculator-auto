@@ -71,6 +71,16 @@ const MarginInjector = (() => {
   const debugLog = []; // ring buffer of debug entries
   const MAX_LOG = FMC_CONSTANTS.MAX_DEBUG_LOG_ENTRIES;
 
+  // Cached Intl formatter instances — constructed once per content script load.
+  // Reusing formatter objects avoids allocating a new options struct on every call
+  // and is the approach recommended by MDN for code that formats values frequently.
+  const _currencyFormatter = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+  // timeStyle:'medium' requests h:mm:ss display, matching toLocaleTimeString() defaults.
+  const _timeFormatter = new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' });
+
   /**
    * Shows the debug log element, populates it with the current log entries, and
    * updates the debug button to its "hide" state.
@@ -104,10 +114,7 @@ const MarginInjector = (() => {
     // Guard against NaN/Infinity — can occur if API returns an unexpected type.
     if (!Number.isFinite(value)) return '--';
     const abs = Math.abs(value);
-    const formatted = `$${abs.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })}`;
+    const formatted = `$${_currencyFormatter.format(abs)}`;
     return value < 0 ? `-${formatted}` : formatted;
   }
 
@@ -479,7 +486,7 @@ const MarginInjector = (() => {
    * @param {string} entry - Log message to append (will be prefixed with a timestamp).
    */
   function addDebugLog(entry) {
-    const ts = new Date().toLocaleTimeString();
+    const ts = _timeFormatter.format(new Date());
     const raw = `[${ts}] ${entry}`;
     const maxLen = FMC_CONSTANTS.MAX_LOG_ENTRY_LEN;
     const truncated = raw.length > maxLen ? raw.slice(0, maxLen) + '\u2026' : raw;
