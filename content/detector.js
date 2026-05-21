@@ -299,9 +299,21 @@ const TradeDetector = (() => {
    */
   function formatStrike(strikeStr) {
     if (!strikeStr) return '';
-    const num = parseFloat(strikeStr.replace(/,/g, ''));
+    const num = parsePriceInput(strikeStr);
     if (!Number.isFinite(num)) return '';
     return num.toString();
+  }
+
+  /**
+   * Parses a quantity string to a rounded integer suitable for the margin API.
+   * Strips thousands-separator commas via `parsePriceInput`, then rounds to the
+   * nearest integer — consistent with how Fidelity displays quantities and avoids
+   * sending fractional values (e.g. `1.9`) to the API.
+   * @param {string} str - Raw quantity string from a trade ticket input.
+   * @returns {number} Rounded integer, or `NaN` if the input is not parseable.
+   */
+  function parseQuantity(str) {
+    return Math.round(parsePriceInput(str));
   }
 
   /**
@@ -478,9 +490,7 @@ const TradeDetector = (() => {
 
     return params.legs.flatMap(leg => {
       const orderAction = mapAction(leg.action);
-      // Use Math.round(parsePriceInput(...)) to strip thousands-separator commas before
-      // parsing — consistent with how prices are parsed and with isLegComplete.
-      const qty = Math.round(parsePriceInput(leg.quantity));
+      const qty = parseQuantity(leg.quantity);
       if (!orderAction || !Number.isFinite(qty) || qty <= 0) return [];
       // Guard against unrealistically large quantities that indicate garbled DOM text.
       if (qty > MAX_ORDER_QTY) {
@@ -507,11 +517,7 @@ const TradeDetector = (() => {
    */
   function buildEquityOrders(params = getEquityTradeParams()) {
     const orderAction = mapAction(params.action);
-    // Use Math.round(parsePriceInput(...)) to strip thousands-separator commas before
-    // parsing — consistent with how prices are parsed and with hasRequiredFields.
-    // parseInt would silently truncate fractional quantities (e.g. 1.9 → 1), while
-    // rounding is more accurate and consistent with what the user entered.
-    const qty = Math.round(parsePriceInput(params.quantity));
+    const qty = parseQuantity(params.quantity);
     if (!orderAction || !Number.isFinite(qty) || qty <= 0 || !params.symbol) return [];
     // Guard against a garbled symbol or unrealistically large quantity from the DOM.
     if (params.symbol.length > MAX_SYMBOL_LEN) {
