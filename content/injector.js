@@ -72,6 +72,28 @@ const MarginInjector = (() => {
   const MAX_LOG = FMC_CONSTANTS.MAX_DEBUG_LOG_ENTRIES;
 
   /**
+   * Shows the debug log element, populates it with the current log entries, and
+   * updates the debug button to its "hide" state.
+   * Symmetric counterpart to `hideDebugLog` — used by the debug button click handler
+   * so the toggle logic is defined in one place and not duplicated inline.
+   * @param {HTMLElement|null} logEl - The debug log container element.
+   * @param {HTMLElement|null} btnEl - The debug toggle button element.
+   */
+  function showDebugLog(logEl, btnEl) {
+    if (!logEl) return;
+    logEl.textContent = debugLog.join('\n') || '(no log entries)';
+    logEl.style.display = 'block';
+    // Scroll to newest entry (bottom) so the user sees the most recent log lines
+    // without having to manually scroll — matches the behaviour of standard log viewers.
+    logEl.scrollTop = logEl.scrollHeight;
+    if (btnEl) {
+      btnEl.textContent = 'Hide';
+      btnEl.setAttribute('aria-label', 'Hide debug log');
+      btnEl.setAttribute('aria-expanded', 'true');
+    }
+  }
+
+  /**
    * Formats a dollar amount for display in the panel.
    * Negative values are prefixed with `-$`; positive with `$`.
    * Non-finite values (NaN, Infinity) return `'--'`.
@@ -237,23 +259,14 @@ const MarginInjector = (() => {
       retryCallback?.();
     });
 
-    // Wire debug button — use debugLogDiv reference already in scope
+    // Wire debug button — delegate to hideDebugLog / showDebugLog so the toggle
+    // logic is defined in one place; the click handler just decides which direction.
     debugBtnEl.addEventListener('click', () => {
       const visible = debugLogDiv.style.display !== 'none';
       if (visible) {
-        debugLogDiv.style.display = 'none';
-        debugBtnEl.textContent = 'Debug';
-        debugBtnEl.setAttribute('aria-label', 'Show debug log');
-        debugBtnEl.setAttribute('aria-expanded', 'false');
+        hideDebugLog(debugLogDiv, debugBtnEl);
       } else {
-        debugLogDiv.textContent = debugLog.join('\n') || '(no log entries)';
-        debugLogDiv.style.display = 'block';
-        // Scroll to newest entry (bottom) so the user sees the most recent log lines
-        // without having to manually scroll — matches the behaviour of standard log viewers.
-        debugLogDiv.scrollTop = debugLogDiv.scrollHeight;
-        debugBtnEl.textContent = 'Hide';
-        debugBtnEl.setAttribute('aria-label', 'Hide debug log');
-        debugBtnEl.setAttribute('aria-expanded', 'true');
+        showDebugLog(debugLogDiv, debugBtnEl);
       }
     });
 
