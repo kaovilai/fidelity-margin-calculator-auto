@@ -698,6 +698,16 @@
           // a new 'ready' event from firing, leaving the panel invisible until the form changes.
           // Re-observing resets the fingerprint and triggers an immediate fresh check.
           // Only re-observe when enabled — no point reattaching while disabled.
+          if (!wasEnabled && settings.enabled) {
+            // Reset transient error state on re-enable so the first calculation attempt is
+            // not silently blocked by stale flags set before or during the disabled period.
+            // Without this, a stale sessionExpired=true would cause handleTradeReady() to
+            // return early with no panel and no error message — the user sees nothing.
+            // This mirrors what FORCE_RECALC does, since re-enabling implies intent to retry.
+            sessionExpired = false;
+            consecutiveFailures = 0;
+            circuitOpenUntil = 0;
+          }
           if (settings.enabled && (settings.debounceMs !== prevDebounceMs || !wasEnabled)) {
             TradeDetector.observe(tradeEventCallback, settings.debounceMs);
           }
