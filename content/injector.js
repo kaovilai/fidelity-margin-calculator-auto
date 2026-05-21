@@ -248,6 +248,9 @@ const MarginInjector = (() => {
       } else {
         debugLogDiv.textContent = debugLog.join('\n') || '(no log entries)';
         debugLogDiv.style.display = 'block';
+        // Scroll to newest entry (bottom) so the user sees the most recent log lines
+        // without having to manually scroll — matches the behaviour of standard log viewers.
+        debugLogDiv.scrollTop = debugLogDiv.scrollHeight;
         debugBtnEl.textContent = 'Hide';
         debugBtnEl.setAttribute('aria-label', 'Hide debug log');
         debugBtnEl.setAttribute('aria-expanded', 'true');
@@ -476,6 +479,8 @@ const MarginInjector = (() => {
     const logEl = panelRefs.get(panel)?.debugLog;
     if (logEl && logEl.style.display !== 'none') {
       logEl.textContent = debugLog.join('\n');
+      // Keep the view pinned to the newest entries as new log lines arrive.
+      logEl.scrollTop = logEl.scrollHeight;
     }
   }
 
