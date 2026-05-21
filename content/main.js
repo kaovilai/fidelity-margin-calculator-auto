@@ -79,7 +79,7 @@
   let sessionExpired = false;
 
   // Fallback in-memory cache when background is unavailable
-  let fallbackCache = new Map();
+  const fallbackCache = new Map();
   const FALLBACK_CACHE_MAX = FMC_CONSTANTS.CONTENT_FALLBACK_CACHE_MAX;
 
   /**

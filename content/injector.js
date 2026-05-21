@@ -68,7 +68,7 @@ const MarginInjector = (() => {
   }
 
   let retryCallback = null;
-  let debugLog = []; // ring buffer of debug entries
+  const debugLog = []; // ring buffer of debug entries
   const MAX_LOG = FMC_CONSTANTS.MAX_DEBUG_LOG_ENTRIES;
 
   /**
@@ -481,7 +481,7 @@ const MarginInjector = (() => {
 
   /** Clears all entries from the debug log ring buffer. */
   function clearDebugLog() {
-    debugLog = [];
+    debugLog.length = 0;
   }
 
   /**
