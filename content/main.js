@@ -15,14 +15,18 @@
   const STORAGE_KEY_SETTINGS = FMC_CONSTANTS.STORAGE_KEY_SETTINGS;
   const STORAGE_KEY_STATUS = FMC_CONSTANTS.STORAGE_KEY_STATUS;
   const MSG = FMC_CONSTANTS.MESSAGE_TYPES;
-  const MSG_SESSION_EXPIRED       = FMC_CONSTANTS.USER_MESSAGES.SESSION_EXPIRED;
-  const MSG_NO_POSITIONS          = FMC_CONSTANTS.USER_MESSAGES.NO_POSITIONS;
-  const MSG_NO_POSITIONS_SHORT    = FMC_CONSTANTS.USER_MESSAGES.NO_POSITIONS_SHORT;
-  const MSG_INJECTION_TARGET_GONE = FMC_CONSTANTS.USER_MESSAGES.INJECTION_TARGET_GONE;
-  const MSG_NO_ACCOUNT            = FMC_CONSTANTS.USER_MESSAGES.NO_ACCOUNT;
-  const MSG_NO_ACCOUNT_SHORT      = FMC_CONSTANTS.USER_MESSAGES.NO_ACCOUNT_SHORT;
-  const MSG_PARSE_TRADE_FAILED    = FMC_CONSTANTS.USER_MESSAGES.PARSE_TRADE_FAILED;
-  const MSG_PARSE_TRADE_SHORT     = FMC_CONSTANTS.USER_MESSAGES.PARSE_TRADE_SHORT;
+  const MSG_SESSION_EXPIRED        = FMC_CONSTANTS.USER_MESSAGES.SESSION_EXPIRED;
+  const MSG_NO_POSITIONS           = FMC_CONSTANTS.USER_MESSAGES.NO_POSITIONS;
+  const MSG_NO_POSITIONS_SHORT     = FMC_CONSTANTS.USER_MESSAGES.NO_POSITIONS_SHORT;
+  const MSG_INJECTION_TARGET_GONE  = FMC_CONSTANTS.USER_MESSAGES.INJECTION_TARGET_GONE;
+  const MSG_NO_ACCOUNT             = FMC_CONSTANTS.USER_MESSAGES.NO_ACCOUNT;
+  const MSG_NO_ACCOUNT_SHORT       = FMC_CONSTANTS.USER_MESSAGES.NO_ACCOUNT_SHORT;
+  const MSG_PARSE_TRADE_FAILED     = FMC_CONSTANTS.USER_MESSAGES.PARSE_TRADE_FAILED;
+  const MSG_PARSE_TRADE_SHORT      = FMC_CONSTANTS.USER_MESSAGES.PARSE_TRADE_SHORT;
+  const MSG_FETCH_POSITIONS_FAILED = FMC_CONSTANTS.USER_MESSAGES.FETCH_POSITIONS_FAILED;
+  const MSG_FETCH_MARGIN_FAILED    = FMC_CONSTANTS.USER_MESSAGES.FETCH_MARGIN_FAILED;
+  const MSG_NO_MARGIN_DATA         = FMC_CONSTANTS.USER_MESSAGES.NO_MARGIN_DATA;
+  const MSG_NO_MARGIN_DATA_SHORT   = FMC_CONSTANTS.USER_MESSAGES.NO_MARGIN_DATA_SHORT;
 
   const STATUS_STATE    = FMC_CONSTANTS.STATUS_STATE;
   const ERROR_TYPES     = FMC_CONSTANTS.ERROR_TYPES;
@@ -520,7 +524,7 @@
           if (isRetryableError(posErr)) {
             recordApiFailure();
           }
-          showApiError(posErr, 'Unable to fetch account positions.');
+          showApiError(posErr, MSG_FETCH_POSITIONS_FAILED);
           return;
         }
         if (requestId !== currentRequest) return;
@@ -567,9 +571,9 @@
       if (!impact) {
         // Use showErrorInPanel rather than MarginInjector.showError directly — Angular
         // may have removed the panel during the preceding awaits.
-        showErrorInPanel('No margin data available for this account.', false);
+        showErrorInPanel(MSG_NO_MARGIN_DATA, false);
         setBadge('!', BADGE_COLOR_ERROR);
-        reportStatus(STATUS_STATE.ERROR, { lastError: 'No margin data' });
+        reportStatus(STATUS_STATE.ERROR, { lastError: MSG_NO_MARGIN_DATA_SHORT });
         return;
       }
 
@@ -592,7 +596,7 @@
       }
       // All typed errors from MarginAPI and PositionsAPI set err.type correctly.
       // showApiError relies on err.type to distinguish session-expiry from other errors.
-      showApiError(err, 'Unable to calculate margin impact.');
+      showApiError(err, MSG_FETCH_MARGIN_FAILED);
     }
   }
 
