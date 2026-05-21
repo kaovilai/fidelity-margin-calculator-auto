@@ -10,7 +10,7 @@
   "permissions": [
     "storage",
     "alarms",
-    "declarativeNetRequest"
+    "declarativeNetRequestWithHostAccess"
   ],
   "declarative_net_request": {
     "rule_resources": [
