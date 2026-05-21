@@ -449,7 +449,11 @@ const MarginInjector = (() => {
     // Column 3: Buying Power
     if (bpEl) {
       bpEl.textContent = formatCurrency(impact.projectedBuyingPower);
-      bpEl.className = `fmc-value ${impact.projectedBuyingPower > 0 ? `fmc-status-${STATUS.CREDIT}` : `fmc-status-${STATUS.DEBIT}`}`;
+      bpEl.className = `fmc-value ${
+        impact.projectedBuyingPower > 0 ? `fmc-status-${STATUS.CREDIT}` :
+        impact.projectedBuyingPower < 0 ? `fmc-status-${STATUS.DEBIT}` :
+        CSS.NEUTRAL
+      }`;
     }
   }
 
