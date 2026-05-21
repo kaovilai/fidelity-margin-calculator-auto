@@ -789,7 +789,11 @@
       }
     }
 
-    TradeDetector.observe(tradeEventCallback, settings.debounceMs);
+    // Only start observing when the extension is enabled. If disabled at load time,
+    // the storage onChanged listener (above) will call TradeDetector.observe() when the
+    // user re-enables — so skipping here avoids a MutationObserver and input listener
+    // running on every Fidelity page mutation when no calculation will ever fire.
+    if (settings.enabled) TradeDetector.observe(tradeEventCallback, settings.debounceMs);
   }
 
   // run_at: "document_idle" guarantees DOMContentLoaded has fired before any content script
