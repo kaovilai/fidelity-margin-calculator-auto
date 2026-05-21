@@ -11,15 +11,11 @@
   // How long (ms) to show the force-recalculate button's feedback before clearing it.
   const REFRESH_FEEDBACK_CLEAR_MS = 1500;
 
-  // Account masking parameters — first N chars + '...' + last M chars.
-  const MASK_PREFIX = 2;     // chars to show at the start
-  const MASK_SUFFIX = 4;     // chars to show at the end
-  // Only mask accounts long enough that the prefix and suffix don't cover all chars,
-  // i.e. length must exceed MASK_PREFIX + MASK_SUFFIX so at least one char is hidden.
-  // Using MASK_PREFIX + MASK_SUFFIX + 1 (= 7) ensures "AB...CDEFG" always hides ≥1 char.
-  // A threshold of 6 (= MASK_PREFIX + MASK_SUFFIX) would "mask" 6-char accounts as e.g.
-  // "AB...CDEF" — showing all 6 characters while implying something is hidden.
-  const MASK_MIN_LEN = MASK_PREFIX + MASK_SUFFIX + 1;
+  // Account masking parameters — sourced from FMC_CONSTANTS so a single edit adjusts
+  // the masking behaviour in all consumers rather than requiring a change here AND in constants.js.
+  const MASK_PREFIX  = FMC_CONSTANTS.ACCOUNT_MASK.PREFIX_LEN;
+  const MASK_SUFFIX  = FMC_CONSTANTS.ACCOUNT_MASK.SUFFIX_LEN;
+  const MASK_MIN_LEN = FMC_CONSTANTS.ACCOUNT_MASK.MIN_LEN;
 
   /**
    * Masks an account number for privacy display: e.g. "AB12345678" → "AB...5678".
@@ -108,8 +104,7 @@
     }
 
     if (textEl) {
-      textEl.textContent = status.state === FMC_CONSTANTS.STATUS_STATE.ACTIVE ? 'Active' :
-                           status.state === FMC_CONSTANTS.STATUS_STATE.ERROR ? 'Error' : 'Inactive';
+      textEl.textContent = FMC_CONSTANTS.STATUS_LABEL[status.state] ?? 'Inactive';
     }
     if (dotEl) dotEl.className = `status-dot ${status.state || FMC_CONSTANTS.STATUS_STATE.INACTIVE}`;
 
