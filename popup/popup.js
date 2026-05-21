@@ -12,13 +12,19 @@
   const REFRESH_FEEDBACK_CLEAR_MS = 1500;
 
   // Account masking parameters — first N chars + '...' + last M chars.
-  const MASK_MIN_LEN = 6;    // only mask accounts long enough to safely truncate
   const MASK_PREFIX = 2;     // chars to show at the start
   const MASK_SUFFIX = 4;     // chars to show at the end
+  // Only mask accounts long enough that the prefix and suffix don't cover all chars,
+  // i.e. length must exceed MASK_PREFIX + MASK_SUFFIX so at least one char is hidden.
+  // Using MASK_PREFIX + MASK_SUFFIX + 1 (= 7) ensures "AB...CDEFG" always hides ≥1 char.
+  // A threshold of 6 (= MASK_PREFIX + MASK_SUFFIX) would "mask" 6-char accounts as e.g.
+  // "AB...CDEF" — showing all 6 characters while implying something is hidden.
+  const MASK_MIN_LEN = MASK_PREFIX + MASK_SUFFIX + 1;
 
   /**
    * Masks an account number for privacy display: e.g. "AB12345678" → "AB...5678".
-   * Returns '--' for null/undefined; returns the original string if shorter than MASK_MIN_LEN.
+   * Returns '--' for null/undefined; returns the original string if shorter than MASK_MIN_LEN,
+   * so that masking only occurs when at least one character is genuinely hidden.
    * @param {string|null|undefined} acct - Raw account number string.
    * @returns {string} Masked account string suitable for display.
    */
