@@ -16,12 +16,23 @@
   const MASK_PREFIX = 2;     // chars to show at the start
   const MASK_SUFFIX = 4;     // chars to show at the end
 
-  // Mask account number for privacy: Z2...8273
+  /**
+   * Masks an account number for privacy display: e.g. "AB12345678" → "AB...5678".
+   * Returns '--' for null/undefined; returns the original string if shorter than MASK_MIN_LEN.
+   * @param {string|null|undefined} acct - Raw account number string.
+   * @returns {string} Masked account string suitable for display.
+   */
   function maskAccount(acct) {
     if (!acct || acct.length < MASK_MIN_LEN) return acct || '--';
     return `${acct.slice(0, MASK_PREFIX)}...${acct.slice(-MASK_SUFFIX)}`;
   }
 
+  /**
+   * Returns a human-readable relative time string for a timestamp.
+   * e.g. 1715000000000 → "just now" / "42s ago" / "3m ago" / "2h ago".
+   * @param {number|null|undefined} ts - Unix timestamp in milliseconds (Date.now() format).
+   * @returns {string} Relative time string, or '--' if ts is null/undefined.
+   */
   function timeAgo(ts) {
     if (ts == null) return '--';
     const diff = Math.max(0, Math.floor((Date.now() - ts) / 1000));
@@ -39,6 +50,14 @@
   // Element references cached at DOMContentLoaded time — updateStatus is called on every
   // storage change so avoiding repeated getElementById calls reduces redundant DOM lookups.
   let statusEls = null;
+  /**
+   * Returns (and caches) references to all status-section DOM elements.
+   * Called on every `updateStatus` invocation so elements are retrieved once
+   * instead of on every storage change event.
+   * @returns {{ dot: HTMLElement|null, text: HTMLElement|null, acct: HTMLElement|null,
+   *   calc: HTMLElement|null, calls: HTMLElement|null,
+   *   errRow: HTMLElement|null, err: HTMLElement|null }} Status element map.
+   */
   function getStatusEls() {
     if (statusEls) return statusEls;
     statusEls = {
@@ -53,6 +72,18 @@
     return statusEls;
   }
 
+  /**
+   * Renders the current extension status into the popup's status section.
+   * Called on initial load and on every `chrome.storage.local` change for
+   * `STORAGE_KEY_STATUS`, as well as by the TIME_REFRESH_INTERVAL_MS timer
+   * to keep the relative `timeAgo` display accurate between updates.
+   * @param {Object|null} status - Status object from `chrome.storage.local`, or null if absent.
+   * @param {string} [status.state] - One of {@link FMC_CONSTANTS.STATUS_STATE}.
+   * @param {string|null} [status.accountNum] - Active account number, or null.
+   * @param {number|null} [status.lastCalcTime] - Timestamp (ms) of the last successful API call.
+   * @param {number} [status.apiCallCount] - Total API calls made in this session.
+   * @param {string|null} [status.lastError] - Last error message, or null if no error.
+   */
   function updateStatus(status) {
     const { dot: dotEl, text: textEl, acct: acctEl, calc: calcEl,
             calls: callsEl, errRow, err: errEl } = getStatusEls();
@@ -89,6 +120,13 @@
   // every settings change event, so avoiding repeated getElementById calls here
   // mirrors the same optimisation used for status elements in getStatusEls().
   let settingsEls = null;
+  /**
+   * Returns (and caches) references to all settings-section input elements.
+   * Called on every `saveSettings`/`loadSettings` invocation so elements are
+   * retrieved once instead of on every storage or change event.
+   * @returns {{ enabled: HTMLInputElement|null, threshold: HTMLInputElement|null,
+   *   debounce: HTMLSelectElement|null }} Settings element map.
+   */
   function getSettingsEls() {
     if (settingsEls) return settingsEls;
     settingsEls = {
@@ -99,6 +137,13 @@
     return settingsEls;
   }
 
+  /**
+   * Reads settings from `chrome.storage.sync` and populates the settings form.
+   * Falls back to {@link DEFAULT_SETTINGS} for any missing or invalid values.
+   * Clamps the threshold input to [0, MAX_WARNING_THRESHOLD] before display to
+   * normalise any manually-edited or corrupted storage values.
+   * @returns {Promise<void>}
+   */
   async function loadSettings() {
     if (!chrome.storage?.sync) {
       console.warn('[FMC-Popup] chrome.storage.sync unavailable — using default settings');
@@ -128,6 +173,12 @@
     }
   }
 
+  /**
+   * Reads the current settings form values, clamps/validates them, reflects any
+   * clamped values back to the inputs, then persists to `chrome.storage.sync`.
+   * Called on every settings `change` event (enabled toggle, threshold input,
+   * debounce select). Safe to call if storage is unavailable — returns early.
+   */
   function saveSettings() {
     if (!chrome.storage?.sync) return;
     const { enabled: enabledEl, threshold: thresholdEl, debounce: debounceEl } = getSettingsEls();
@@ -153,7 +204,17 @@
     });
   }
 
-  // --- Init ---
+  /**
+   * Popup entry point. Wires up all UI interactions:
+   * - Displays the extension version from the manifest.
+   * - Loads and renders current status from `chrome.storage.local`.
+   * - Starts a periodic timer to refresh the `timeAgo` display.
+   * - Subscribes to `chrome.storage.onChanged` for live status/settings updates.
+   * - Syncs the threshold input's `max` attribute from `FMC_CONSTANTS`.
+   * - Attaches settings change listeners and the settings collapse toggle.
+   * - Wires up the force-recalculate button to send a message to the active tab.
+   * @returns {Promise<void>}
+   */
   async function init() {
     // Version
     const manifest = chrome.runtime.getManifest();
