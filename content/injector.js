@@ -130,6 +130,22 @@ const MarginInjector = (() => {
   }
 
   /**
+   * Returns the CSS class string for a signed dollar value used in data columns.
+   * Positive → `fmc-status-credit`, negative → `fmc-status-debit`, zero → `fmc-neutral`.
+   * Used for Cash Withdrawable and Buying Power columns, which use a simple sign-based
+   * colour rather than the threshold-aware `getStatus()` used for the primary Credit/Debit column.
+   * @param {number} amount - Dollar value to classify.
+   * @returns {string} Full className string including the base `fmc-value` class.
+   */
+  function signClass(amount) {
+    return `fmc-value ${
+      amount > 0 ? `fmc-status-${STATUS.CREDIT}` :
+      amount < 0 ? `fmc-status-${STATUS.DEBIT}` :
+      CSS.NEUTRAL
+    }`;
+  }
+
+  /**
    * Determines the display status for a projected margin credit/debit value.
    * Non-finite values (NaN, Infinity) are treated as DEBIT — the conservative safe default.
    * @param {number} projectedCreditDebit - Projected margin credit (positive) or debit (negative).
@@ -462,21 +478,13 @@ const MarginInjector = (() => {
       cashEl.textContent = formatCurrency(impact.cashWithdrawable);
       // Negative cash withdrawable means the account is already over-borrowed (margin interest
       // would accrue even before this trade). Show as DEBIT to alert the user, not neutral.
-      cashEl.className = `fmc-value ${
-        impact.cashWithdrawable > 0 ? `fmc-status-${STATUS.CREDIT}` :
-        impact.cashWithdrawable < 0 ? `fmc-status-${STATUS.DEBIT}` :
-        CSS.NEUTRAL
-      }`;
+      cashEl.className = signClass(impact.cashWithdrawable);
     }
 
     // Column 3: Buying Power
     if (bpEl) {
       bpEl.textContent = formatCurrency(impact.projectedBuyingPower);
-      bpEl.className = `fmc-value ${
-        impact.projectedBuyingPower > 0 ? `fmc-status-${STATUS.CREDIT}` :
-        impact.projectedBuyingPower < 0 ? `fmc-status-${STATUS.DEBIT}` :
-        CSS.NEUTRAL
-      }`;
+      bpEl.className = signClass(impact.projectedBuyingPower);
     }
   }
 
