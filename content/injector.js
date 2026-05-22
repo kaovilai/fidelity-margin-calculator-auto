@@ -74,6 +74,7 @@ const MarginInjector = (() => {
   let retryCallback = null;
   const debugLog = []; // ring buffer of debug entries
   const MAX_LOG = FMC_CONSTANTS.MAX_DEBUG_LOG_ENTRIES;
+  const MAX_LOG_ENTRY_LEN = FMC_CONSTANTS.MAX_LOG_ENTRY_LEN;
 
   // Cached Intl formatter instances — constructed once per content script load.
   // Reusing formatter objects avoids allocating a new options struct on every call
@@ -510,8 +511,7 @@ const MarginInjector = (() => {
   function addDebugLog(entry) {
     const ts = _timeFormatter.format(new Date());
     const raw = `[${ts}] ${entry}`;
-    const maxLen = FMC_CONSTANTS.MAX_LOG_ENTRY_LEN;
-    const truncated = raw.length > maxLen ? raw.slice(0, maxLen) + '\u2026' : raw;
+    const truncated = raw.length > MAX_LOG_ENTRY_LEN ? raw.slice(0, MAX_LOG_ENTRY_LEN) + '\u2026' : raw;
     debugLog.push(truncated);
     if (debugLog.length > MAX_LOG) debugLog.shift();
     // Update visible log if open — use panelRefs to avoid a global getElementById
