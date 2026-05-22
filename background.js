@@ -105,7 +105,7 @@ importScripts('/lib/constants.js');
    */
   function cacheSet(key, data, ttl) {
     const now = Date.now();
-    const safeTtl = (typeof ttl === 'number' && Number.isFinite(ttl) && ttl > 0) ? ttl : DEFAULT_CACHE_TTL;
+    const safeTtl = (Number.isFinite(ttl) && ttl > 0) ? ttl : DEFAULT_CACHE_TTL;
     // Delete before inserting so an updated entry moves to the end of Map order (MRU).
     cache.delete(key);
     cache.set(key, { data, expires: now + safeTtl, ttl: safeTtl, storedAt: now });
