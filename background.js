@@ -298,8 +298,13 @@ importScripts('/lib/constants.js');
     }
   });
 
-  chrome.runtime.onInstalled.addListener(() => {
-    log('Extension installed/updated');
+  chrome.runtime.onInstalled.addListener((details) => {
+    const { version } = chrome.runtime.getManifest();
+    if (details.reason === 'update') {
+      log(`Extension updated: ${details.previousVersion} → ${version}`);
+    } else {
+      log(`Extension ${details.reason} (version: ${version})`);
+    }
     clearStartupState();
   });
 
