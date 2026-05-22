@@ -401,12 +401,16 @@ const TradeDetector = (() => {
 
   /**
    * Returns `true` when all required fields for an option leg are filled in:
-   * action, a positive finite quantity, call/put selection, expiration, and strike.
+   * action, a positive integer quantity (rounded via `parseQuantity`), call/put
+   * selection, expiration, and strike.
+   * Uses `parseQuantity` (not `parsePriceInput`) so the check matches the rounding
+   * applied in `buildOptionsOrders` — ensuring this function returns `true` only when
+   * `buildOptionsOrders` will also produce a non-empty result for the same leg.
    * @param {{action: string, quantity: string, callPut: string, expiration: string, strike: string}} leg
    * @returns {boolean}
    */
   function isLegComplete(leg) {
-    const qty = parsePriceInput(leg.quantity);
+    const qty = parseQuantity(leg.quantity);
     return !!(leg.action && Number.isFinite(qty) && qty > 0 && leg.callPut && leg.expiration && leg.strike);
   }
 
@@ -584,8 +588,9 @@ const TradeDetector = (() => {
       // partially-typed values like "." or "1a" are truthy but parse to NaN, which would
       // cause buildEquityOrders to send price:0 to the margin API, producing wrong results.
       // Mirrors the Number.isFinite guard already present in the options branch below.
-      // Use parsePriceInput to strip commas consistently with buildEquityOrders.
-      const qty = parsePriceInput(p.quantity);
+      // Use parseQuantity (rounds to integer) to match buildEquityOrders, ensuring that
+      // hasRequiredFields returning true implies buildOrders will produce a non-empty result.
+      const qty = parseQuantity(p.quantity);
       const limitPriceOk = !isLimitOrderType(p.orderType) ||
         Number.isFinite(parsePriceInput(p.limitPrice));
       return !!(p.symbol && p.action && Number.isFinite(qty) && qty > 0 && limitPriceOk);
