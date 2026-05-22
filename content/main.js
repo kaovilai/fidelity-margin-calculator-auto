@@ -23,10 +23,12 @@
   const MSG_NO_ACCOUNT_SHORT       = FMC_CONSTANTS.USER_MESSAGES.NO_ACCOUNT_SHORT;
   const MSG_PARSE_TRADE_FAILED     = FMC_CONSTANTS.USER_MESSAGES.PARSE_TRADE_FAILED;
   const MSG_PARSE_TRADE_SHORT      = FMC_CONSTANTS.USER_MESSAGES.PARSE_TRADE_SHORT;
-  const MSG_FETCH_POSITIONS_FAILED = FMC_CONSTANTS.USER_MESSAGES.FETCH_POSITIONS_FAILED;
-  const MSG_FETCH_MARGIN_FAILED    = FMC_CONSTANTS.USER_MESSAGES.FETCH_MARGIN_FAILED;
-  const MSG_NO_MARGIN_DATA         = FMC_CONSTANTS.USER_MESSAGES.NO_MARGIN_DATA;
-  const MSG_NO_MARGIN_DATA_SHORT   = FMC_CONSTANTS.USER_MESSAGES.NO_MARGIN_DATA_SHORT;
+  const MSG_FETCH_POSITIONS_FAILED   = FMC_CONSTANTS.USER_MESSAGES.FETCH_POSITIONS_FAILED;
+  const MSG_FETCH_MARGIN_FAILED      = FMC_CONSTANTS.USER_MESSAGES.FETCH_MARGIN_FAILED;
+  const MSG_NO_MARGIN_DATA           = FMC_CONSTANTS.USER_MESSAGES.NO_MARGIN_DATA;
+  const MSG_NO_MARGIN_DATA_SHORT     = FMC_CONSTANTS.USER_MESSAGES.NO_MARGIN_DATA_SHORT;
+  const MSG_CIRCUIT_BREAKER_PANEL    = FMC_CONSTANTS.USER_MESSAGES.CIRCUIT_BREAKER_PANEL;
+  const MSG_CIRCUIT_BREAKER_STATUS   = FMC_CONSTANTS.USER_MESSAGES.CIRCUIT_BREAKER_STATUS;
 
   const STATUS_STATE    = FMC_CONSTANTS.STATUS_STATE;
   const ERROR_TYPES     = FMC_CONSTANTS.ERROR_TYPES;
@@ -490,9 +492,9 @@
       // Use showErrorInPanel rather than MarginInjector.showError directly — mirrors the
       // same defensive pattern used elsewhere in handleTradeReady so the panel is
       // re-injected if Angular removed it between the check above and this display call.
-      showErrorInPanel(`API temporarily unavailable — pausing ${remainingSec}s`, true);
+      showErrorInPanel(MSG_CIRCUIT_BREAKER_PANEL(remainingSec), true);
       setBadge('!', BADGE_COLOR_WARNING);
-      reportStatus(STATUS_STATE.ERROR, { lastError: `Circuit breaker open — ${remainingSec}s remaining` });
+      reportStatus(STATUS_STATE.ERROR, { lastError: MSG_CIRCUIT_BREAKER_STATUS(remainingSec) });
       return;
     }
 
