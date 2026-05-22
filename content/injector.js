@@ -424,7 +424,11 @@ const MarginInjector = (() => {
     // display of body, loading spinner, and error row are driven by
     // data-fmc-state CSS rules — no inline style manipulation needed here.
     const { body, error, errorText, retryBtn } = getPanelElements(panel);
-    if (body) body.removeAttribute('aria-hidden');
+    // Hide the body from screen readers in error state: the results area contains
+    // stale or empty values (e.g. '--') that would confuse AT when the error alert
+    // fires. Mirrors the aria-hidden="true" set by showLoading(); only updatePanel()
+    // should expose body content by removing the attribute.
+    if (body) body.setAttribute('aria-hidden', 'true');
     if (error) {
       if (errorText) errorText.textContent = msg || 'Unknown error';
       if (retryBtn) retryBtn.style.display = canRetry ? 'inline-block' : 'none';
