@@ -527,16 +527,21 @@
           showApiError(posErr, MSG_FETCH_POSITIONS_FAILED);
           return;
         }
+        // Start the cache write before the staleness check — priceList is account-scoped
+        // and valid for the full TTL regardless of which request fetched it. This means
+        // a stale request's fetch still populates the cache so the current (or next)
+        // request avoids a redundant positions API call. setCache writes to the in-memory
+        // fallbackCache synchronously; if this request is stale, the async background
+        // write is fire-and-forget.
+        // Empty priceList uses a short TTL so the user can retry quickly while still
+        // avoiding repeated API calls on every form mutation for accounts with no positions.
+        const cacheOp = priceList.length > 0
+          ? setCache(priceListKey, priceList, PRICELIST_TTL)
+          : setCache(priceListKey, priceList, PRICELIST_EMPTY_TTL);
+        if (requestId !== currentRequest) return; // stale — background write continues
+        await cacheOp;
         if (requestId !== currentRequest) return;
-        if (priceList.length > 0) {
-          await setCache(priceListKey, priceList, PRICELIST_TTL);
-          if (requestId !== currentRequest) return;
-        } else {
-          // Cache the empty result briefly so repeated trade-form changes do not
-          // re-fetch from the positions API on every mutation when the account
-          // genuinely has no positions. Short TTL lets the user retry quickly.
-          await setCache(priceListKey, priceList, PRICELIST_EMPTY_TTL);
-          if (requestId !== currentRequest) return;
+        if (priceList.length === 0) {
           warn('no positions found — margin API requires existing positions');
           // Use showErrorInPanel rather than MarginInjector.showError directly — Angular
           // may have removed the panel during the preceding awaits, and showErrorInPanel
