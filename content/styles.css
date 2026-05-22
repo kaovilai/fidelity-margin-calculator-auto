@@ -184,6 +184,13 @@
   color: var(--fmc-text);
 }
 
+/* Retry button — shown only when the error row has data-fmc-can-retry="true".
+   CSS-driven visibility is consistent with the data-fmc-state approach used for
+   panel body/loading/error row display; avoids inline style.display in JS. */
+.fmc-panel-error:not([data-fmc-can-retry="true"]) .fmc-retry-btn {
+  display: none;
+}
+
 /* Base styles shared by the Retry and Debug buttons in the error row */
 .fmc-panel-btn {
   font-size: 11px;

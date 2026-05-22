@@ -243,15 +243,16 @@ const MarginInjector = (() => {
     const retryBtnEl = mkEl('button', { type: 'button', className: 'fmc-panel-btn fmc-retry-btn', 'aria-label': PT.RETRY_ARIA_LABEL, 'aria-describedby': EL_ID.ERROR_TEXT, textContent: PT.RETRY_BTN });
     const debugBtnEl = mkEl('button', { type: 'button', className: 'fmc-panel-btn fmc-debug-btn', 'aria-label': PT.DEBUG_ARIA_SHOW, 'aria-controls': EL_ID.DEBUG_LOG, 'aria-expanded': 'false', textContent: PT.DEBUG_BTN_SHOW });
     const errorRow = mkEl('div', {
-      className: 'fmc-panel-error', id: EL_ID.ERROR, role: 'alert'
+      className: 'fmc-panel-error', id: EL_ID.ERROR, role: 'alert', 'data-fmc-can-retry': 'false'
     },
       mkEl('span', { className: 'fmc-error-icon', 'aria-hidden': 'true', textContent: '\u26a0' }),
       errorTextEl,
       retryBtnEl,
       debugBtnEl
     );
-    // retryBtnEl is hidden by default; shown/hidden via style.display by showError() based on canRetry.
-    retryBtnEl.style.display = 'none';
+    // retryBtnEl visibility is controlled via data-fmc-can-retry on the error row (see styles.css)
+    // rather than inline style, consistent with the CSS-driven panel state approach used throughout.
+    // Initial hidden state handled by CSS rule: .fmc-panel-error:not([data-fmc-can-retry="true"]) .fmc-retry-btn
 
     // Debug log (hidden until toggled).
     // aria-live="off" overrides the implicit aria-live="polite" from role="log":
@@ -434,7 +435,7 @@ const MarginInjector = (() => {
     panel.setAttribute('aria-busy', 'false');
     // display of body, loading spinner, and error row are driven by
     // data-fmc-state CSS rules — no inline style manipulation needed here.
-    const { body, error, errorText, retryBtn } = getPanelElements(panel);
+    const { body, error, errorText } = getPanelElements(panel);
     // Hide the body from screen readers in error state: the results area contains
     // stale or empty values (e.g. '--') that would confuse AT when the error alert
     // fires. Mirrors the aria-hidden="true" set by showLoading(); only updatePanel()
@@ -442,7 +443,10 @@ const MarginInjector = (() => {
     body?.setAttribute('aria-hidden', 'true');
     if (error) {
       if (errorText) errorText.textContent = msg || 'Unknown error';
-      if (retryBtn) retryBtn.style.display = canRetry ? 'inline-block' : 'none';
+      // Toggle retry button visibility via CSS data attribute — consistent with the
+      // CSS-driven panel state approach used throughout (data-fmc-state, aria-hidden)
+      // rather than mixing in inline display/opacity styles.
+      error.setAttribute('data-fmc-can-retry', canRetry ? 'true' : 'false');
     }
   }
 
