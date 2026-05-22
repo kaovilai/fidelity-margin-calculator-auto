@@ -415,6 +415,22 @@
   }
 
   /**
+   * Handles a synchronous (non-API) error detected in `tradeEventCallback`:
+   * increments `currentRequest` to invalidate any in-flight `handleTradeReady` call,
+   * shows the error in the panel, sets the error badge, and updates the stored status.
+   * Used for errors that are detected synchronously (e.g. missing account number,
+   * unparseable order) before an async API call has been dispatched.
+   * @param {string} longMsg - Full error message to display in the injected panel.
+   * @param {string} [shortMsg=longMsg] - Condensed version for the popup status display.
+   */
+  function showSyncError(longMsg, shortMsg = longMsg) {
+    currentRequest++;
+    showErrorInPanel(longMsg, false);
+    setBadge('!', BADGE_COLOR_ERROR);
+    reportStatus(STATUS_STATE.ERROR, { lastError: shortMsg });
+  }
+
+  /**
    * Shows the "no positions" error in the panel, sets the error badge, and updates the
    * stored status. Extracted to avoid duplicating the same three-step sequence in both
    * the cached-empty-priceList path and the freshly-fetched-empty-priceList path.
@@ -749,15 +765,7 @@
       switch (event.type) {
         case 'ready':
           if (!event.accountNum) {
-            // Invalidate any in-flight request so it cannot overwrite this error panel
-            // with stale results. Mirrors the same guard used in the 'incomplete' case.
-            currentRequest++;
-            showErrorInPanel(MSG_NO_ACCOUNT, false);
-            // Sync badge and popup status so the user sees the error reflected everywhere,
-            // not just in the injected panel. Mirrors the pattern used in handleTradeReady
-            // and showApiError where every error path updates all three surfaces.
-            setBadge('!', BADGE_COLOR_ERROR);
-            reportStatus(STATUS_STATE.ERROR, { lastError: MSG_NO_ACCOUNT_SHORT });
+            showSyncError(MSG_NO_ACCOUNT, MSG_NO_ACCOUNT_SHORT);
             break;
           }
           if (event.orders?.length > 0) {
@@ -781,16 +789,8 @@
           } else {
             // Trade form passed field completeness check but order parsing failed
             // (e.g. unparseable limit price or missing option symbol component).
-            // Increment currentRequest so any in-flight handleTradeReady cannot
-            // overwrite this error panel with stale results once it resolves.
-            currentRequest++;
-            // Inject the panel and show a meaningful error so the user isn't left wondering.
             warn('ready event with empty orders — trade form may be incomplete or in an unexpected format');
-            showErrorInPanel(MSG_PARSE_TRADE_FAILED, false);
-            // Sync badge and popup status so the error is visible in all three surfaces,
-            // consistent with handleTradeReady and showApiError error handling.
-            setBadge('!', BADGE_COLOR_ERROR);
-            reportStatus(STATUS_STATE.ERROR, { lastError: MSG_PARSE_TRADE_SHORT });
+            showSyncError(MSG_PARSE_TRADE_FAILED, MSG_PARSE_TRADE_SHORT);
           }
           break;
 
