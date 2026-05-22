@@ -347,7 +347,15 @@
         if (tabs[0]?.id != null) {
           const resp = await chrome.tabs.sendMessage(tabs[0].id, { type: FMC_CONSTANTS.MESSAGE_TYPES.FORCE_RECALC, _fmc: true })
             .catch(() => null); // Content script may not be loaded on this tab — ignore
-          if (refreshStatus) refreshStatus.textContent = resp?.ok ? 'Recalculate requested.' : 'Not active on this tab.';
+          if (refreshStatus) {
+            if (resp?.ok) {
+              refreshStatus.textContent = 'Recalculate requested.';
+            } else if (resp?.disabled) {
+              refreshStatus.textContent = 'Extension is disabled.';
+            } else {
+              refreshStatus.textContent = 'Not active on this tab.';
+            }
+          }
         } else {
           if (refreshStatus) refreshStatus.textContent = 'No active tab found.';
         }
