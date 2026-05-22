@@ -844,10 +844,8 @@ const TradeDetector = (() => {
    * Safe to call even if `observe()` was never called.
    */
   function disconnect() {
-    if (observer) {
-      observer.disconnect();
-      observer = null;
-    }
+    observer?.disconnect();
+    observer = null;
     if (inputListener) {
       document.removeEventListener('input', inputListener, true);
       inputListener = null;
