@@ -229,11 +229,16 @@ body {
   outline-offset: 2px;
 }
 /* Out-of-range value: use the themed error color instead of the browser default
-   red outline so the invalid state matches the extension's design language. */
-.setting-input:invalid {
+   red outline so the invalid state matches the extension's design language.
+   :out-of-range (not :invalid) is intentional: the threshold input uses step="50"
+   for convenient spinner increments, but saveSettings() accepts any integer in
+   [0, MAX_WARNING_THRESHOLD]. :invalid would fire on non-multiples of 50 (e.g. 375),
+   causing a false-positive red border for perfectly valid thresholds. :out-of-range
+   only fires when the value falls outside [min, max], which matches what we enforce. */
+.setting-input:out-of-range {
   border-color: var(--fmc-red);
 }
-.setting-input:focus-visible:invalid {
+.setting-input:focus-visible:out-of-range {
   outline-color: var(--fmc-red);
 }
 
