@@ -102,7 +102,7 @@ const MarginInjector = (() => {
    */
   function showDebugLog(logEl, btnEl) {
     if (!logEl) return;
-    logEl.textContent = debugLog.join('\n') || '(no log entries)';
+    logEl.textContent = debugLog.join('\n') || PT.DEBUG_LOG_EMPTY;
     logEl.setAttribute('data-fmc-debug-open', '');
     // Scroll to newest entry (bottom) so the user sees the most recent log lines
     // without having to manually scroll — matches the behaviour of standard log viewers.
@@ -259,7 +259,7 @@ const MarginInjector = (() => {
     // the log content is replaced wholesale via textContent on every update (not appended),
     // so polite announcements would read out the entire log on each API call. Since this is
     // a developer tool opened on demand, users read it manually — no live announcements needed.
-    const debugLogDiv = mkEl('div', { className: 'fmc-debug-log', id: EL_ID.DEBUG_LOG, role: 'log', 'aria-live': 'off', 'aria-label': 'Debug log', tabindex: '0' });
+    const debugLogDiv = mkEl('div', { className: 'fmc-debug-log', id: EL_ID.DEBUG_LOG, role: 'log', 'aria-live': 'off', 'aria-label': PT.DEBUG_LOG_ARIA_LABEL, tabindex: '0' });
     // Initial hidden state is CSS-driven (no data-fmc-debug-open attribute present).
 
     const attribution = mkEl('div', { className: 'fmc-attribution', 'aria-hidden': 'true' },
@@ -442,7 +442,7 @@ const MarginInjector = (() => {
     // should expose body content by removing the attribute.
     body?.setAttribute('aria-hidden', 'true');
     if (error) {
-      if (errorText) errorText.textContent = msg || 'Unknown error';
+      if (errorText) errorText.textContent = msg || PT.UNKNOWN_ERROR;
       // Toggle retry button visibility via CSS data attribute — consistent with the
       // CSS-driven panel state approach used throughout (data-fmc-state, aria-hidden)
       // rather than mixing in inline display/opacity styles.
