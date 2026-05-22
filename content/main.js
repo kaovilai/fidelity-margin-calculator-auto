@@ -665,10 +665,12 @@
         // information leakage about the _fmc handler to other installed extensions.
         if (!msg?._fmc || !chrome.runtime?.id || sender.id !== chrome.runtime.id) return false;
         if (msg.type === MSG.FORCE_RECALC) {
-          // If the extension is disabled, no recalculation will run; treat the same as
-          // "not active on this tab" so the popup shows an accurate status message.
+          // If the extension is disabled, no recalculation will run. Return a distinct
+          // `disabled` flag so the popup can show "Extension is disabled" instead of the
+          // generic "Not active on this tab" message (which means the content script
+          // isn't injected at all).
           if (!settings.enabled) {
-            sendResponse({ ok: false });
+            sendResponse({ ok: false, disabled: true });
             return false;
           }
           sendResponse({ ok: true }); // acknowledge immediately so popup can confirm receipt
