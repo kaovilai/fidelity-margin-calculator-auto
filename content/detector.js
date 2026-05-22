@@ -83,9 +83,7 @@ const TradeDetector = (() => {
   // (e.g. Fidelity redesigns their trade ticket) without rejecting any real-world values.
   // A value exceeding these indicates garbled DOM text, not a genuine user input.
   // Centralized in FMC_CONSTANTS.DETECTOR so they can be tuned without hunting here.
-  const MAX_ACCOUNT_NUM_LEN = FMC_CONSTANTS.DETECTOR.MAX_ACCOUNT_NUM_LEN;
-  const MAX_SYMBOL_LEN = FMC_CONSTANTS.DETECTOR.MAX_SYMBOL_LEN;
-  const MAX_ORDER_QTY = FMC_CONSTANTS.DETECTOR.MAX_ORDER_QTY;
+  const { MAX_ACCOUNT_NUM_LEN, MAX_SYMBOL_LEN, MAX_ORDER_QTY } = FMC_CONSTANTS.DETECTOR;
 
   // --- Shared parsing helpers ---
 
@@ -367,8 +365,7 @@ const TradeDetector = (() => {
 
   // --- Multi-leg options extraction ---
 
-  const MAX_LEGS = FMC_CONSTANTS.DETECTOR.MAX_LEGS; // Fidelity supports up to 4 legs; 8 is a safe upper bound
-  const OBSERVER_THROTTLE_MS = FMC_CONSTANTS.DETECTOR.OBSERVER_THROTTLE_MS; // throttle MutationObserver → check() to reduce DOM queries
+  const { MAX_LEGS, OBSERVER_THROTTLE_MS } = FMC_CONSTANTS.DETECTOR;
 
   /**
    * Counts the number of active option legs by probing for `leg-row-{i}` elements.
