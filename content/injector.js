@@ -399,13 +399,18 @@ const MarginInjector = (() => {
     panel.setAttribute('aria-busy', 'true');
     // display/opacity of body, loading spinner, and error row are driven by
     // data-fmc-state CSS rules — no inline style manipulation needed here.
-    const { body, debugLog: debugLogEl, debugBtn: debugBtnEl } = getPanelElements(panel);
+    const { body, errorText: errorTextEl, debugLog: debugLogEl, debugBtn: debugBtnEl } = getPanelElements(panel);
     if (body) {
       // Prevent stale aria-live values from being announced while new data loads.
       // aria-busy="true" on the panel suppresses announcements in most screen readers,
       // but aria-hidden here provides an additional safeguard for older AT.
       body.setAttribute('aria-hidden', 'true');
     }
+    // Clear stale error text so the role="alert" error row is empty when it next
+    // enters the accessibility tree (display:none → flex on showError).  Some ATs
+    // announce the element's content at re-entry; leaving old text here causes them
+    // to first announce the previous error and then the new one (double-announcement).
+    if (errorTextEl) errorTextEl.textContent = '';
     // Hide the debug log if it was left open from a previous error state.
     hideDebugLog(debugLogEl, debugBtnEl);
   }
@@ -462,8 +467,12 @@ const MarginInjector = (() => {
 
     // display/opacity of body, loading spinner, and error row are driven by
     // data-fmc-state CSS rules — no inline style manipulation needed here.
-    const { body, creditDebit: creditDebitEl, creditDebitLabel, delta: deltaEl, cash: cashEl, buyingPower: bpEl, debugLog: debugLogEl, debugBtn: debugBtnEl } = getPanelElements(panel);
+    const { body, errorText: errorTextEl, creditDebit: creditDebitEl, creditDebitLabel, delta: deltaEl, cash: cashEl, buyingPower: bpEl, debugLog: debugLogEl, debugBtn: debugBtnEl } = getPanelElements(panel);
     if (body) body.removeAttribute('aria-hidden');
+    // Clear stale error text — mirrors the same guard in showLoading(). When the
+    // extension later re-enters error state from result state, the role="alert" row
+    // must be empty as it enters the accessibility tree to avoid double-announcement.
+    if (errorTextEl) errorTextEl.textContent = '';
     // Hide the debug log if it was left open from a previous error state — same
     // rationale as in showLoading(): the Debug button is inside the hidden error row,
     // so the user would have no way to close it after results are displayed.
