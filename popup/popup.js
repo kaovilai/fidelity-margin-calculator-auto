@@ -5,7 +5,7 @@
 
   const { DEFAULT_SETTINGS, STORAGE_KEY_SETTINGS, STORAGE_KEY_STATUS } = FMC_CONSTANTS;
 
-  const { TIME_REFRESH_INTERVAL_MS, FEEDBACK_CLEAR_MS: REFRESH_FEEDBACK_CLEAR_MS } = FMC_CONSTANTS.POPUP;
+  const { TIME_REFRESH_INTERVAL_MS, FEEDBACK_CLEAR_MS: REFRESH_FEEDBACK_CLEAR_MS, FORCE_RECALC_FEEDBACK } = FMC_CONSTANTS.POPUP;
 
   // Account masking parameters — sourced from FMC_CONSTANTS so a single edit adjusts
   // the masking behaviour in all consumers rather than requiring a change here AND in constants.js.
@@ -352,20 +352,20 @@
             .catch(() => null); // Content script may not be loaded on this tab — ignore
           if (refreshStatus) {
             if (resp?.ok) {
-              refreshStatus.textContent = 'Recalculate requested.';
+              refreshStatus.textContent = FORCE_RECALC_FEEDBACK.OK;
             } else if (resp?.disabled) {
-              refreshStatus.textContent = 'Extension is disabled.';
+              refreshStatus.textContent = FORCE_RECALC_FEEDBACK.DISABLED;
             } else if (resp?.inactive) {
-              refreshStatus.textContent = 'No active trade ticket.';
+              refreshStatus.textContent = FORCE_RECALC_FEEDBACK.INACTIVE;
             } else {
-              refreshStatus.textContent = 'Not active on this tab.';
+              refreshStatus.textContent = FORCE_RECALC_FEEDBACK.NO_CONTENT;
             }
           }
         } else {
-          if (refreshStatus) refreshStatus.textContent = 'No active tab found.';
+          if (refreshStatus) refreshStatus.textContent = FORCE_RECALC_FEEDBACK.NO_TAB;
         }
       } catch {
-        if (refreshStatus) refreshStatus.textContent = 'Error sending request.';
+        if (refreshStatus) refreshStatus.textContent = FORCE_RECALC_FEEDBACK.ERROR;
       } finally {
         setTimeout(() => {
           if (refreshStatus) refreshStatus.textContent = '';
