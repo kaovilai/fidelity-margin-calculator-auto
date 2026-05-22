@@ -33,6 +33,7 @@
   const STATUS_STATE    = FMC_CONSTANTS.STATUS_STATE;
   const ERROR_TYPES     = FMC_CONSTANTS.ERROR_TYPES;
   const CIRCUIT_BREAKER = FMC_CONSTANTS.CIRCUIT_BREAKER;
+  const EV              = FMC_CONSTANTS.TRADE_EVENT_TYPES;
 
   /**
    * Clamps a debounce delay to at least `FMC_CONSTANTS.MIN_DEBOUNCE_MS`.
@@ -773,7 +774,7 @@
      */
     function tradeEventCallback(event) {
       switch (event.type) {
-        case 'ready':
+        case EV.READY:
           if (!event.accountNum) {
             showSyncError(MSG_NO_ACCOUNT, MSG_NO_ACCOUNT_SHORT);
             break;
@@ -804,7 +805,7 @@
           }
           break;
 
-        case 'closed':
+        case EV.CLOSED:
           // Stop heartbeat — service worker no longer needs to be kept alive.
           stopHeartbeat();
           // Increment currentRequest so any in-flight handleTradeReady call
@@ -831,7 +832,7 @@
           reportStatus(STATUS_STATE.INACTIVE);
           break;
 
-        case 'incomplete':
+        case EV.INCOMPLETE:
           // Increment currentRequest so any in-flight handleTradeReady call that
           // was dispatched before the form became incomplete cannot overwrite the
           // panel with results that no longer match the current form state.
