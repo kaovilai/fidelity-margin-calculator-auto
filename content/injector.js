@@ -68,8 +68,8 @@ const MarginInjector = (() => {
    * @param {HTMLElement|null} btnEl - The debug toggle button element.
    */
   function hideDebugLog(logEl, btnEl) {
-    if (!logEl || logEl.style.display === 'none') return;
-    logEl.style.display = 'none';
+    if (!logEl || !logEl.hasAttribute('data-fmc-debug-open')) return;
+    logEl.removeAttribute('data-fmc-debug-open');
     if (btnEl) {
       btnEl.textContent = PT.DEBUG_BTN_SHOW;
       btnEl.setAttribute('aria-label', PT.DEBUG_ARIA_SHOW);
@@ -103,7 +103,7 @@ const MarginInjector = (() => {
   function showDebugLog(logEl, btnEl) {
     if (!logEl) return;
     logEl.textContent = debugLog.join('\n') || '(no log entries)';
-    logEl.style.display = 'block';
+    logEl.setAttribute('data-fmc-debug-open', '');
     // Scroll to newest entry (bottom) so the user sees the most recent log lines
     // without having to manually scroll — matches the behaviour of standard log viewers.
     logEl.scrollTop = logEl.scrollHeight;
@@ -260,7 +260,7 @@ const MarginInjector = (() => {
     // so polite announcements would read out the entire log on each API call. Since this is
     // a developer tool opened on demand, users read it manually — no live announcements needed.
     const debugLogDiv = mkEl('div', { className: 'fmc-debug-log', id: EL_ID.DEBUG_LOG, role: 'log', 'aria-live': 'off', 'aria-label': 'Debug log', tabindex: '0' });
-    debugLogDiv.style.display = 'none';
+    // Initial hidden state is CSS-driven (no data-fmc-debug-open attribute present).
 
     const attribution = mkEl('div', { className: 'fmc-attribution', 'aria-hidden': 'true' },
       mkEl('span', { className: 'fmc-ext-badge', textContent: PT.ATTRIBUTION })
@@ -297,7 +297,7 @@ const MarginInjector = (() => {
     // Wire debug button — delegate to hideDebugLog / showDebugLog so the toggle
     // logic is defined in one place; the click handler just decides which direction.
     debugBtnEl.addEventListener('click', () => {
-      const visible = debugLogDiv.style.display !== 'none';
+      const visible = debugLogDiv.hasAttribute('data-fmc-debug-open');
       if (visible) {
         hideDebugLog(debugLogDiv, debugBtnEl);
       } else {
@@ -542,7 +542,7 @@ const MarginInjector = (() => {
     const panel = getPanel();
     if (!panel) return;
     const logEl = panelRefs.get(panel)?.debugLog;
-    if (logEl && logEl.style.display !== 'none') {
+    if (logEl && logEl.hasAttribute('data-fmc-debug-open')) {
       logEl.textContent = debugLog.join('\n');
       // Keep the view pinned to the newest entries as new log lines arrive.
       logEl.scrollTop = logEl.scrollHeight;
