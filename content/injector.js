@@ -6,6 +6,10 @@ const MarginInjector = (() => {
   const DEFAULT_WARNING_THRESHOLD = FMC_CONSTANTS.DEFAULT_SETTINGS.debitWarningThreshold;
   let warningThreshold = DEFAULT_WARNING_THRESHOLD;
 
+  // Panel UI text — sourced from FMC_CONSTANTS so a copy-edit only requires
+  // one change in constants.js rather than hunting through this file.
+  const PT = FMC_CONSTANTS.PANEL_TEXT;
+
   // data-fmc-state attribute values
   const PANEL_STATE = Object.freeze({
     LOADING: 'loading',
@@ -61,8 +65,8 @@ const MarginInjector = (() => {
     if (!logEl || logEl.style.display === 'none') return;
     logEl.style.display = 'none';
     if (btnEl) {
-      btnEl.textContent = 'Debug';
-      btnEl.setAttribute('aria-label', 'Show debug log');
+      btnEl.textContent = PT.DEBUG_BTN_SHOW;
+      btnEl.setAttribute('aria-label', PT.DEBUG_ARIA_SHOW);
       btnEl.setAttribute('aria-expanded', 'false');
     }
   }
@@ -97,8 +101,8 @@ const MarginInjector = (() => {
     // without having to manually scroll — matches the behaviour of standard log viewers.
     logEl.scrollTop = logEl.scrollHeight;
     if (btnEl) {
-      btnEl.textContent = 'Hide';
-      btnEl.setAttribute('aria-label', 'Hide debug log');
+      btnEl.textContent = PT.DEBUG_BTN_HIDE;
+      btnEl.setAttribute('aria-label', PT.DEBUG_ARIA_HIDE);
       btnEl.setAttribute('aria-expanded', 'true');
     }
   }
@@ -197,7 +201,7 @@ const MarginInjector = (() => {
 
     // Panel body — three data columns — capture value element references directly
     // so panelRefs can use them without a second querySelector pass over the DOM.
-    const creditDebitLabelEl = mkEl('span', { className: 'fmc-label', id: EL_ID.CREDIT_DEBIT_LABEL, textContent: 'Margin Credit/Debit' });
+    const creditDebitLabelEl = mkEl('span', { className: 'fmc-label', id: EL_ID.CREDIT_DEBIT_LABEL, textContent: PT.CREDIT_DEBIT_INITIAL });
     const creditDebitEl = mkEl('span', { className: 'fmc-value', id: EL_ID.CREDIT_DEBIT, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.CREDIT_DEBIT_LABEL, textContent: '--' });
     const deltaEl = mkEl('span', { className: 'fmc-sublabel', id: EL_ID.DELTA, 'aria-live': 'polite', 'aria-atomic': 'true' });
     const cashEl = mkEl('span', { className: 'fmc-value', id: EL_ID.CASH_WITHDRAWABLE, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.CASH_WITHDRAWABLE_LABEL, textContent: '--' });
@@ -209,28 +213,28 @@ const MarginInjector = (() => {
         deltaEl
       ),
       mkEl('div', { className: 'fmc-col', role: 'group', 'aria-labelledby': EL_ID.CASH_WITHDRAWABLE_LABEL },
-        mkEl('span', { className: 'fmc-label', id: EL_ID.CASH_WITHDRAWABLE_LABEL, textContent: 'Cash Withdrawable' }),
+        mkEl('span', { className: 'fmc-label', id: EL_ID.CASH_WITHDRAWABLE_LABEL, textContent: PT.CASH_WITHDRAWABLE }),
         cashEl,
-        mkEl('span', { className: 'fmc-sublabel', textContent: 'without margin interest' })
+        mkEl('span', { className: 'fmc-sublabel', textContent: PT.CASH_SUBLABEL })
       ),
       mkEl('div', { className: 'fmc-col fmc-col-last', role: 'group', 'aria-labelledby': EL_ID.BUYING_POWER_LABEL },
-        mkEl('span', { className: 'fmc-label', id: EL_ID.BUYING_POWER_LABEL, textContent: 'Buying Power' }),
+        mkEl('span', { className: 'fmc-label', id: EL_ID.BUYING_POWER_LABEL, textContent: PT.BUYING_POWER }),
         buyingPowerEl,
-        mkEl('span', { className: 'fmc-sublabel', textContent: 'margin buying power' })
+        mkEl('span', { className: 'fmc-sublabel', textContent: PT.BUYING_POWER_SUBLABEL })
       )
     );
 
     // Loading indicator
     const loading = mkEl('div', { className: 'fmc-panel-loading', id: EL_ID.LOADING, role: 'status' },
       mkEl('span', { className: 'fmc-spinner', 'aria-hidden': 'true' }),
-      mkEl('span', { textContent: 'Calculating margin impact...' })
+      mkEl('span', { textContent: PT.LOADING_TEXT })
     );
 
     // Error row (hidden until needed) — capture child references directly to avoid
     // redundant querySelector calls later for panelRefs and event-listener wiring.
     const errorTextEl = mkEl('span', { className: 'fmc-error-text', id: EL_ID.ERROR_TEXT });
-    const retryBtnEl = mkEl('button', { type: 'button', className: 'fmc-panel-btn fmc-retry-btn', 'aria-label': 'Retry margin calculation', 'aria-describedby': EL_ID.ERROR_TEXT, textContent: 'Retry' });
-    const debugBtnEl = mkEl('button', { type: 'button', className: 'fmc-panel-btn fmc-debug-btn', 'aria-label': 'Show debug log', 'aria-controls': EL_ID.DEBUG_LOG, 'aria-expanded': 'false', textContent: 'Debug' });
+    const retryBtnEl = mkEl('button', { type: 'button', className: 'fmc-panel-btn fmc-retry-btn', 'aria-label': 'Retry margin calculation', 'aria-describedby': EL_ID.ERROR_TEXT, textContent: PT.RETRY_BTN });
+    const debugBtnEl = mkEl('button', { type: 'button', className: 'fmc-panel-btn fmc-debug-btn', 'aria-label': PT.DEBUG_ARIA_SHOW, 'aria-controls': EL_ID.DEBUG_LOG, 'aria-expanded': 'false', textContent: PT.DEBUG_BTN_SHOW });
     const errorRow = mkEl('div', {
       className: 'fmc-panel-error', id: EL_ID.ERROR, role: 'alert'
     },
@@ -251,7 +255,7 @@ const MarginInjector = (() => {
     debugLogDiv.style.display = 'none';
 
     const attribution = mkEl('div', { className: 'fmc-attribution', 'aria-hidden': 'true' },
-      mkEl('span', { className: 'fmc-ext-badge', 'aria-hidden': 'true', textContent: 'Margin Calc' })
+      mkEl('span', { className: 'fmc-ext-badge', 'aria-hidden': 'true', textContent: PT.ATTRIBUTION })
     );
 
     panel.appendChild(body);
@@ -455,7 +459,7 @@ const MarginInjector = (() => {
 
     // Column 1: Margin Credit/Debit + delta sublabel
     if (creditDebitLabel) {
-      creditDebitLabel.textContent = impact.projectedCreditDebit >= 0 ? 'Margin Credit' : 'Margin Debit';
+      creditDebitLabel.textContent = impact.projectedCreditDebit >= 0 ? PT.CREDIT_LABEL : PT.DEBIT_LABEL;
     }
     if (creditDebitEl) {
       creditDebitEl.textContent = formatCurrency(impact.projectedCreditDebit);
@@ -463,12 +467,12 @@ const MarginInjector = (() => {
     }
     if (deltaEl) {
       if (impact.delta !== null) {
-        deltaEl.textContent = `${formatDelta(impact.delta)} from current`;
+        deltaEl.textContent = `${formatDelta(impact.delta)} ${PT.DELTA_SUFFIX}`;
         deltaEl.className = ['fmc-sublabel',
           impact.delta < 0 ? CSS.NEGATIVE : impact.delta > 0 ? CSS.POSITIVE : null
         ].filter(Boolean).join(' ');
       } else {
-        deltaEl.textContent = 'projected with trade';
+        deltaEl.textContent = PT.DELTA_NO_BASELINE;
         deltaEl.className = 'fmc-sublabel';
       }
     }
