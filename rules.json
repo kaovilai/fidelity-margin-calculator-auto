@@ -14,7 +14,7 @@
     },
     "condition": {
       "urlFilter": "|https://digital.fidelity.com/ftgw/digital/margincalcex/api/graphql",
-      "resourceTypes": ["xmlhttprequest"]
+      "resourceTypes": ["xmlhttprequest", "fetch"]
     }
   }
 ]
