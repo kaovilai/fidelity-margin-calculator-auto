@@ -183,15 +183,24 @@ body {
   font-size: 11px;
 }
 
-/* Settings */
+/* Settings — CSS grid trick: animates grid-template-rows 0fr↔1fr so the
+   collapse/expand duration matches the actual content height instead of an
+   arbitrary max-height ceiling (360px), avoiding animation jank and the need
+   for any magic number. Supported in Chrome ≥107; this extension requires ≥111. */
 .settings-body {
-  overflow: hidden;
-  max-height: 360px; /* explicit numeric value required for max-height transition to animate */
-  transition: max-height 0.2s ease-out;
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.2s ease-out;
 }
 
 .settings-body.collapsed {
-  max-height: 0 !important;
+  grid-template-rows: 0fr;
+}
+
+/* Inner wrapper: min-height:0 lets the grid row collapse below content height;
+   overflow:hidden clips content during the collapse animation. */
+.settings-body-inner {
+  min-height: 0;
   overflow: hidden;
 }
 
