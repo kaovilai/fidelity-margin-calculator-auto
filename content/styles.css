@@ -36,6 +36,12 @@
   font-size: 12px;
   color: var(--fmc-text);
   position: relative;
+  /* CSS containment: isolate the panel's layout and style from the rest of the
+     Fidelity page so that DOM mutations within the panel (value updates, state
+     transitions) do not trigger layout/style recalculations in the Angular host
+     document. `paint` is intentionally omitted to preserve visible focus rings
+     and scrollbar chrome that may extend past the box bounds in some browsers. */
+  contain: layout style;
 }
 
 /* Subtle background tint based on status */
