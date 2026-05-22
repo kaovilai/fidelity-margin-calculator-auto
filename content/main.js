@@ -818,6 +818,15 @@
           // Reset session-expiry flag on ticket close: the user may have navigated away
           // to re-authenticate and then returned to open a new trade ticket.
           sessionExpired = false;
+          // Reset circuit breaker on ticket close so a new ticket open gets a fresh
+          // API attempt rather than being immediately blocked by failures from the
+          // previous session. Mirrors the same reset already applied on force-recalc
+          // and re-enable, where "intent to retry" is the documented rationale.
+          // Without this, a user who closes and reopens a ticket within the 30 s
+          // OPEN_DURATION_MS window always sees "API temporarily unavailable" even
+          // though the API may have recovered — inconsistent with force-recalc behaviour.
+          consecutiveFailures = 0;
+          circuitOpenUntil = 0;
           MarginInjector.remove();
           // Clear any error badge and mark the extension as inactive in the popup.
           // Without these calls the badge persists its last error state (e.g. '!') and
