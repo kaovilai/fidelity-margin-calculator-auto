@@ -569,5 +569,16 @@ const MarginInjector = (() => {
       : DEFAULT_WARNING_THRESHOLD;
   }
 
-  return { inject, remove, showLoading, showError, updatePanel, getPanel, setRetryCallback, addDebugLog, clearDebugLog, setWarningThreshold };
+  /**
+   * Returns `true` when the panel is currently displaying a result (not loading or error).
+   * Encapsulates the `data-fmc-state` attribute check so callers in other modules
+   * do not need to hard-code the `'result'` string — if `PANEL_STATE.RESULT` is ever
+   * renamed, only this function needs to change.
+   * @returns {boolean}
+   */
+  function isShowingResult() {
+    return getPanel()?.getAttribute('data-fmc-state') === PANEL_STATE.RESULT;
+  }
+
+  return { inject, remove, showLoading, showError, updatePanel, getPanel, setRetryCallback, addDebugLog, clearDebugLog, setWarningThreshold, isShowingResult };
 })();
