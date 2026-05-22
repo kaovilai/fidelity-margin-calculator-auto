@@ -132,14 +132,19 @@ const TradeDetector = (() => {
   // --- Page context detection ---
 
   /**
-   * Returns `true` if an element has a non-`none` inline `display` style.
-   * Fidelity's Angular popup sets `style.display` directly via JS; checking for
-   * `'block'` only would break if they switch to `'flex'` or `'inline-block'`.
+   * Returns `true` if an element is visible based on inline style and the HTML
+   * `hidden` attribute.  Fidelity's Angular popup sets `style.display` directly
+   * via JS; checking for `'block'` only would break if they switch to `'flex'`
+   * or `'inline-block'`.  The `hidden` attribute check is kept in sync with the
+   * MutationObserver's `attributeFilter` which already watches `'hidden'`
+   * changes — without it the observer would fire but detection would still miss
+   * a ticket hidden/shown via that attribute.
    * @param {Element|null} el - DOM element to inspect.
    * @returns {boolean}
    */
   function isInlineVisible(el) {
     if (!el) return false;
+    if (el.hidden) return false;
     const d = el.style.display;
     return d !== '' && d !== 'none';
   }
