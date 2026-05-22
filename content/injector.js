@@ -39,8 +39,9 @@ const MarginInjector = (() => {
     CASH_WITHDRAWABLE:       'fmc-cash-withdrawable',
     CASH_WITHDRAWABLE_LABEL: 'fmc-cash-withdrawable-label',
     // Sublabel IDs — used via aria-describedby on the value elements so screen readers
-    // announce the contextual hint ("without margin interest", "margin buying power")
-    // alongside the numeric value, providing the same meaning conveyed visually.
+    // announce the contextual hint ("projected with trade" / "+$50 from current",
+    // "without margin interest", "margin buying power") alongside the numeric value,
+    // providing the same meaning conveyed visually.
     CASH_SUBLABEL:           'fmc-cash-sublabel',
     BUYING_POWER:            'fmc-buying-power',
     BUYING_POWER_LABEL:      'fmc-buying-power-label',
@@ -208,8 +209,8 @@ const MarginInjector = (() => {
     // Panel body — three data columns — capture value element references directly
     // so panelRefs can use them without a second querySelector pass over the DOM.
     const creditDebitLabelEl = mkEl('span', { className: 'fmc-label', id: EL_ID.CREDIT_DEBIT_LABEL, textContent: PT.CREDIT_DEBIT_INITIAL });
-    const creditDebitEl = mkEl('span', { className: 'fmc-value', id: EL_ID.CREDIT_DEBIT, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.CREDIT_DEBIT_LABEL, textContent: '--' });
-    const deltaEl = mkEl('span', { className: 'fmc-sublabel', id: EL_ID.DELTA, 'aria-live': 'polite', 'aria-atomic': 'true' });
+    const creditDebitEl = mkEl('span', { className: 'fmc-value', id: EL_ID.CREDIT_DEBIT, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.CREDIT_DEBIT_LABEL, 'aria-describedby': EL_ID.DELTA, textContent: '--' });
+    const deltaEl = mkEl('span', { className: 'fmc-sublabel', id: EL_ID.DELTA });
     const cashEl = mkEl('span', { className: 'fmc-value', id: EL_ID.CASH_WITHDRAWABLE, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.CASH_WITHDRAWABLE_LABEL, 'aria-describedby': EL_ID.CASH_SUBLABEL, textContent: '--' });
     const buyingPowerEl = mkEl('span', { className: 'fmc-value', id: EL_ID.BUYING_POWER, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.BUYING_POWER_LABEL, 'aria-describedby': EL_ID.BUYING_POWER_SUBLABEL, textContent: '--' });
     const body = mkEl('div', { className: 'fmc-panel-body' },
