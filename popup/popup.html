@@ -52,22 +52,25 @@
         <div class="setting-row">
           <label class="setting-label" for="setting-enabled">Enabled</label>
           <span class="switch">
-            <input type="checkbox" id="setting-enabled" checked>
+            <input type="checkbox" id="setting-enabled" checked aria-describedby="hint-enabled">
             <span class="slider" aria-hidden="true"></span>
           </span>
         </div>
+        <p id="hint-enabled" class="setting-hint">When off, the margin panel is hidden and no API calls are made.</p>
         <div class="setting-row">
           <label class="setting-label" for="setting-threshold">Warning threshold ($)</label>
-          <input type="number" id="setting-threshold" class="setting-input" value="500" min="0" max="100000" step="50" autocomplete="off">
+          <input type="number" id="setting-threshold" class="setting-input" value="500" min="0" max="100000" step="50" autocomplete="off" aria-describedby="hint-threshold">
         </div>
+        <p id="hint-threshold" class="setting-hint">Show a warning when projected margin credit is at or below this amount. Range: $0–$100,000.</p>
         <div class="setting-row">
           <label class="setting-label" for="setting-debounce">Debounce</label>
-          <select id="setting-debounce" class="setting-select">
+          <select id="setting-debounce" class="setting-select" aria-describedby="hint-debounce">
             <option value="200">Fast (200ms)</option>
             <option value="500" selected>Normal (500ms)</option>
             <option value="1000">Conservative (1s)</option>
           </select>
         </div>
+        <p id="hint-debounce" class="setting-hint">How long to wait after a form change before recalculating. Increase if calculations trigger too often.</p>
       </div>
     </section>
     </main>
