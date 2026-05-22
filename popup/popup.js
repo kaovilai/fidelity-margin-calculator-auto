@@ -109,7 +109,12 @@
     if (textEl) {
       textEl.textContent = STATUS_LABEL[status.state] ?? 'Inactive';
     }
-    if (dotEl) dotEl.className = `status-dot ${status.state || STATUS_STATE.INACTIVE}`;
+    // Validate state before using as a CSS class — guards against corrupted storage
+    // injecting an arbitrary string as a class name on the status indicator element.
+    const validState = Object.values(STATUS_STATE).includes(status.state)
+      ? status.state
+      : STATUS_STATE.INACTIVE;
+    if (dotEl) dotEl.className = `status-dot ${validState}`;
 
     if (acctEl) acctEl.textContent = maskAccount(status.accountNum);
     if (calcEl) calcEl.textContent = timeAgo(status.lastCalcTime);

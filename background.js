@@ -257,7 +257,14 @@ importScripts('/lib/constants.js');
   (async () => {
     try {
       const existing = await chrome.alarms.get(CLEANUP_ALARM);
-      if (!existing) await chrome.alarms.create(CLEANUP_ALARM, { periodInMinutes: CLEANUP_INTERVAL_MINUTES });
+      // Recreate the alarm when absent OR when its period no longer matches the constant.
+      // Without the period check, an extension update that changes CLEANUP_INTERVAL_MINUTES
+      // would silently continue using the old period since Chrome persists alarms across
+      // service worker restarts and the existence guard would prevent recreation.
+      if (!existing || existing.periodInMinutes !== CLEANUP_INTERVAL_MINUTES) {
+        if (existing) await chrome.alarms.clear(CLEANUP_ALARM);
+        await chrome.alarms.create(CLEANUP_ALARM, { periodInMinutes: CLEANUP_INTERVAL_MINUTES });
+      }
     } catch (err) {
       warn('Could not query cleanup alarm, attempting creation anyway:', err.message);
       chrome.alarms.create(CLEANUP_ALARM, { periodInMinutes: CLEANUP_INTERVAL_MINUTES })
