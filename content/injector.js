@@ -256,7 +256,7 @@ const MarginInjector = (() => {
     debugLogDiv.style.display = 'none';
 
     const attribution = mkEl('div', { className: 'fmc-attribution', 'aria-hidden': 'true' },
-      mkEl('span', { className: 'fmc-ext-badge', 'aria-hidden': 'true', textContent: PT.ATTRIBUTION })
+      mkEl('span', { className: 'fmc-ext-badge', textContent: PT.ATTRIBUTION })
     );
 
     panel.appendChild(body);
