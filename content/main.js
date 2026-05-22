@@ -535,6 +535,7 @@
           priceList = await PositionsAPI.fetchPriceList(accountNum);
         } catch (posErr) {
           if (requestId !== currentRequest) return;
+          log('Error:', posErr);
           if (isRetryableError(posErr)) {
             recordApiFailure();
           }
