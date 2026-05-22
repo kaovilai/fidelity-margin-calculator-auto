@@ -11,7 +11,7 @@
   // the masking behaviour in all consumers rather than requiring a change here AND in constants.js.
   const { PREFIX_LEN: MASK_PREFIX, SUFFIX_LEN: MASK_SUFFIX, MIN_LEN: MASK_MIN_LEN } = FMC_CONSTANTS.ACCOUNT_MASK;
 
-  const { STATUS_STATE, STATUS_LABEL, MAX_WARNING_THRESHOLD, MIN_DEBOUNCE_MS } = FMC_CONSTANTS;
+  const { STATUS_STATE, STATUS_LABEL, MAX_WARNING_THRESHOLD, THRESHOLD_INPUT_STEP, MIN_DEBOUNCE_MS } = FMC_CONSTANTS;
 
   /**
    * Masks an account number for privacy display: e.g. "AB12345678" → "AB...5678".
@@ -259,11 +259,14 @@
       });
     }
 
-    // Sync the threshold input's max attribute from the constant so changing
-    // MAX_WARNING_THRESHOLD in constants.js is automatically reflected here
-    // without requiring a separate HTML edit that could drift out of sync.
+    // Sync the threshold input's max and step attributes from constants so changing
+    // MAX_WARNING_THRESHOLD or THRESHOLD_INPUT_STEP in constants.js is automatically
+    // reflected here without requiring a separate HTML edit that could drift out of sync.
     const { threshold: thresholdConstraintEl } = getSettingsEls();
-    if (thresholdConstraintEl) thresholdConstraintEl.max = String(MAX_WARNING_THRESHOLD);
+    if (thresholdConstraintEl) {
+      thresholdConstraintEl.max  = String(MAX_WARNING_THRESHOLD);
+      thresholdConstraintEl.step = String(THRESHOLD_INPUT_STEP);
+    }
 
     // Keep the hint text in sync with the constant for the same reason.
     const hintThresholdEl = document.getElementById('hint-threshold');
