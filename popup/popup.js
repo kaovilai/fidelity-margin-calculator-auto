@@ -312,10 +312,13 @@
 
       // Restore persisted collapse state so the section opens in the same state
       // the user last left it, rather than always defaulting to expanded.
+      // Awaited so the collapse is applied before the popup renders its first frame,
+      // preventing a brief flash where the section appears expanded then collapses.
       if (chrome.storage?.local) {
-        chrome.storage.local.get(COLLAPSE_KEY).then(result => {
-          if (result[COLLAPSE_KEY] === true) applyCollapsedState(true);
-        }).catch(() => {});
+        try {
+          const collapseResult = await chrome.storage.local.get(COLLAPSE_KEY);
+          if (collapseResult[COLLAPSE_KEY] === true) applyCollapsedState(true);
+        } catch { /* storage read failure — default to expanded */ }
       }
 
       toggle.addEventListener('click', () => {
