@@ -104,7 +104,7 @@
       if (calcEl) calcEl.textContent = '--';
       if (callsEl) callsEl.textContent = '0';
       if (errEl) errEl.textContent = '';
-      if (errRow) errRow.classList.remove('has-error');
+      errRow?.classList.remove('has-error');
       return;
     }
 
@@ -126,7 +126,7 @@
     // when it enters the accessibility tree — improves screen-reader announcement
     // reliability when the row transitions from visually-hidden to visible.
     if (errEl) errEl.textContent = status.lastError || '';
-    if (errRow) errRow.classList.toggle('has-error', !!status.lastError);
+    errRow?.classList.toggle('has-error', !!status.lastError);
   }
 
   // --- Settings ---
@@ -280,7 +280,7 @@
     // Settings change handlers — use getSettingsEls() so IDs stay in one place
     const { enabled: enabledEl, threshold: thresholdEl, debounce: debounceEl } = getSettingsEls();
     for (const el of [enabledEl, thresholdEl, debounceEl]) {
-      if (el) el.addEventListener('change', saveSettings);
+      el?.addEventListener('change', saveSettings);
     }
 
     // Settings toggle
