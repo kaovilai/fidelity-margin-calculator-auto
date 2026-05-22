@@ -29,6 +29,7 @@
         "lib/debug.js",
         "lib/retry.js",
         "lib/fetch-utils.js",
+        "lib/api-error.js",
         "lib/positions.js",
         "lib/margin-api.js",
         "lib/margin-calc.js",
