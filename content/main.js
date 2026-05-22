@@ -669,6 +669,13 @@
             sendResponse({ ok: false, disabled: true });
             return false;
           }
+          // If there is no active trade ticket (content script loaded but ticket not yet
+          // opened, or ticket was closed), tell the popup so it can show a specific
+          // "No active trade ticket" message instead of the generic success message.
+          if (!lastAccountNum || !lastOrders) {
+            sendResponse({ ok: false, inactive: true });
+            return false;
+          }
           sendResponse({ ok: true }); // acknowledge immediately so popup can confirm receipt
           (async () => {
             fallbackCache.clear();
@@ -683,9 +690,7 @@
             if (lastAccountNum) {
               await invalidateAccountCache(lastAccountNum);
             }
-            if (lastAccountNum && lastOrders) {
-              await handleTradeReady(lastAccountNum, lastOrders);
-            }
+            await handleTradeReady(lastAccountNum, lastOrders);
           })().catch(err => log('Error during force-recalc:', err));
         } else {
           // Unexpected _fmc message type — acknowledge to avoid "port closed before response" warnings.
