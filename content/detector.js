@@ -287,7 +287,12 @@ const TradeDetector = (() => {
     const match = expStr.match(/([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})/);
     if (!match) return '';
     const [, month, day, year] = match;
-    const mm = MONTH_MAP[month];
+    // Normalise to 3-char Title Case so the lookup is robust against Fidelity
+    // changing capitalisation (e.g. "jan" → "Jan") or using full month names
+    // (e.g. "September" → "Sep").
+    const abbr = month.slice(0, 3);
+    const normalizedMonth = abbr.charAt(0).toUpperCase() + abbr.slice(1).toLowerCase();
+    const mm = MONTH_MAP[normalizedMonth];
     if (!mm) {
       warn(`Unrecognized month abbreviation in expiration — Fidelity may have changed format: ${expStr}`);
       return '';
