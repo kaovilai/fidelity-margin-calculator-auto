@@ -101,8 +101,8 @@
       if (acctEl) acctEl.textContent = '--';
       if (calcEl) calcEl.textContent = '--';
       if (callsEl) callsEl.textContent = '0';
-      if (errRow) errRow.style.display = 'none';
       if (errEl) errEl.textContent = '';
+      if (errRow) errRow.classList.remove('has-error');
       return;
     }
 
@@ -115,8 +115,11 @@
     if (calcEl) calcEl.textContent = timeAgo(status.lastCalcTime);
     if (callsEl) callsEl.textContent = status.apiCallCount ?? 0;
 
-    if (errRow) errRow.style.display = status.lastError ? 'flex' : 'none';
+    // Set textContent before toggling visibility so the live region has content
+    // when it enters the accessibility tree — improves screen-reader announcement
+    // reliability when the row transitions from visually-hidden to visible.
     if (errEl) errEl.textContent = status.lastError || '';
+    if (errRow) errRow.classList.toggle('has-error', !!status.lastError);
   }
 
   // --- Settings ---
