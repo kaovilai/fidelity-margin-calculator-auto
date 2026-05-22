@@ -718,8 +718,7 @@
           // the new warning threshold takes effect without waiting for the next trade
           // form change. Example: a $600 credit shown as WARNING (threshold was $700)
           // should update to CREDIT as soon as the user lowers the threshold to $500.
-          const panel = MarginInjector.getPanel();
-          if (lastImpact !== null && panel?.getAttribute('data-fmc-state') === 'result') {
+          if (lastImpact !== null && MarginInjector.isShowingResult()) {
             MarginInjector.updatePanel(lastImpact);
           }
           // If the extension was just disabled, remove the panel and disconnect the
