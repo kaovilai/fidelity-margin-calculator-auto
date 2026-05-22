@@ -858,19 +858,5 @@ const TradeDetector = (() => {
     throttleTimer = null;
   }
 
-  return {
-    detectPageContext,
-    isTradeTicketVisible,
-    isOptionsTicket,
-    isEquityTicket,
-    getAccountNumber,
-    getTradeParams,
-    buildOrders,
-    buildOrderSymbol,
-    mapAction,
-    hasRequiredFields,
-    getParamsFingerprint,
-    observe,
-    disconnect
-  };
+  return { observe, disconnect };
 })();
