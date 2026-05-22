@@ -584,7 +584,16 @@
       log('Impact:', impact);
       lastCalcTime = Date.now(); // update only on successful calculation
       lastImpact = impact; // retain for immediate re-render on threshold setting change
-      MarginInjector.updatePanel(impact);
+      // Guard: Angular may have removed the panel during the preceding awaits.
+      // Re-inject if needed — mirrors the same defensive pattern used by showErrorInPanel
+      // so that a successful calculation is never silently discarded when the panel is gone.
+      if (!MarginInjector.getPanel() && !MarginInjector.inject()) {
+        // Injection target is also gone — Fidelity page layout may have changed.
+        // Log so it's not silent; the panel will reappear on the next 'ready' event.
+        warn('Impact calculated but injection target not found — result will show on next form change');
+      } else {
+        MarginInjector.updatePanel(impact);
+      }
       reportStatus(STATUS_STATE.ACTIVE);
       setBadge('', null);
 
