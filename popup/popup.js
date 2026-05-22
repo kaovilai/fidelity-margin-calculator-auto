@@ -1,6 +1,8 @@
 // Popup logic — reads status from chrome.storage.local, manages settings in chrome.storage.sync
 'use strict';
 (() => {
+  const LOG_PREFIX = '[FMC-Popup]';
+
   const DEFAULT_SETTINGS = FMC_CONSTANTS.DEFAULT_SETTINGS;
 
   const STORAGE_KEY_SETTINGS = FMC_CONSTANTS.STORAGE_KEY_SETTINGS;
@@ -158,7 +160,7 @@
    */
   async function loadSettings() {
     if (!chrome.storage?.sync) {
-      console.warn('[FMC-Popup] chrome.storage.sync unavailable — using default settings');
+      console.warn(LOG_PREFIX, 'chrome.storage.sync unavailable — using default settings');
       return;
     }
     try {
@@ -181,7 +183,7 @@
         if (debounceEl.value === '') debounceEl.value = String(DEFAULT_SETTINGS.debounceMs);
       }
     } catch (err) {
-      console.warn('[FMC-Popup] Could not load settings:', err.message);
+      console.warn(LOG_PREFIX, 'Could not load settings:', err.message);
     }
   }
 
@@ -212,7 +214,7 @@
       debounceMs: Number.isFinite(debounce) && debounce >= MIN_DEBOUNCE_MS ? debounce : DEFAULT_SETTINGS.debounceMs
     };
     chrome.storage.sync.set({ [STORAGE_KEY_SETTINGS]: settings }).catch((err) => {
-      console.warn('[FMC-Popup] Could not save settings:', err.message);
+      console.warn(LOG_PREFIX, 'Could not save settings:', err.message);
     });
   }
 
@@ -261,7 +263,7 @@
         }
         // Refresh settings display if they change via Chrome Sync from another device
         if (area === 'sync' && changes[STORAGE_KEY_SETTINGS]) {
-          loadSettings().catch(err => console.warn('[FMC-Popup] Could not refresh settings:', err.message));
+          loadSettings().catch(err => console.warn(LOG_PREFIX, 'Could not refresh settings:', err.message));
         }
       });
     }
@@ -360,5 +362,5 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', () => init().catch(err => console.error('[FMC-Popup] Fatal init error:', err)));
+  document.addEventListener('DOMContentLoaded', () => init().catch(err => console.error(LOG_PREFIX, 'Fatal init error:', err)));
 })();
