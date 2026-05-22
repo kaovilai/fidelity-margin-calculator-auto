@@ -159,8 +159,20 @@ body {
 .status-dot.inactive { background: var(--fmc-secondary); }
 .status-dot.error { background: var(--fmc-red); }
 
+/* Keep the error row in the layout (and accessibility tree) at all times so its
+   aria-live="assertive" region is active before content is written. display:none
+   would remove the element from the AT, making screen-reader announcements
+   unreliable when the row transitions from hidden to visible.
+   max-height:0 + overflow:hidden achieves the same visual effect without
+   excluding the element from the AT. */
 #status-error-row {
-  display: none;
+  max-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+#status-error-row.has-error {
+  max-height: 2em;
+  padding: 3px 0;
 }
 
 .status-error-text {
