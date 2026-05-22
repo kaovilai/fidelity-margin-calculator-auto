@@ -228,6 +228,14 @@ body {
   outline: 2px solid var(--fmc-green);
   outline-offset: 2px;
 }
+/* Out-of-range value: use the themed error color instead of the browser default
+   red outline so the invalid state matches the extension's design language. */
+.setting-input:invalid {
+  border-color: var(--fmc-red);
+}
+.setting-input:focus-visible:invalid {
+  outline-color: var(--fmc-red);
+}
 
 .setting-select {
   padding: 2px 4px;
@@ -342,6 +350,16 @@ input:focus-visible + .slider {
 .btn-refresh:focus-visible {
   outline: 2px solid var(--fmc-green);
   outline-offset: 2px;
+}
+/* Disabled state while a force-recalculate is in flight: suppress the browser
+   default gray appearance and use themed opacity + not-allowed cursor instead. */
+.btn-refresh:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn-refresh:disabled:hover {
+  background: var(--fmc-bg);
+  border-color: var(--fmc-input-border);
 }
 
 /* Refresh status text shown below the Force Recalculate button */
