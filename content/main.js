@@ -40,7 +40,7 @@
    * @returns {number} A finite number ≥ MIN_DEBOUNCE_MS.
    */
   function clampDebounceMs(ms) {
-    if (typeof ms !== 'number' || !Number.isFinite(ms) || ms < FMC_CONSTANTS.MIN_DEBOUNCE_MS) {
+    if (!Number.isFinite(ms) || ms < FMC_CONSTANTS.MIN_DEBOUNCE_MS) {
       return FMC_CONSTANTS.MIN_DEBOUNCE_MS;
     }
     return ms;
