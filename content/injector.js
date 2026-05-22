@@ -310,13 +310,23 @@ const MarginInjector = (() => {
 
   /**
    * Retrieves the cached inner element references for a panel.
-   * Returns a minimal fallback object with null properties when the panel is not in `panelRefs`
-   * (e.g. a panel created outside the normal `createPanel` path).
+   * Returns a complete fallback object with null properties when the panel is not in `panelRefs`
+   * (e.g. a panel created outside the normal `createPanel` path, or a stale DOM element
+   * found by getElementById whose WeakMap entry has been GC-ed).
+   * All properties match the shape stored by `createPanel` so callers can safely destructure
+   * any subset without receiving `undefined` — consistent with the null-guard pattern used
+   * throughout showLoading, showError, updatePanel, and addDebugLog.
    * @param {HTMLElement} panel - The margin panel element to look up.
-   * @returns {Object} Cached element references, or `{ body: null, loading: null, error: null }`.
+   * @returns {Object} Cached element references, or a null-valued fallback of the same shape.
    */
   function getPanelElements(panel) {
-    return panelRefs.get(panel) ?? { body: null, loading: null, error: null };
+    return panelRefs.get(panel) ?? {
+      body: null, loading: null, error: null,
+      errorText: null, retryBtn: null,
+      creditDebit: null, creditDebitLabel: null,
+      delta: null, cash: null, buyingPower: null,
+      debugLog: null, debugBtn: null
+    };
   }
 
   /**
