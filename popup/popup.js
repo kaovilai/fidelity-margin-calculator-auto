@@ -355,6 +355,8 @@
               refreshStatus.textContent = 'Recalculate requested.';
             } else if (resp?.disabled) {
               refreshStatus.textContent = 'Extension is disabled.';
+            } else if (resp?.inactive) {
+              refreshStatus.textContent = 'No active trade ticket.';
             } else {
               refreshStatus.textContent = 'Not active on this tab.';
             }
