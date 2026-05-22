@@ -197,7 +197,7 @@ const MarginInjector = (() => {
     panel.className = 'fmc-margin-panel';
     panel.setAttribute('data-fmc-state', PANEL_STATE.LOADING);
     panel.setAttribute('role', 'region');
-    panel.setAttribute('aria-label', 'Margin Impact');
+    panel.setAttribute('aria-label', PT.PANEL_ARIA_LABEL);
     panel.setAttribute('aria-busy', 'true');
 
     // Panel body — three data columns — capture value element references directly
@@ -234,7 +234,7 @@ const MarginInjector = (() => {
     // Error row (hidden until needed) — capture child references directly to avoid
     // redundant querySelector calls later for panelRefs and event-listener wiring.
     const errorTextEl = mkEl('span', { className: 'fmc-error-text', id: EL_ID.ERROR_TEXT });
-    const retryBtnEl = mkEl('button', { type: 'button', className: 'fmc-panel-btn fmc-retry-btn', 'aria-label': 'Retry margin calculation', 'aria-describedby': EL_ID.ERROR_TEXT, textContent: PT.RETRY_BTN });
+    const retryBtnEl = mkEl('button', { type: 'button', className: 'fmc-panel-btn fmc-retry-btn', 'aria-label': PT.RETRY_ARIA_LABEL, 'aria-describedby': EL_ID.ERROR_TEXT, textContent: PT.RETRY_BTN });
     const debugBtnEl = mkEl('button', { type: 'button', className: 'fmc-panel-btn fmc-debug-btn', 'aria-label': PT.DEBUG_ARIA_SHOW, 'aria-controls': EL_ID.DEBUG_LOG, 'aria-expanded': 'false', textContent: PT.DEBUG_BTN_SHOW });
     const errorRow = mkEl('div', {
       className: 'fmc-panel-error', id: EL_ID.ERROR, role: 'alert'
