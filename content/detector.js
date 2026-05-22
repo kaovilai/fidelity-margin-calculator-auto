@@ -672,6 +672,10 @@ const TradeDetector = (() => {
 
   // --- Observer ---
 
+  // Trade event type constants — sourced from FMC_CONSTANTS so a rename in one place
+  // is caught immediately rather than silently breaking the callback routing in main.js.
+  const EV = FMC_CONSTANTS.TRADE_EVENT_TYPES;
+
   let observer = null;
   let debounceTimer = null;
   let inputListener = null;
@@ -682,12 +686,12 @@ const TradeDetector = (() => {
    * with a typed event whenever the form state changes.
    * Re-calling replaces the previous observer and cancels any pending debounce.
    * @param {(event: {
-   *   type: 'ready' | 'incomplete' | 'closed',
+   *   type: FMC_CONSTANTS.TRADE_EVENT_TYPES[keyof FMC_CONSTANTS.TRADE_EVENT_TYPES],
    *   context?: string,
    *   accountNum?: string | null,
    *   orders?: Array<{orderSymbol: string, orderType: string, orderAction: string,
    *     orderQty: number, price: number}>
-   * }) => void} callback - Called when form state changes. 'ready' includes accountNum and orders.
+   * }) => void} callback - Called when form state changes. READY includes accountNum and orders.
    * @param {number} [debounceMs=500] - Delay in ms before firing 'ready' after last detected change.
    */
   function observe(callback, debounceMs = FMC_CONSTANTS.DEFAULT_SETTINGS.debounceMs) {
@@ -705,10 +709,10 @@ const TradeDetector = (() => {
     }
 
     let lastFingerprint = '';
-    // Initialize to 'closed' so the first check() call with no visible ticket does not
+    // Initialize to CLOSED so the first check() call with no visible ticket does not
     // fire a spurious 'closed' event. The initial state of "no ticket open" is already
     // implied; main.js initialises currentRequest/lastResult/panel to safe defaults.
-    let lastEventType = 'closed';
+    let lastEventType = EV.CLOSED;
 
     function check() {
       const ctx = detectPageContext();
@@ -720,9 +724,9 @@ const TradeDetector = (() => {
         // would attempt work with a stale requestId.
         clearTimeout(debounceTimer);
         debounceTimer = null;
-        if (lastEventType !== 'closed') {
-          lastEventType = 'closed';
-          try { callback({ type: 'closed' }); } catch (e) { warn('observer callback error:', e); }
+        if (lastEventType !== EV.CLOSED) {
+          lastEventType = EV.CLOSED;
+          try { callback({ type: EV.CLOSED }); } catch (e) { warn('observer callback error:', e); }
         }
         return;
       }
@@ -738,9 +742,9 @@ const TradeDetector = (() => {
         // same state, the equality check below doesn't suppress the new 'ready'
         // event and the calculation re-fires correctly.
         lastFingerprint = '';
-        if (lastEventType !== 'incomplete') {
-          lastEventType = 'incomplete';
-          try { callback({ type: 'incomplete' }); } catch (e) { warn('observer callback error:', e); }
+        if (lastEventType !== EV.INCOMPLETE) {
+          lastEventType = EV.INCOMPLETE;
+          try { callback({ type: EV.INCOMPLETE }); } catch (e) { warn('observer callback error:', e); }
         }
         return;
       }
@@ -760,7 +764,7 @@ const TradeDetector = (() => {
         }
       }
       lastFingerprint = fp;
-      lastEventType = 'ready';
+      lastEventType = EV.READY;
 
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
@@ -785,7 +789,7 @@ const TradeDetector = (() => {
         if (!hasRequiredFields(currentCtx, currentParams)) return;
         try {
           callback({
-            type: 'ready',
+            type: EV.READY,
             context: currentCtx,
             accountNum: getAccountNumber(currentCtx),
             orders: buildOrders(currentCtx, currentParams)
