@@ -281,12 +281,20 @@ const TradeDetector = (() => {
    */
   function parseExpiration(expStr) {
     if (!expStr) return '';
-    const match = expStr.match(/(\w+)\s+(\d+),\s+(\d{4})/);
+    // [A-Za-z]+ instead of \w+ so digits and underscores cannot accidentally
+    // match as a month abbreviation. \d{1,2} instead of \d+ rejects implausibly
+    // long day strings (e.g. "9999") that would produce an invalid API date code.
+    const match = expStr.match(/([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})/);
     if (!match) return '';
     const [, month, day, year] = match;
     const mm = MONTH_MAP[month];
     if (!mm) {
       warn(`Unrecognized month abbreviation in expiration — Fidelity may have changed format: ${expStr}`);
+      return '';
+    }
+    const dayNum = parseInt(day, 10);
+    if (dayNum < 1 || dayNum > 31) {
+      warn(`Day out of range in expiration date — Fidelity DOM may have changed: ${expStr}`);
       return '';
     }
     const yy = year.slice(2);
