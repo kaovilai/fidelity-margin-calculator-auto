@@ -219,7 +219,18 @@
   color: var(--fmc-text);
 }
 
-/* Debug log */
+/* Debug log — hidden by default; shown when data-fmc-debug-open is present.
+   CSS-driven visibility is consistent with the data-fmc-state / data-fmc-can-retry
+   approach used throughout the panel — JS only sets/removes the attribute rather
+   than toggling inline display. */
+.fmc-debug-log {
+  display: none;
+}
+.fmc-debug-log[data-fmc-debug-open] {
+  display: block;
+}
+
+/* Layout and appearance (always applied regardless of visibility) */
 .fmc-debug-log {
   margin-top: 6px;
   padding: 6px 8px;
