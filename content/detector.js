@@ -211,7 +211,6 @@ const TradeDetector = (() => {
    *   Pass this to avoid a redundant DOM read when context is already known.
    * @returns {string|null} Account number string, or `null` if not found.
    */
-  // ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
   function getAccountNumber(ctx = detectPageContext()) {
     if (ctx === CTX.POPUP_EQUITY) {
       return getEquityAccountNumber();
@@ -463,7 +462,6 @@ const TradeDetector = (() => {
    * @param {string} [ctx] - Pre-computed page context from `detectPageContext()`.
    * @returns {Object|null} Raw parameters object (shape varies by ticket type), or `null` if no ticket is visible.
    */
-  // ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
   function getTradeParams(ctx = detectPageContext()) {
     if (ctx === CTX.POPUP_EQUITY) return getEquityTradeParams();
     if (ctx === CTX.POPUP_OPTIONS || ctx === CTX.DEDICATED_OPTIONS) return getOptionsTradeParams();
@@ -481,7 +479,6 @@ const TradeDetector = (() => {
    * @returns {Array<{orderSymbol: string, orderType: string, orderAction: string,
    *   orderQty: number, price: number}>} Order array (may be empty).
    */
-  // ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
   function buildOrders(ctx = detectPageContext(), params) {
     if (!ctx) return [];
     if (ctx === CTX.POPUP_EQUITY) return buildEquityOrders(params);
@@ -574,7 +571,6 @@ const TradeDetector = (() => {
    *   hold the params object should pass it to avoid a redundant DOM traversal.
    * @returns {boolean}
    */
-  // _ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
   function hasRequiredFields(ctx = detectPageContext(), params) {
     if (!ctx) return false;
 
@@ -612,7 +608,6 @@ const TradeDetector = (() => {
    *   hold the params object should pass it to avoid a redundant DOM traversal.
    * @returns {string} Fingerprint string, or `''` if no ticket is visible.
    */
-  // ctx: optional pre-computed detectPageContext() result to avoid redundant DOM reads
   function getParamsFingerprint(ctx = detectPageContext(), params) {
     if (!ctx) return '';
 
