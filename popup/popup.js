@@ -274,6 +274,14 @@
     const { threshold: thresholdConstraintEl } = getSettingsEls();
     if (thresholdConstraintEl) thresholdConstraintEl.max = String(MAX_WARNING_THRESHOLD);
 
+    // Keep the hint text in sync with the constant for the same reason.
+    const hintThresholdEl = document.getElementById('hint-threshold');
+    if (hintThresholdEl) {
+      const maxFormatted = MAX_WARNING_THRESHOLD.toLocaleString('en-US');
+      hintThresholdEl.textContent =
+        `Show a warning when projected margin credit is at or below this amount. Range: $0\u2013$${maxFormatted}.`;
+    }
+
     // Load settings
     await loadSettings();
 
