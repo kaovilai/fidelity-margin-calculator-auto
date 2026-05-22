@@ -38,8 +38,13 @@ const MarginInjector = (() => {
     CREDIT_DEBIT_LABEL:      'fmc-credit-debit-label',
     CASH_WITHDRAWABLE:       'fmc-cash-withdrawable',
     CASH_WITHDRAWABLE_LABEL: 'fmc-cash-withdrawable-label',
+    // Sublabel IDs — used via aria-describedby on the value elements so screen readers
+    // announce the contextual hint ("without margin interest", "margin buying power")
+    // alongside the numeric value, providing the same meaning conveyed visually.
+    CASH_SUBLABEL:           'fmc-cash-sublabel',
     BUYING_POWER:            'fmc-buying-power',
     BUYING_POWER_LABEL:      'fmc-buying-power-label',
+    BUYING_POWER_SUBLABEL:   'fmc-buying-power-sublabel',
     DELTA:                   'fmc-delta',
     LOADING:                 'fmc-loading',
     ERROR:                   'fmc-error',
@@ -205,8 +210,8 @@ const MarginInjector = (() => {
     const creditDebitLabelEl = mkEl('span', { className: 'fmc-label', id: EL_ID.CREDIT_DEBIT_LABEL, textContent: PT.CREDIT_DEBIT_INITIAL });
     const creditDebitEl = mkEl('span', { className: 'fmc-value', id: EL_ID.CREDIT_DEBIT, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.CREDIT_DEBIT_LABEL, textContent: '--' });
     const deltaEl = mkEl('span', { className: 'fmc-sublabel', id: EL_ID.DELTA, 'aria-live': 'polite', 'aria-atomic': 'true' });
-    const cashEl = mkEl('span', { className: 'fmc-value', id: EL_ID.CASH_WITHDRAWABLE, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.CASH_WITHDRAWABLE_LABEL, textContent: '--' });
-    const buyingPowerEl = mkEl('span', { className: 'fmc-value', id: EL_ID.BUYING_POWER, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.BUYING_POWER_LABEL, textContent: '--' });
+    const cashEl = mkEl('span', { className: 'fmc-value', id: EL_ID.CASH_WITHDRAWABLE, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.CASH_WITHDRAWABLE_LABEL, 'aria-describedby': EL_ID.CASH_SUBLABEL, textContent: '--' });
+    const buyingPowerEl = mkEl('span', { className: 'fmc-value', id: EL_ID.BUYING_POWER, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.BUYING_POWER_LABEL, 'aria-describedby': EL_ID.BUYING_POWER_SUBLABEL, textContent: '--' });
     const body = mkEl('div', { className: 'fmc-panel-body' },
       mkEl('div', { className: 'fmc-col', role: 'group', 'aria-labelledby': EL_ID.CREDIT_DEBIT_LABEL },
         creditDebitLabelEl,
@@ -216,12 +221,12 @@ const MarginInjector = (() => {
       mkEl('div', { className: 'fmc-col', role: 'group', 'aria-labelledby': EL_ID.CASH_WITHDRAWABLE_LABEL },
         mkEl('span', { className: 'fmc-label', id: EL_ID.CASH_WITHDRAWABLE_LABEL, textContent: PT.CASH_WITHDRAWABLE }),
         cashEl,
-        mkEl('span', { className: 'fmc-sublabel', textContent: PT.CASH_SUBLABEL })
+        mkEl('span', { className: 'fmc-sublabel', id: EL_ID.CASH_SUBLABEL, textContent: PT.CASH_SUBLABEL })
       ),
       mkEl('div', { className: 'fmc-col fmc-col-last', role: 'group', 'aria-labelledby': EL_ID.BUYING_POWER_LABEL },
         mkEl('span', { className: 'fmc-label', id: EL_ID.BUYING_POWER_LABEL, textContent: PT.BUYING_POWER }),
         buyingPowerEl,
-        mkEl('span', { className: 'fmc-sublabel', textContent: PT.BUYING_POWER_SUBLABEL })
+        mkEl('span', { className: 'fmc-sublabel', id: EL_ID.BUYING_POWER_SUBLABEL, textContent: PT.BUYING_POWER_SUBLABEL })
       )
     );
 
