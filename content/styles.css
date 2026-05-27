@@ -80,41 +80,41 @@
   padding-right: 0;
 }
 
-.fmc-label {
+.fmc-margin-panel .fmc-label {
   font-size: 12px;
   color: var(--fmc-text);
   margin-bottom: 2px;
 }
 
-.fmc-value {
+.fmc-margin-panel .fmc-value {
   font-size: 14px;
   font-weight: 500;
   color: var(--fmc-text);
 }
 
-.fmc-sublabel {
+.fmc-margin-panel .fmc-sublabel {
   font-size: 11px;
   color: var(--fmc-muted);
   margin-top: 1px;
 }
 
-/* Status colors */
-.fmc-status-credit {
+/* Status colors — scoped to panel for specificity against Fidelity theme CSS */
+.fmc-margin-panel .fmc-status-credit {
   color: var(--fmc-green);
 }
-.fmc-status-debit {
+.fmc-margin-panel .fmc-status-debit {
   color: var(--fmc-red);
 }
-.fmc-status-warning {
+.fmc-margin-panel .fmc-status-warning {
   color: var(--fmc-yellow);
 }
-.fmc-positive {
+.fmc-margin-panel .fmc-positive {
   color: var(--fmc-green);
 }
-.fmc-negative {
+.fmc-margin-panel .fmc-negative {
   color: var(--fmc-red);
 }
-.fmc-neutral {
+.fmc-margin-panel .fmc-neutral {
   color: var(--fmc-muted);
 }
 
@@ -186,7 +186,7 @@
   font-size: 14px;
 }
 
-.fmc-error-text {
+.fmc-margin-panel .fmc-error-text {
   color: var(--fmc-text);
 }
 
@@ -335,11 +335,11 @@
      color, which forced-colors suppresses. Fall back to system semantic colors that
      convey the same meaning: Highlight for positive/credit, LinkText for negative/debit
      (red-adjacent in most high-contrast themes), and GrayText for neutral/warning. */
-  .fmc-status-credit  { color: Highlight; }
-  .fmc-status-debit   { color: LinkText; }
-  .fmc-status-warning { color: GrayText; }
-  .fmc-positive       { color: Highlight; }
-  .fmc-negative       { color: LinkText; }
+  .fmc-margin-panel .fmc-status-credit  { color: Highlight; }
+  .fmc-margin-panel .fmc-status-debit   { color: LinkText; }
+  .fmc-margin-panel .fmc-status-warning { color: GrayText; }
+  .fmc-margin-panel .fmc-positive       { color: Highlight; }
+  .fmc-margin-panel .fmc-negative       { color: LinkText; }
 }
 
 @media print {
