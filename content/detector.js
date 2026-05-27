@@ -47,7 +47,11 @@ const TradeDetector = (() => {
     LEG_ACTION_SEL_BASE:  '#action_dropdown',
     LEG_QTY_SEL_BASE:     '#quantity',
     LEG_EXP_SEL_BASE:     '#exp_dropdown',
-    LEG_STRIKE_SEL_BASE:  '#strike_dropdown'
+    LEG_STRIKE_SEL_BASE:  '#strike_dropdown',
+
+    // Roll trade — closing leg uses an owned-contracts dropdown instead of
+    // separate expiration/strike/call-put selectors.
+    OWNED_CONTRACT_SEL_BASE: '#owned-contracts-dropdown'
   });
 
   // Order type codes sent to the margin calculator API
@@ -330,6 +334,40 @@ const TradeDetector = (() => {
     return Math.round(parsePriceInput(str));
   }
 
+  // --- Roll trade helpers ---
+
+  /**
+   * Parses an owned-contract description from a roll trade's closing leg.
+   * Format: `"AVGO Jun 18 2026 350 Put"` → symbol, expiration, callPut, strike.
+   * Returns `null` if the format is unrecognized.
+   * @param {string} text - Owned contract binding-val text.
+   * @returns {{symbol: string, expiration: string, callPut: string, strike: string}|null}
+   */
+  function parseOwnedContract(text) {
+    if (!text) return null;
+    const match = text.match(/^([A-Z]+)\s+([A-Za-z]+)\s+(\d{1,2})\s+(\d{4})\s+([\d,.]+)\s+(Call|Put)$/i);
+    if (!match) return null;
+    const [, symbol, month, day, year, strike, callPutWord] = match;
+    // Reconstruct expiration in the comma-separated format parseExpiration expects
+    const expiration = `${month} ${day}, ${year}`;
+    const callPut = callPutWord[0].toUpperCase(); // 'C' or 'P'
+    return { symbol, expiration, callPut, strike };
+  }
+
+  /**
+   * Extracts call/put from an expiration dropdown binding-val that includes a trailing
+   * type indicator (e.g. `"Jun 18, 2026  Put"`). Used in roll trades where no separate
+   * call-put radio buttons exist.
+   * @param {string} expText - Expiration dropdown binding-val text.
+   * @returns {'C'|'P'|''} Call/put code, or `''` if not found.
+   */
+  function extractCallPutFromExpiration(expText) {
+    if (!expText) return '';
+    const match = expText.match(/\b(Call|Put)\s*$/i);
+    if (!match) return '';
+    return match[1][0].toUpperCase();
+  }
+
   /**
    * Builds an option order symbol in the format expected by the margin calculator API.
    * Example: `buildOrderSymbol('AVGO', 'May 22, 2026', 'P', '370.00')` → `'-AVGO260522P370'`
@@ -381,17 +419,35 @@ const TradeDetector = (() => {
 
   /**
    * Returns the raw form values for a single option leg.
+   * Handles both regular legs (separate dropdowns for each field) and roll closing
+   * legs (owned-contract description parsed into individual fields).
    * @param {number} legIndex - Zero-based leg index.
    * @returns {{action: string, quantity: string, callPut: string, expiration: string, strike: string}}
    */
   function getLegParams(legIndex) {
-    return {
-      action: getDropdownValue(`${DOM.LEG_ACTION_SEL_BASE}-${legIndex} .binding-val`),
-      quantity: getInputValue(`${DOM.LEG_QTY_SEL_BASE}-${legIndex}`),
-      callPut: getCallPut(legIndex),
-      expiration: getDropdownValue(`${DOM.LEG_EXP_SEL_BASE}-${legIndex} .binding-val`),
-      strike: getDropdownValue(`${DOM.LEG_STRIKE_SEL_BASE}-${legIndex} .binding-val`)
-    };
+    const action = getDropdownValue(`${DOM.LEG_ACTION_SEL_BASE}-${legIndex} .binding-val`);
+    const quantity = getInputValue(`${DOM.LEG_QTY_SEL_BASE}-${legIndex}`);
+    let callPut = getCallPut(legIndex);
+    let expiration = getDropdownValue(`${DOM.LEG_EXP_SEL_BASE}-${legIndex} .binding-val`);
+    let strike = getDropdownValue(`${DOM.LEG_STRIKE_SEL_BASE}-${legIndex} .binding-val`);
+
+    // Roll closing leg: no separate exp/strike/callPut dropdowns — parse from owned contract
+    if (!expiration && !strike && !callPut) {
+      const ownedText = getDropdownValue(`${DOM.OWNED_CONTRACT_SEL_BASE}-${legIndex} .binding-val`);
+      const parsed = parseOwnedContract(ownedText);
+      if (parsed) {
+        expiration = parsed.expiration;
+        strike = parsed.strike;
+        callPut = parsed.callPut;
+      }
+    }
+
+    // Roll opening leg: call/put embedded in expiration text (e.g. "Jun 18, 2026  Put")
+    if (!callPut && expiration) {
+      callPut = extractCallPutFromExpiration(expiration);
+    }
+
+    return { action, quantity, callPut, expiration, strike };
   }
 
   /**
@@ -748,7 +804,8 @@ const TradeDetector = (() => {
         // itself is still in the DOM; if it is gone too (Fidelity layout change), keep
         // the fingerprint to avoid a retry storm on every mutation.
         if (!MarginInjector?.getPanel() &&
-            document.getElementById(FMC_CONSTANTS.INJECTION.TARGET_ID)) {
+            (document.getElementById(FMC_CONSTANTS.INJECTION.TARGET_ID) ||
+             document.querySelector(FMC_CONSTANTS.INJECTION.COMPONENT_SELECTOR))) {
           lastFingerprint = '';
         } else {
           return;
