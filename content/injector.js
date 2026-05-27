@@ -347,20 +347,22 @@ const MarginInjector = (() => {
   function inject() {
     if (getPanel()) return true;
 
-    const mxregin = document.getElementById(FMC_CONSTANTS.INJECTION.TARGET_ID);
-    if (!mxregin) return false;
-
     // Clear stale log entries from any previous panel so the debug view shows
     // only entries relevant to the current trade ticket session.
     clearDebugLog();
 
     const panel = createPanel();
-    // Append inside the Angular component wrapper to stay within its boundary.
-    // Fall back to mxregin's direct parent, but only if it is an element node
-    // (nodeType 1) — prevents accidental injection at document/body level if
-    // Fidelity removes the surrounding component wrapper.
-    const parent = mxregin.closest(FMC_CONSTANTS.INJECTION.COMPONENT_SELECTOR) ||
-      (mxregin.parentNode?.nodeType === Node.ELEMENT_NODE ? mxregin.parentNode : null);
+    // Primary target: #mxregin element inside the Angular component.
+    // Fallback: the Angular component itself (ott-max-gain-loss) — used by roll
+    // trades where #mxregin is absent but the component wrapper still exists.
+    const mxregin = document.getElementById(FMC_CONSTANTS.INJECTION.TARGET_ID);
+    let parent;
+    if (mxregin) {
+      parent = mxregin.closest(FMC_CONSTANTS.INJECTION.COMPONENT_SELECTOR) ||
+        (mxregin.parentNode?.nodeType === Node.ELEMENT_NODE ? mxregin.parentNode : null);
+    } else {
+      parent = document.querySelector(FMC_CONSTANTS.INJECTION.COMPONENT_SELECTOR);
+    }
     if (!parent) return false;
     // Guard against Angular removing the injection parent between our getElementById call
     // and the actual append. A detached parent would cause the panel to be inserted into a
