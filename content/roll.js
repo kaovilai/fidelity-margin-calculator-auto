@@ -186,7 +186,8 @@ const RollMode = (() => {
       state.checks.set(key, { status: 'done', result });
     } catch (err) {
       log('check failed:', err);
-      state.checks.set(key, { status: 'error', message: err?.message || 'failed' });
+      if (err?.cancelled) state.checks.delete(key);
+      else state.checks.set(key, { status: 'error', message: err?.message || 'failed' });
     }
     render();
   }
