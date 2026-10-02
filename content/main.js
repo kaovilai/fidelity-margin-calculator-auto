@@ -619,6 +619,8 @@
         warn('Impact calculated but injection target not found — result will show on next form change');
       } else {
         MarginInjector.updatePanel(impact);
+        showPremiumStats(orders, requestId).catch(err => log('premium stats failed:', err.message));
+        showRollHint(orders, requestId).catch(err => log('roll hint failed:', err.message));
       }
       reportStatus(STATUS_STATE.ACTIVE);
       setBadge('', null);
@@ -633,6 +635,78 @@
       // showApiError relies on err.type to distinguish session-expiry from other errors.
       showApiError(err, MSG_FETCH_MARGIN_FAILED);
     }
+  }
+
+  /**
+   * Shows return / annualized return / profit probability (if all extrinsic value is captured)
+   * under "Premium Received" for the first short opening leg of the order. Needs the underlying
+   * price and the leg's IV/delta — a quote and one chain request, both briefly cached.
+   * @param {Array<Object>} orders - Orders sent to the margin API.
+   * @param {number} requestId - Staleness guard.
+   * @returns {Promise<void>}
+   */
+  async function showPremiumStats(orders, requestId) {
+    const open = orders.find(o => o.orderAction === 'SO' && RollModel.parseOcc(o.orderSymbol));
+    if (!open) { MarginInjector.setPremiumNote(null); return; }
+    const opt = RollModel.parseOcc(open.orderSymbol);
+    const [px, expirations] = await Promise.all([
+      ChainAPI.fetchUnderlyingPrice(opt.underlying),
+      ChainAPI.fetchExpirations(opt.underlying)
+    ]);
+    const exp = expirations.find(e => e.date === opt.expiry);
+    const row = exp
+      ? RollModel.chainRows(await ChainAPI.fetchChain(opt.underlying, exp), opt.type).find(r => r.strike === opt.strike)
+      : null;
+    if (requestId !== currentRequest) return;
+    const stats = RollModel.optionStats({
+      type: opt.type, strike: opt.strike, price: open.price, underlying: px, expiry: opt.expiry,
+      iv: row?.iv ?? null, delta: row?.delta ?? null
+    });
+    if (!stats) { MarginInjector.setPremiumNote(null); return; }
+    const hit = stats.annual >= (Number(settings.borrowRate) || 0) / 100;
+    MarginInjector.setPremiumNote(`${RollModel.formatStats(stats)} ${hit ? '✓' : ''}`.trim(), hit);
+  }
+
+  /**
+   * For a roll in the ticket (a closing leg plus an opening leg on the same underlying and type),
+   * names the strike at which rolling to the chosen expiry is premium-neutral: the furthest strike
+   * away from the money whose net (new premium − closing cost) is still ≥ $0, and the next one.
+   * @param {Array<Object>} orders - Orders sent to the margin API.
+   * @param {number} requestId - Staleness guard.
+   * @returns {Promise<void>}
+   */
+  async function showRollHint(orders, requestId) {
+    const R = RollModel;
+    const closing = orders.find(o => (o.orderAction === 'BC' || o.orderAction === 'SC') && R.parseOcc(o.orderSymbol));
+    const opening = orders.find(o => (o.orderAction === 'SO' || o.orderAction === 'BO') && R.parseOcc(o.orderSymbol));
+    const src = closing && R.parseOcc(closing.orderSymbol);
+    const tgt = opening && R.parseOcc(opening.orderSymbol);
+    if (!src || !tgt || src.underlying !== tgt.underlying || src.type !== tgt.type || tgt.expiry < src.expiry) {
+      MarginInjector.setRollNote(null);
+      return;
+    }
+    const expirations = await ChainAPI.fetchExpirations(src.underlying);
+    const eSrc = expirations.find(e => e.date === src.expiry);
+    const eTgt = expirations.find(e => e.date === tgt.expiry);
+    if (!eSrc || !eTgt) { MarginInjector.setRollNote(null); return; }
+    const [chainSrc, chainTgt] = await Promise.all([
+      ChainAPI.fetchChain(src.underlying, eSrc),
+      ChainAPI.fetchChain(src.underlying, eTgt)
+    ]);
+    if (requestId !== currentRequest) return;
+    const sourceQuote = R.chainRows(chainSrc, src.type).find(r => r.strike === src.strike);
+    const shares = (closing.orderAction === 'BC' ? -1 : 1) * closing.orderQty;
+    const cands = R.candidates({
+      source: src, sourceQuote, shares, window: 0.5,
+      rowsByExpiry: new Map([[tgt.expiry, R.chainRows(chainTgt, tgt.type)]])
+    });
+    const front = R.neutralFrontier(cands, src, 0)[0];
+    if (!front) { MarginInjector.setRollNote(null); return; }
+    const money = (n) => `${n >= 0 ? '+' : '−'}$${Math.abs(Math.round(n)).toLocaleString('en-US')}`;
+    const where = R.describeOption({ expiry: tgt.expiry, strike: 0, type: tgt.type }).replace(/ \$0 /, ' ');
+    const best = front.best ? `$${front.best.strike} (${money(front.best.net)})` : 'none at ≥ $0';
+    const beyond = front.beyond ? ` · next $${front.beyond.strike} (${money(front.beyond.net)})` : '';
+    MarginInjector.setRollNote(`Premium-neutral ${where}: ${best}${beyond}`);
   }
 
   /**

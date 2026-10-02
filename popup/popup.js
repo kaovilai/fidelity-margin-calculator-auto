@@ -140,8 +140,10 @@
       threshold: document.getElementById('setting-threshold'),
       debounce:  document.getElementById('setting-debounce'),
       chainEnabled:    document.getElementById('setting-chain-enabled'),
+      rollEnabled:     document.getElementById('setting-roll-enabled'),
       minWithdrawable: document.getElementById('setting-min-withdrawable'),
-      chainQty:        document.getElementById('setting-chain-qty')
+      chainQty:        document.getElementById('setting-chain-qty'),
+      borrowRate:      document.getElementById('setting-borrow-rate')
     };
     return settingsEls;
   }
@@ -186,6 +188,10 @@
       }
       const { chainEnabled: chainEnabledEl, minWithdrawable: minWEl, chainQty: chainQtyEl } = getSettingsEls();
       if (chainEnabledEl) chainEnabledEl.checked = s.chainEnabled !== false;
+      const { borrowRate: borrowRateEl } = getSettingsEls();
+      if (borrowRateEl) borrowRateEl.value = clampChainNumber(s.borrowRate, 0, FMC_CONSTANTS.CHAIN_LIMITS.BORROW_RATE_MAX, DEFAULT_SETTINGS.borrowRate);
+      const { rollEnabled: rollEnabledEl } = getSettingsEls();
+      if (rollEnabledEl) rollEnabledEl.checked = s.rollEnabled !== false;
       if (minWEl) minWEl.value = clampChainNumber(s.minWithdrawable, 0, FMC_CONSTANTS.CHAIN_LIMITS.MIN_WITHDRAWABLE_MAX, DEFAULT_SETTINGS.minWithdrawable);
       if (chainQtyEl) chainQtyEl.value = clampChainNumber(s.chainQty, 1, FMC_CONSTANTS.CHAIN_LIMITS.QTY_MAX, DEFAULT_SETTINGS.chainQty);
       if (debounceEl) {
@@ -225,8 +231,13 @@
     const chainQty = Math.round(clampChainNumber(chainQtyEl?.value, 1, FMC_CONSTANTS.CHAIN_LIMITS.QTY_MAX, DEFAULT_SETTINGS.chainQty));
     if (minWEl && String(minWithdrawable) !== minWEl.value) minWEl.value = minWithdrawable;
     if (chainQtyEl && String(chainQty) !== chainQtyEl.value) chainQtyEl.value = chainQty;
+    const borrowRateEl = getSettingsEls().borrowRate;
+    const borrowRate = clampChainNumber(borrowRateEl?.value, 0, FMC_CONSTANTS.CHAIN_LIMITS.BORROW_RATE_MAX, DEFAULT_SETTINGS.borrowRate);
+    if (borrowRateEl && String(borrowRate) !== borrowRateEl.value) borrowRateEl.value = borrowRate;
     const settings = {
+      borrowRate,
       chainEnabled: chainEnabledEl ? chainEnabledEl.checked : DEFAULT_SETTINGS.chainEnabled,
+      rollEnabled: getSettingsEls().rollEnabled ? getSettingsEls().rollEnabled.checked : DEFAULT_SETTINGS.rollEnabled,
       minWithdrawable,
       chainQty,
       enabled: enabledEl.checked,
@@ -310,8 +321,8 @@
 
     // Settings change handlers — use getSettingsEls() so IDs stay in one place
     const { enabled: enabledEl, threshold: thresholdEl, debounce: debounceEl,
-      chainEnabled: chainEnabledEl, minWithdrawable: minWEl, chainQty: chainQtyEl } = getSettingsEls();
-    for (const el of [enabledEl, thresholdEl, debounceEl, chainEnabledEl, minWEl, chainQtyEl]) {
+      chainEnabled: chainEnabledEl, rollEnabled: rollEnabledEl, minWithdrawable: minWEl, chainQty: chainQtyEl } = getSettingsEls();
+    for (const el of [enabledEl, thresholdEl, debounceEl, chainEnabledEl, rollEnabledEl, minWEl, chainQtyEl, getSettingsEls().borrowRate]) {
       el?.addEventListener('change', saveSettings);
     }
 

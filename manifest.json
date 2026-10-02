@@ -34,11 +34,16 @@
         "lib/margin-api.js",
         "lib/margin-calc.js",
         "lib/chain-estimate.js",
+        "lib/roll-model.js",
+        "lib/chain-api.js",
         "lib/rate-limiter.js",
         "content/detector.js",
         "content/injector.js",
         "content/main.js",
-        "content/chain.js"
+        "content/chain-core.js",
+        "content/chain.js",
+        "content/roll.js",
+        "content/ticket-assist.js"
       ],
       "css": ["content/styles.css"],
       "run_at": "document_idle"

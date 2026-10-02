@@ -37,7 +37,13 @@ On the option chain page (`/ftgw/digital/exp-options-research/option-chain`), ho
 - **Amber** — would leave less withdrawable cash than your *Min withdrawable* setting
 - **Red** — would put you into margin debit (negative cash balance) or trigger a house call
 
-The hovered cell is calculated exactly (one `trade-calculator/v1` call). Other strikes of the same expiry, type and side are **estimated** from the strikes already calculated and drawn with a dashed outline (dotted + tinted when the result is close to your limit — hover it to verify). The tooltip shows the projected cash withdrawable, margin credit/debit, house surplus/call and premium. Premium and margin credit are exact for every strike (they follow directly from the quoted price); the house balance / withdrawable cash estimate interpolates the margin requirement between calculated strikes. Settings (popup): *Option chain hints*, *Min withdrawable*, *Chain quantity*.
+The hovered cell is calculated exactly (one `trade-calculator/v1` call). Colour is always the outcome (a border, never a fill); the border style is the confidence: **solid** = exact, **dashed** = estimated from the strikes already calculated, **dotted** = estimate close to your limit (hover it to verify). The tooltip shows the projected cash withdrawable, margin credit/debit, house surplus/call and premium. Premium and margin credit are exact for every strike (they follow directly from the quoted price); the house balance / withdrawable cash estimate interpolates the margin requirement between calculated strikes. Settings (popup): *Option chain hints*, *Min withdrawable*, *Chain quantity*.
+
+**Yield badges.** Every sell cell shows its annualized yield *if all extrinsic (time) value is captured* — `extrinsic ÷ capital × 365 ÷ days` (capital = strike for puts, underlying price for calls) — green when it beats your *Hurdle yield* setting (e.g. margin rate = EFFR + spread; default 4.88%). The tooltip gives the period return, the annualized return and a profit probability (lognormal model on the breakeven with the option's implied volatility, falling back to 1 − |delta|).
+
+**Roll assistant.** On the chain page and **Trader+ Web**, if you hold options on the symbol, a panel lets you pick one and finds rolls from live quotes: the *neutral frontier* per expiry (how far you can roll down-and-out — up-and-out for calls — while the roll still nets ≥ your target, default $0), plus the best credits out / up / down, each with return / annualized return / profit probability and an exact two-leg margin **Check**. Chain cells show the roll's net credit and yield while a source is selected.
+
+**Trade ticket.** The strike and expiration dropdowns show each option's volume and open interest (with a proportional bar) and, for sell-to-open, the yield stats; when the ticket holds a roll, the margin panel names the premium-neutral strike for the chosen expiry.
 
 ## Target Pages
 
