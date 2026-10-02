@@ -292,8 +292,12 @@ const MarginInjector = (() => {
       mkEl('span', { className: 'fmc-ext-badge', textContent: PT.ATTRIBUTION })
     );
 
+    // Roll hint (premium-neutral strike for the chosen expiry) — filled by content/main.js.
+    const rollNoteEl = mkEl('div', { className: 'fmc-roll-note', id: 'fmc-roll-note', role: 'note' });
+
     panel.appendChild(body);
     panel.appendChild(extraBody);
+    panel.appendChild(rollNoteEl);
     panel.appendChild(loading);
     panel.appendChild(errorRow);
     panel.appendChild(debugLogDiv);
@@ -306,7 +310,8 @@ const MarginInjector = (() => {
       extraBody,
       requirement: reqEl, requirementLabel: reqLabelEl, requirementSub: reqSubEl,
       house: houseEl, houseLabel: houseLabelEl, houseSub: houseSubEl,
-      premium: premiumEl, premiumLabel: premiumLabelEl,
+      premium: premiumEl, premiumLabel: premiumLabelEl, premiumSub: premiumSubEl,
+      rollNote: rollNoteEl,
       loading,
       error: errorRow,
       errorText:         errorTextEl,
@@ -365,7 +370,7 @@ const MarginInjector = (() => {
       creditDebit: null, creditDebitLabel: null,
       delta: null, cash: null, buyingPower: null,
       extraBody: null, requirement: null, requirementLabel: null, requirementSub: null,
-      house: null, houseLabel: null, houseSub: null, premium: null, premiumLabel: null,
+      house: null, houseLabel: null, houseSub: null, premium: null, premiumLabel: null, premiumSub: null, rollNote: null,
       debugLog: null, debugBtn: null
     };
   }
@@ -491,6 +496,34 @@ const MarginInjector = (() => {
    */
   function setRetryCallback(fn) {
     retryCallback = fn;
+  }
+
+  /**
+   * Shows (or clears, with `null`) the roll hint line under the figures, e.g.
+   * "Neutral at Nov 20 '26: $705 put (+$45) · next $700 (−$160)".
+   * @param {string|null} text
+   */
+  function setRollNote(text) {
+    const panel = getPanel();
+    const note = panel ? getPanelElements(panel).rollNote : null;
+    if (!note) return;
+    note.textContent = text ?? '';
+    note.hidden = !text;
+  }
+
+  /**
+   * Replaces the premium sublabel ("before fees") with return stats for the order's short leg,
+   * e.g. "2.4% · 62%/yr · POP 81% ✓". Pass `null` to restore the default text.
+   * @param {string|null} text
+   * @param {boolean} [hit=false] - True when the annualized return meets the hurdle rate.
+   */
+  function setPremiumNote(text, hit = false) {
+    const panel = getPanel();
+    const sub = panel ? getPanelElements(panel).premiumSub : null;
+    if (!sub) return;
+    sub.textContent = text ?? PT.PREMIUM_SUBLABEL;
+    sub.className = ['fmc-sublabel', text ? (hit ? CSS.POSITIVE : null) : null].filter(Boolean).join(' ');
+    sub.title = text ? 'Return / annualized return / profit probability if all extrinsic value is captured' : '';
   }
 
   /**
@@ -660,5 +693,5 @@ const MarginInjector = (() => {
     return getPanel()?.getAttribute('data-fmc-state') === PANEL_STATE.RESULT;
   }
 
-  return { inject, remove, showLoading, showError, updatePanel, getPanel, setRetryCallback, addDebugLog, clearDebugLog, setWarningThreshold, isShowingResult };
+  return { inject, remove, showLoading, showError, updatePanel, setPremiumNote, setRollNote, getPanel, setRetryCallback, addDebugLog, clearDebugLog, setWarningThreshold, isShowingResult };
 })();
