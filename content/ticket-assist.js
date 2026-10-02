@@ -13,6 +13,9 @@
   const STRIKE_OPT = 'button.ott-strike-option-button';
   const EXP_OPT = 'button.ott-expiration-option-button';
   const EXPIRY_FETCH_CONCURRENCY = 4;
+  // Each expiry is one chain request; volume matters most for the nearest dates, so only the first
+  // few are annotated (keeps the request count bounded when the dropdown opens).
+  const EXPIRY_FETCH_LIMIT = 8;
   const MON = { jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06', jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12' };
 
   let enabled = true;
@@ -88,7 +91,7 @@
     list.dataset.fmcVolKey = key;
     const known = new Map((await ChainAPI.fetchExpirations(symbol)).map(e => [e.date, e]));
     const totals = new Map(); // button → { volume, openInterest }
-    const buttons = [...list.querySelectorAll(EXP_OPT)];
+    const buttons = [...list.querySelectorAll(EXP_OPT)].slice(0, EXPIRY_FETCH_LIMIT);
     const repaint = () => {
       const max = Math.max(0, ...[...totals.values()].map(t => t.volume));
       for (const [btn, t] of totals) mark(btn, t.volume, t.openInterest, max);

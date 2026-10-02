@@ -150,7 +150,7 @@ fidelity-margin-calculator-auto/
 │   ├── injector.js            # Injects margin info panel into the page DOM
 │   └── styles.css             # Styles for injected panel (matches Fidelity's design)
 ├── lib/
-│   ├── margin-api.js          # GraphQL query builder and API caller
+│   ├── margin-api.js          # trade-calculator request builder and API caller
 │   └── margin-calc.js         # Interprets API response, computes wiggle room
 ├── popup/
 │   ├── popup.html             # Extension popup (settings, status)
@@ -164,7 +164,7 @@ fidelity-margin-calculator-auto/
 
 ### Phase 1: Extension Skeleton + API Integration
 1. Create `manifest.json` (Manifest V3) with content script matching Fidelity domains
-2. Implement `margin-api.js` — build GraphQL request from trade parameters, call API using `fetch` (same-origin cookies auto-attached)
+2. Implement `margin-api.js` — build the trade-calculator JSON request from trade parameters, call API using `fetch` (same-origin cookies auto-attached)
 3. Implement `margin-calc.js` — parse response, extract balance fields, compute:
    - Current vs projected margin credit/debit
    - Wiggle room = projected `avlToTradeWithoutMarginImpact`, or how far into debit if `marginCreditDebit` < 0
@@ -227,7 +227,7 @@ Fidelity's Terms of Use prohibit "Third-Party Access Tools" providing "high-spee
 
 2. **No data exfiltration.** All API requests go to Fidelity's own servers, and all responses stay within the browser. No data is sent to external servers, analytics services, or third parties.
 
-3. **User-initiated, human-rate access.** The extension only makes API calls when the user actively opens a trade ticket and enters parameters. With debouncing and caching, it generates traffic comparable to a user manually visiting Fidelity's Margin Calculator page — typically 1-3 calls per trade setup.
+3. **User-initiated, human-rate access.** The extension only makes API calls when the user actively opens a trade ticket and enters parameters. With debouncing, caching and a client-side rate limiter, it generates traffic in the range of a user working in Fidelity's own Margin Calculator page. Per trade setup that is one positions/balance call (cached for 5 minutes) plus one margin calculation, and — only if the optional chain features are enabled — a few read-only quote/chain requests (cached ~45 seconds). Chain hovers, roll checks and dropdown annotations are each user-initiated and capped (for example only the nearest 8 expirations are annotated); there is no background polling beyond a 2-second local symbol check.
 
 4. **Same information, different location.** The extension surfaces margin impact data that is already available to the user on Fidelity's own Margin Calculator page. It does not expose new data or capabilities — it makes existing information more convenient to access in context.
 
@@ -240,5 +240,5 @@ Fidelity's Terms of Use prohibit "Third-Party Access Tools" providing "high-spee
 ### Risks to be aware of
 
 - Fidelity's TOS grants them the right to "terminate or suspend your access to the Fidelity Websites for any violation of the provisions of these Terms or for any reason whatsoever at its sole discretion and without prior notice."
-- The margin calculator GraphQL API is an internal, undocumented endpoint — Fidelity could change or restrict it at any time.
+- The margin calculator REST API is an internal, undocumented endpoint — Fidelity could change or restrict it at any time.
 - This analysis is not legal advice. Consult a licensed attorney for a definitive assessment.

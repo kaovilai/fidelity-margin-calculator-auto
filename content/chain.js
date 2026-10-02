@@ -233,6 +233,7 @@
       repaintGroup(underlying, cell);
       idlePill();
     } catch (err) {
+      if (err?.cancelled) { idlePill(); return; }
       log('calculation failed:', err);
       const expired = err?.type === ERROR_TYPES.SESSION_EXPIRED;
       setPill(expired ? 'Margin hints: Fidelity session expired — refresh the page' : `Margin hints: ${err?.message || 'calculation failed'}`, 'error');

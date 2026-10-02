@@ -158,7 +158,9 @@ const ChainCore = (() => {
    */
   async function calculate(account, orders) {
     const b = await ensureBase(account);
-    await RateLimiter.acquire();
+    // A newer request displaces a waiting one; abandon it instead of sending without a token.
+    const slot = await RateLimiter.acquire();
+    if (slot.cancelled) throw Object.assign(new Error('superseded by a newer request'), { cancelled: true });
     const projected = await MarginAPI.fetchMarginCalc(account, orders, () => {}, b.priceList);
     const impact = MarginCalc.computeImpact(projected, b.baselineData, orders);
     if (!impact) throw new Error('No balance in margin response');

@@ -619,8 +619,17 @@
         warn('Impact calculated but injection target not found — result will show on next form change');
       } else {
         MarginInjector.updatePanel(impact);
-        showPremiumStats(orders, requestId).catch(err => log('premium stats failed:', err.message));
-        showRollHint(orders, requestId).catch(err => log('roll hint failed:', err.message));
+        // Extra read-only chain requests honour the same settings as the chain features.
+        if (settings.chainEnabled !== false) {
+          showPremiumStats(orders, requestId).catch(err => log('premium stats failed:', err.message));
+        } else {
+          MarginInjector.setPremiumNote(null);
+        }
+        if (settings.rollEnabled !== false) {
+          showRollHint(orders, requestId).catch(err => log('roll hint failed:', err.message));
+        } else {
+          MarginInjector.setRollNote(null);
+        }
       }
       reportStatus(STATUS_STATE.ACTIVE);
       setBadge('', null);
@@ -646,7 +655,8 @@
    * @returns {Promise<void>}
    */
   async function showPremiumStats(orders, requestId) {
-    const open = orders.find(o => o.orderAction === 'SO' && RollModel.parseOcc(o.orderSymbol));
+    // Multi-leg tickets carry one net limit price on every leg, so per-leg stats would be wrong.
+    const open = orders.length === 1 ? orders.find(o => o.orderAction === 'SO' && RollModel.parseOcc(o.orderSymbol)) : null;
     if (!open) { MarginInjector.setPremiumNote(null); return; }
     const opt = RollModel.parseOcc(open.orderSymbol);
     const [px, expirations] = await Promise.all([
