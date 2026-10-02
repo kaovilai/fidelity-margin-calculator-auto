@@ -359,3 +359,35 @@
     display: none !important;
   }
 }
+
+/* ---- Option chain hints (content/chain.js) ---- */
+.fmc-chain-cell {
+  --fmc-chain-color: #2e7d32;
+  outline: 2px solid var(--fmc-chain-color) !important;
+  outline-offset: -2px;
+}
+.fmc-chain-cell.fmc-chain-low { --fmc-chain-color: #b26a00; }
+.fmc-chain-cell.fmc-chain-neg { --fmc-chain-color: #c62828; }
+/* Estimates are dashed; estimates close to the user's limit are dotted with a tint. */
+.fmc-chain-cell.fmc-chain-est { outline-style: dashed !important; }
+.fmc-chain-cell.fmc-chain-verify {
+  outline-style: dotted !important;
+  box-shadow: inset 0 0 0 100px color-mix(in srgb, var(--fmc-chain-color) 14%, transparent);
+}
+
+#fmc-chain-pill {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 2147483000;
+  max-width: 460px;
+  padding: 6px 10px;
+  border-radius: 14px;
+  font: 12px/1.3 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: #fff;
+  background: rgba(33, 33, 33, 0.88);
+  pointer-events: none;
+}
+#fmc-chain-pill[data-kind="busy"]  { background: rgba(21, 101, 192, 0.92); }
+#fmc-chain-pill[data-kind="warn"]  { background: rgba(178, 106, 0, 0.94); }
+#fmc-chain-pill[data-kind="error"] { background: rgba(198, 40, 40, 0.94); }

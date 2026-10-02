@@ -138,9 +138,25 @@
     settingsEls = {
       enabled:   document.getElementById('setting-enabled'),
       threshold: document.getElementById('setting-threshold'),
-      debounce:  document.getElementById('setting-debounce')
+      debounce:  document.getElementById('setting-debounce'),
+      chainEnabled:    document.getElementById('setting-chain-enabled'),
+      minWithdrawable: document.getElementById('setting-min-withdrawable'),
+      chainQty:        document.getElementById('setting-chain-qty')
     };
     return settingsEls;
+  }
+
+  /**
+   * Parses and clamps a numeric chain setting; falls back to `fallback` when not finite.
+   * @param {*} raw
+   * @param {number} min
+   * @param {number} max
+   * @param {number} fallback
+   * @returns {number}
+   */
+  function clampChainNumber(raw, min, max, fallback) {
+    const n = Number(raw);
+    return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
   }
 
   /**
@@ -168,6 +184,10 @@
           ? Math.min(MAX_WARNING_THRESHOLD, Math.max(0, rawThreshold))
           : DEFAULT_SETTINGS.debitWarningThreshold;
       }
+      const { chainEnabled: chainEnabledEl, minWithdrawable: minWEl, chainQty: chainQtyEl } = getSettingsEls();
+      if (chainEnabledEl) chainEnabledEl.checked = s.chainEnabled !== false;
+      if (minWEl) minWEl.value = clampChainNumber(s.minWithdrawable, 0, FMC_CONSTANTS.CHAIN_LIMITS.MIN_WITHDRAWABLE_MAX, DEFAULT_SETTINGS.minWithdrawable);
+      if (chainQtyEl) chainQtyEl.value = clampChainNumber(s.chainQty, 1, FMC_CONSTANTS.CHAIN_LIMITS.QTY_MAX, DEFAULT_SETTINGS.chainQty);
       if (debounceEl) {
         debounceEl.value = String(s.debounceMs);
         // HTMLSelectElement.value silently stays empty if the value doesn't match
@@ -200,7 +220,15 @@
     if (String(clampedThreshold) !== thresholdEl.value) {
       thresholdEl.value = clampedThreshold;
     }
+    const { chainEnabled: chainEnabledEl, minWithdrawable: minWEl, chainQty: chainQtyEl } = getSettingsEls();
+    const minWithdrawable = clampChainNumber(minWEl?.value, 0, FMC_CONSTANTS.CHAIN_LIMITS.MIN_WITHDRAWABLE_MAX, DEFAULT_SETTINGS.minWithdrawable);
+    const chainQty = Math.round(clampChainNumber(chainQtyEl?.value, 1, FMC_CONSTANTS.CHAIN_LIMITS.QTY_MAX, DEFAULT_SETTINGS.chainQty));
+    if (minWEl && String(minWithdrawable) !== minWEl.value) minWEl.value = minWithdrawable;
+    if (chainQtyEl && String(chainQty) !== chainQtyEl.value) chainQtyEl.value = chainQty;
     const settings = {
+      chainEnabled: chainEnabledEl ? chainEnabledEl.checked : DEFAULT_SETTINGS.chainEnabled,
+      minWithdrawable,
+      chainQty,
       enabled: enabledEl.checked,
       debitWarningThreshold: clampedThreshold,
       debounceMs: Number.isFinite(debounce) && debounce >= MIN_DEBOUNCE_MS ? debounce : DEFAULT_SETTINGS.debounceMs
@@ -281,8 +309,9 @@
     await loadSettings();
 
     // Settings change handlers — use getSettingsEls() so IDs stay in one place
-    const { enabled: enabledEl, threshold: thresholdEl, debounce: debounceEl } = getSettingsEls();
-    for (const el of [enabledEl, thresholdEl, debounceEl]) {
+    const { enabled: enabledEl, threshold: thresholdEl, debounce: debounceEl,
+      chainEnabled: chainEnabledEl, minWithdrawable: minWEl, chainQty: chainQtyEl } = getSettingsEls();
+    for (const el of [enabledEl, thresholdEl, debounceEl, chainEnabledEl, minWEl, chainQtyEl]) {
       el?.addEventListener('change', saveSettings);
     }
 

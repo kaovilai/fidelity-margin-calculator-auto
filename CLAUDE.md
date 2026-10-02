@@ -45,6 +45,8 @@ Key balance fields: `marginCreditDebit` (positive=credit, negative=debit/interes
 2. When a trade is detected: `trade-calculator/v1` with the user's order + `priceList`.
 3. Panel shows projected margin credit/debit with an exact delta vs the current balance (from step 1), plus extra figures derived from responses already fetched (margin requirement, house surplus/call, order premium) — no additional requests.
 
+**Option chain hints** (`content/chain.js`, pure model in `lib/chain-estimate.js`): chain cells are `<a role="button" aria-label="sell Oct 16 2026 24 put at bid of 1.36">`. Hovering one runs an exact `trade-calculator/v1` order (`SO`/`BO`, symbol `-APLD261016P24`); results feed a per-(underlying, expiry, type, side) sample set of "effective requirement" = `premium − Δhouse` (verified: equals the margin-requirement increase for a naked short put), linearly interpolated by strike to estimate other cells. Premium and `marginCreditDebit` change are exact (credit delta = premium). Account comes from the open ticket, the panel's last account, a remembered value, or `accounts/v1` (default tradable `Brokerage` account). Estimates were within ~2% of exact calculations on APLD puts; withdrawable cash assumes it moves 1:1 with house balance (clamped at 0), which is only verified for sells.
+
 A non-JSON `text/html` 2xx response (e.g. "Fidelity.com is Temporarily Unavailable") is treated as a retryable API error.
 
 ## DOM Integration
