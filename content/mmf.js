@@ -209,7 +209,8 @@
    * @returns {Promise<{ok: boolean, message: string}>}
    */
   async function fillExchangeTicket({ account, from, to, dollars }) {
-    const amount = (Math.floor(dollars * 100) / 100).toFixed(2);
+    // Floor to whole cents with a tiny epsilon: 2334.99 * 100 is 233498.99999999997 in floating point.
+    const amount = (Math.floor(dollars * 100 + 1e-6) / 100).toFixed(2);
     try {
       // 1. Make sure the floating ticket is open.
       if (!visible(document.querySelector('#trade-container-shell'))) {
@@ -256,11 +257,19 @@
 
       // The core (sweep) fund can't be exchanged out — Fidelity debits it when you BUY something.
       // Then the right action is a Buy of the target, funded from core cash.
-      const which = await waitFor(() => {
+      const classify = () => {
         if (root.querySelector('#mf-shared-quantity') && visible(root.querySelector('#mf-shared-quantity'))) return 'exchange';
         if (/can't be traded directly|cannot be traded directly/i.test(root.innerText)) return 'core';
         return null;
-      }, 8000);
+      };
+      let which = await waitFor(classify, 5000);
+      if (!which) {
+        // After a (non-core) fund is chosen the form can reset its Action dropdown to unselected —
+        // pick Exchange again so the quantity and Fund to Buy fields appear.
+        const again = findAction();
+        if (again) await pickDropdown(again, /^Exchange$/i);
+        which = await waitFor(classify, 8000);
+      }
       if (which === 'core') return await fillBuy();
       if (which !== 'exchange') return { ok: false, message: "Couldn't find the Quantity field." };
 
