@@ -166,6 +166,7 @@
   const TAX_FIELDS = Object.freeze([
     { id: 'setting-yield-after-tax', key: 'yieldAfterTax', kind: 'check' },
     { id: 'setting-mmf-enabled', key: 'mmfEnabled', kind: 'check' },
+    { id: 'setting-mmf-min-gap', key: 'mmfMinGap', kind: 'number' },
     { id: 'setting-tax-state', key: 'taxState', kind: 'text' },
     { id: 'setting-tax-filing', key: 'taxFiling', kind: 'select' },
     { id: 'setting-tax-income', key: 'taxIncome', kind: 'number' },

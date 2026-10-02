@@ -208,6 +208,8 @@ importScripts('/lib/constants.js', '/lib/tax-rates.js', '/lib/mmf-model.js');
 
   // --- Tax rates (IRS brackets + Tax Foundation state rates), cached 30 days ---
   const TAX_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+  // A result missing the IRS brackets or the state rate is retried after this (not cached for 30 days).
+  const TAX_RETRY_MS = 6 * 60 * 60 * 1000;
 
   /**
    * Live federal brackets and the requested state's flat rate, parsed from public pages.
@@ -218,7 +220,9 @@ importScripts('/lib/constants.js', '/lib/tax-rates.js', '/lib/mmf-model.js');
   async function fetchTaxRates(state) {
     const key = FMC_CONSTANTS.STORAGE_KEY_TAX_CACHE;
     const stored = (await chrome.storage.local.get(key))[key];
-    if (stored && Date.now() - stored.ts < TAX_TTL_MS && (!state || state in (stored.stateRates ?? {}))) return stored;
+    const complete = !!stored?.irs && (!state || Number.isFinite(stored.stateRates?.[state]));
+    const age = stored ? Date.now() - stored.ts : Infinity;
+    if (stored && (!state || state in (stored.stateRates ?? {})) && age < (complete ? TAX_TTL_MS : TAX_RETRY_MS)) return stored;
     const page = async (url) => {
       try {
         const r = await fetch(url, { headers: { accept: 'text/html' } });
@@ -280,20 +284,22 @@ importScripts('/lib/constants.js', '/lib/tax-rates.js', '/lib/mmf-model.js');
       .map(f => ({ ticker: f.ticker, afterTax: MmfModel.afterTax(f, rates) }))
       .filter(f => f.afterTax !== null).sort((a, b) => b.afterTax - a.afterTax)[0] ?? null;
 
+    const minGap = Number.isFinite(Number(settings.mmfMinGap)) ? Number(settings.mmfMinGap) : FMC_CONSTANTS.DEFAULT_SETTINGS.mmfMinGap;
     const snapshots = (await chrome.storage.local.get(FMC_CONSTANTS.STORAGE_KEY_MMF_HOLDINGS))[FMC_CONSTANTS.STORAGE_KEY_MMF_HOLDINGS] ?? {};
     const accounts = {};
     for (const [acct, snap] of Object.entries(snapshots)) {
       if (Date.now() - snap.ts > FMC_CONSTANTS.MMF_HOLDINGS_MAX_AGE_MS || !Object.keys(snap.holdings ?? {}).length) continue;
-      const plan = MmfModel.plan({ funds, holdings: snap.holdings, rates });
+      const plan = MmfModel.plan({ funds, holdings: snap.holdings, rates, minGap });
+      const adv = MmfModel.advanceStreak(last?.accounts?.[acct]?.streak, plan.target?.ticker ?? null, FMC_CONSTANTS.MMF_NOTIFY_STREAK);
       accounts[acct] = plan.target
-        ? { target: plan.target.ticker, afterTax: plan.target.afterTax, amountIn: plan.amountIn, annualGain: plan.annualGain, from: plan.moves.map(m => m.from) }
-        : { target: null };
+        ? { target: plan.target.ticker, afterTax: plan.target.afterTax, amountIn: plan.amountIn, annualGain: plan.annualGain, from: plan.moves.map(m => m.from), streak: adv.state, notify: adv.notify }
+        : { target: null, streak: adv.state, notify: false };
     }
     const result = { date: today, ts: Date.now(), rates, best: open, accounts };
     await chrome.storage.local.set({ [dailyKey]: result });
 
-    // Notify only for a CHANGED recommendation that actually has something to move.
-    const changed = Object.entries(accounts).filter(([acct, a]) => a.target && last?.accounts?.[acct]?.target !== a.target);
+    // Notify only when a leader has held the minimum gap for several checks in a row (and only once).
+    const changed = Object.entries(accounts).filter(([, a]) => a.notify);
     if (changed.length) {
       const [acct, a] = changed[0];
       const masked = `…${acct.slice(-4)}`;
