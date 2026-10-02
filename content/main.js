@@ -668,10 +668,11 @@
       ? RollModel.chainRows(await ChainAPI.fetchChain(opt.underlying, exp), opt.type).find(r => r.strike === opt.strike)
       : null;
     if (requestId !== currentRequest) return;
-    const stats = RollModel.optionStats({
+    await TaxContext.ready();
+    const stats = TaxContext.apply(RollModel.optionStats({
       type: opt.type, strike: opt.strike, price: open.price, underlying: px, expiry: opt.expiry,
       iv: row?.iv ?? null, delta: row?.delta ?? null
-    });
+    }));
     if (!stats) { MarginInjector.setPremiumNote(null); return; }
     const hit = stats.annual >= (Number(settings.borrowRate) || 0) / 100;
     MarginInjector.setPremiumNote(`${RollModel.formatStats(stats)} ${hit ? '✓' : ''}`.trim(), hit);

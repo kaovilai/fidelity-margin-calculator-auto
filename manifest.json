@@ -5,11 +5,15 @@
   "minimum_chrome_version": "111",
   "description": "Automatically shows margin impact when entering trades on Fidelity",
   "host_permissions": [
-    "https://digital.fidelity.com/*"
+    "https://digital.fidelity.com/*",
+    "https://fundresearch.fidelity.com/*",
+    "https://www.irs.gov/*",
+    "https://taxfoundation.org/*"
   ],
   "permissions": [
     "storage",
     "alarms",
+    "notifications",
     "declarativeNetRequestWithHostAccess"
   ],
   "declarative_net_request": {
@@ -36,6 +40,9 @@
         "lib/chain-estimate.js",
         "lib/roll-model.js",
         "lib/chain-api.js",
+        "lib/tax-rates.js",
+        "lib/tax-context.js",
+        "lib/mmf-model.js",
         "lib/rate-limiter.js",
         "content/detector.js",
         "content/injector.js",
@@ -43,7 +50,8 @@
         "content/chain-core.js",
         "content/chain.js",
         "content/roll.js",
-        "content/ticket-assist.js"
+        "content/ticket-assist.js",
+        "content/mmf.js"
       ],
       "css": ["content/styles.css"],
       "run_at": "document_idle"

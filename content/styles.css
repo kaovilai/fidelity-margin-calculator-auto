@@ -505,3 +505,49 @@
 .fmc-margin-panel .fmc-roll-note { margin-top: 6px; padding-top: 5px; border-top: 1px dashed var(--fmc-border); font-size: 12px; text-align: center; }
 .fmc-margin-panel .fmc-roll-note[hidden],
 .fmc-margin-panel:not([data-fmc-state="result"]) .fmc-roll-note { display: none; }
+
+/* ---- Money-market optimizer (content/mmf.js) ---- */
+.fmc-mmf-btn {
+  margin-left: 6px;
+  padding: 0 7px;
+  border: 1px solid #2e7d32;
+  border-radius: 10px;
+  background: #fff;
+  color: #2e7d32;
+  font: 600 11px/18px system-ui, -apple-system, 'Segoe UI', sans-serif;
+  cursor: pointer;
+}
+.fmc-mmf-btn:hover { background: #2e7d32; color: #fff; }
+#fmc-mmf-panel {
+  position: fixed;
+  top: 90px;
+  right: 16px;
+  z-index: 2147483000;
+  width: 400px;
+  max-height: 80vh;
+  overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid #c9ced6;
+  border-radius: 8px;
+  background: #fff;
+  color: #1a1a1a;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.22);
+  font: 12px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+#fmc-mmf-panel .fmc-mmf-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; }
+#fmc-mmf-panel .fmc-mmf-close { border: 0; background: none; cursor: pointer; font-size: 14px; }
+#fmc-mmf-panel .fmc-mmf-sec { margin-top: 8px; }
+#fmc-mmf-panel .fmc-mmf-title { font-weight: 700; margin-bottom: 3px; }
+#fmc-mmf-panel .fmc-mmf-row { display: flex; justify-content: space-between; gap: 10px; padding: 1px 0; white-space: pre; }
+#fmc-mmf-panel .fmc-mmf-note { color: #555; margin: 2px 0; }
+#fmc-mmf-panel .fmc-mmf-skip { margin-top: 6px; color: #777; font-size: 11px; }
+#fmc-mmf-panel .fmc-mmf-foot { margin-top: 10px; color: #777; font-size: 11px; }
+#fmc-mmf-panel .fmc-mmf-reserve { display: block; margin-top: 8px; }
+#fmc-mmf-panel .fmc-mmf-reserve input { width: 90px; font: inherit; }
+#fmc-mmf-panel .fmc-mmf-good { color: #2e7d32; font-weight: 600; }
+#fmc-mmf-panel .fmc-mmf-bad { color: #c62828; }
+@media (prefers-color-scheme: dark) {
+  #fmc-mmf-panel { background: #1f2328; color: #e6e6e6; border-color: #3a3f47; }
+  #fmc-mmf-panel .fmc-mmf-note { color: #aab; }
+  .fmc-mmf-btn { background: #1f2328; }
+}

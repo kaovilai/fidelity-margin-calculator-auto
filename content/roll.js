@@ -103,6 +103,7 @@ const RollMode = (() => {
   async function loadRolls() {
     const src = state.source;
     if (!src) return;
+    await TaxContext.ready();
     const seq = ++loadSeq;
     state.loading = true;
     state.error = null;
@@ -162,7 +163,7 @@ const RollMode = (() => {
     // captured (short positions only).
     for (const c of state.cands) {
       c.stats = src.shares < 0 && state.px
-        ? R.optionStats({ type: src.opt.type, strike: c.strike, price: c.openPrice, underlying: state.px, expiry: c.expiry, iv: c.iv, delta: c.delta })
+        ? TaxContext.apply(R.optionStats({ type: src.opt.type, strike: c.strike, price: c.openPrice, underlying: state.px, expiry: c.expiry, iv: c.iv, delta: c.delta }))
         : null;
     }
     state.frontier = R.neutralFrontier(state.cands, src.opt, state.target);
@@ -327,7 +328,7 @@ const RollMode = (() => {
     let stats = null;
     if (short && state.px) {
       const row = state.rows.get(cell.expiry)?.find(r => r.strike === cell.strike);
-      stats = R.optionStats({ type: cell.type, strike: cell.strike, price: cell.price, underlying: state.px, expiry: cell.expiry, iv: row?.iv ?? null, delta: row?.delta ?? null });
+      stats = TaxContext.apply(R.optionStats({ type: cell.type, strike: cell.strike, price: cell.price, underlying: state.px, expiry: cell.expiry, iv: row?.iv ?? null, delta: row?.delta ?? null }));
     }
     return { cell, closePx, net, short, stats };
   }
@@ -359,7 +360,7 @@ const RollMode = (() => {
         if (btn.hasAttribute('data-fmc-roll')) { btn.removeAttribute('data-fmc-roll'); btn.classList.remove('fmc-roll-badge', 'fmc-roll-badge-pos', 'fmc-roll-badge-neg'); }
         continue;
       }
-      const label = `${rc.net >= 0 ? '+' : '−'}$${Math.abs(Math.round(rc.net))}${rc.stats ? ` · ${R.formatYield(rc.stats.annual)}` : ''}`;
+      const label = `${rc.net >= 0 ? '+' : '−'}$${Math.abs(Math.round(rc.net))}${rc.stats ? ` · ${R.formatYield(rc.stats.annual)}${rc.stats.afterTax ? ' AT' : ''}` : ''}`;
       btn.setAttribute('data-fmc-roll', label);
       btn.classList.add('fmc-roll-badge');
       btn.classList.toggle('fmc-roll-badge-pos', rc.net >= 0);
@@ -450,6 +451,7 @@ const RollMode = (() => {
     await C.loadSettings();
     if (settings.rollEnabled !== false) setTimeout(start, 1500); // let the page and chain.js settle
     C.onNewBase(() => { if (settings.rollEnabled !== false && panel) refreshContext(); });
+    TaxContext.onChange(() => { if (state.source && state.sourceQuote && !state.loading) recomputeFromCache(); });
     C.onSettings((next, prev) => {
       if (next.rollEnabled !== false && prev.rollEnabled === false) start();
       else if (next.rollEnabled === false && prev.rollEnabled !== false) stop();
