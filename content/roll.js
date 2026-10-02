@@ -8,7 +8,7 @@
 // Global (lexical) so content/chain.js can stand down its single-leg hover hints while rolling.
 const RollMode = (() => {
   const C = ChainCore;
-  if (!C) return { active: () => false };
+  if (!C) return { active: () => false, handles: () => false };
 
   const log = makeDebugLog('[FMC-ROLL]');
   const R = RollModel;
@@ -457,5 +457,7 @@ const RollMode = (() => {
   }
 
   init().catch(err => log('Fatal init error:', err));
-  return { active };
+  /** True when the roll assistant owns hover for this chain cell (it is a roll target). */
+  const handles = (btn) => active() && rollCell(btn) !== null;
+  return { active, handles };
 })();

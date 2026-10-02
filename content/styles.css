@@ -459,9 +459,21 @@
 
 /* ---- Trade ticket dropdown volume (content/ticket-assist.js) ----
    Volume text and bar are drawn with CSS so they never become part of the option's text. */
-.fmc-vol-opt {
-  background-image: linear-gradient(to right, rgba(46, 125, 50, 0.20) var(--fmc-vol-pct, 0%), transparent var(--fmc-vol-pct, 0%)) !important;
+.fmc-vol-opt { position: relative; }
+/* The bar is an overlay (not a background) so Fidelity's selected/hover highlight cannot hide it. */
+.fmc-vol-opt::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--fmc-vol-pct, 0%);
+  box-sizing: border-box;
+  background: rgba(46, 125, 50, 0.28);
+  pointer-events: none;
 }
+/* Solid edge so the bar stays visible on Fidelity's blue selected/hover highlight. */
+.fmc-vol-has::before { border-left: 3px solid #2e7d32; }
 .fmc-vol-opt::after {
   content: attr(data-fmc-vol);
   float: right;
