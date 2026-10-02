@@ -551,3 +551,5 @@
   #fmc-mmf-panel .fmc-mmf-note { color: #aab; }
   .fmc-mmf-btn { background: #1f2328; }
 }
+#fmc-mmf-panel .fmc-mmf-fill { margin-left: 8px; padding: 0 8px; border: 1px solid #2e7d32; border-radius: 4px; background: #2e7d32; color: #fff; font: 600 11px/18px system-ui, sans-serif; cursor: pointer; }
+#fmc-mmf-panel .fmc-mmf-fill:disabled { opacity: 0.6; cursor: default; }

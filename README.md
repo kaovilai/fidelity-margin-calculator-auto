@@ -45,6 +45,16 @@ The hovered cell is calculated exactly (one `trade-calculator/v1` call). Colour 
 
 **Trade ticket.** The strike and expiration dropdowns show each option's volume and open interest (with a proportional bar) and, for sell-to-open, the yield stats; when the ticket holds a roll, the margin panel names the premium-neutral strike for the chosen expiry.
 
+## Money-Market Optimizer
+
+On the positions page, an **Optimize** button appears next to each money-market position. It reads Fidelity's current money-market list (7-day yield, category, minimum investment/balance) from the public fund screener, computes **after-tax** yields for your tax situation, and suggests the best fund your balance actually qualifies for — funds whose minimums you can't meet are listed with the reason. A move is only suggested when it beats the current balance by at least the *Min yield gap* setting (default 0.10 points).
+
+- **Tax rates** come from live sources (IRS brackets by filing status and income; the state's flat rate) cached for 30 days, with overrides in the popup. Defaults: single, $150k, NC.
+- **Fidelity counts all Fidelity money-market funds in "Cash Available to Withdraw"**, so exchanging between them doesn't reduce it (collected funds only).
+- **Fill ticket** opens Fidelity's mutual-fund ticket and enters the fields for one move — an *Exchange* for non-core funds, or a *Buy* of the target paid from core cash when the source is the core (sweep) fund, which Fidelity doesn't allow to be exchanged. It **never clicks Preview Order or submits**; you review and submit.
+- A once-a-day background check recomputes the best fund from your last-seen balances and sends a notification only when a new leader has held the minimum gap for 3 consecutive checks (once per leader).
+- The same *Option yields after tax* setting shows option yields net of federal + state tax (short-option premium is short-term income, even on LEAPS) so they compare with a margin rate elsewhere.
+
 ## Target Pages
 
 | Page | URL Pattern | Detection |

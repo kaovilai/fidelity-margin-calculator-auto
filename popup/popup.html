@@ -115,6 +115,11 @@
         </div>
         <p id="hint-mmf-enabled" class="setting-hint">Adds an Optimize button next to money-market positions on the positions page: the best after-tax fund your balance qualifies for (minimums respected), with a withdrawable-cash check. It never places orders.</p>
         <div class="setting-row">
+          <label class="setting-label" for="setting-mmf-min-gap">Min yield gap (points)</label>
+          <input type="number" id="setting-mmf-min-gap" class="setting-input" value="0.10" min="0" max="5" step="0.01" autocomplete="off" aria-describedby="hint-mmf-min-gap">
+        </div>
+        <p id="hint-mmf-min-gap" class="setting-hint">The optimizer only suggests a move when the new fund beats your balance by at least this much after tax (0.10 points ≈ $1/yr per $1,000). The daily alert also waits for the same leader to hold that gap for 3 checks in a row.</p>
+        <div class="setting-row">
           <label class="setting-label" for="setting-tax-state">State (2-letter)</label>
           <input type="text" id="setting-tax-state" class="setting-input" value="NC" maxlength="2" autocomplete="off">
         </div>
