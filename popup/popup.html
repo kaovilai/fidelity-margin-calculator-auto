@@ -99,6 +99,48 @@
         </div>
         <p id="hint-borrow-rate" class="setting-hint">Annualized yield (if all extrinsic value is captured) a short option should beat to be worth opening — e.g. your margin borrowing rate (EFFR + spread). Shown green when met.</p>
         <div class="setting-row">
+          <label class="setting-label" for="setting-yield-after-tax">Option yields after tax</label>
+          <label class="switch">
+            <input type="checkbox" id="setting-yield-after-tax" aria-describedby="hint-yield-after-tax">
+            <span class="slider" aria-hidden="true"></span>
+          </label>
+        </div>
+        <p id="hint-yield-after-tax" class="setting-hint">Show option yields after federal + state tax, so they compare directly with your margin interest elsewhere. Premium from short options is short-term income even on LEAPS.</p>
+        <div class="setting-row">
+          <label class="setting-label" for="setting-mmf-enabled">Money-market optimizer</label>
+          <label class="switch">
+            <input type="checkbox" id="setting-mmf-enabled" checked aria-describedby="hint-mmf-enabled">
+            <span class="slider" aria-hidden="true"></span>
+          </label>
+        </div>
+        <p id="hint-mmf-enabled" class="setting-hint">Adds an Optimize button next to money-market positions on the positions page: the best after-tax fund your balance qualifies for (minimums respected), with a withdrawable-cash check. It never places orders.</p>
+        <div class="setting-row">
+          <label class="setting-label" for="setting-tax-state">State (2-letter)</label>
+          <input type="text" id="setting-tax-state" class="setting-input" value="NC" maxlength="2" autocomplete="off">
+        </div>
+        <div class="setting-row">
+          <label class="setting-label" for="setting-tax-filing">Filing status</label>
+          <select id="setting-tax-filing" class="setting-select">
+            <option value="single" selected>Single</option>
+            <option value="mfj">Married filing jointly</option>
+            <option value="hoh">Head of household</option>
+            <option value="mfs">Married filing separately</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label class="setting-label" for="setting-tax-income">Taxable income ($)</label>
+          <input type="number" id="setting-tax-income" class="setting-input" value="150000" min="0" step="1000" autocomplete="off">
+        </div>
+        <div class="setting-row">
+          <label class="setting-label" for="setting-tax-fed-override">Federal rate override (%)</label>
+          <input type="number" id="setting-tax-fed-override" class="setting-input" placeholder="live" min="0" max="60" step="0.01" autocomplete="off">
+        </div>
+        <div class="setting-row">
+          <label class="setting-label" for="setting-tax-state-override">State rate override (%)</label>
+          <input type="number" id="setting-tax-state-override" class="setting-input" placeholder="live" min="0" max="20" step="0.01" autocomplete="off" aria-describedby="hint-tax">
+        </div>
+        <p id="hint-tax" class="setting-hint">Marginal rates come from live sources (IRS brackets for your income and filing status; the state's flat rate) and are cached for 30 days. Fill an override to use your own number instead. Graduated-bracket states need an override.</p>
+        <div class="setting-row">
           <label class="setting-label" for="setting-chain-qty">Chain quantity</label>
           <input type="number" id="setting-chain-qty" class="setting-input" value="1" min="1" max="1000" step="1" autocomplete="off" aria-describedby="hint-chain-qty">
         </div>

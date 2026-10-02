@@ -63,7 +63,7 @@
   async function annotateStrikes(list, leg) {
     const { symbol, type, expiry } = legContext(leg);
     if (!symbol || !type || !expiry) return;
-    const key = `strike|${symbol}|${type}|${expiry}|${document.querySelector(`#action_dropdown-${leg} .binding-val`)?.textContent?.trim()}`;
+    const key = `strike|${symbol}|${type}|${expiry}|${document.querySelector(`#action_dropdown-${leg} .binding-val`)?.textContent?.trim()}|${TaxContext.enabled()}`;
     if (list.dataset.fmcVolKey === key) return;
     list.dataset.fmcVolKey = key;
     const exp = (await ChainAPI.fetchExpirations(symbol)).find(e => e.date === expiry);
@@ -74,11 +74,12 @@
     // For sell-to-open legs also show the annualized yield if the extrinsic value is captured.
     const selling = /sell\s+to\s+open/i.test(document.querySelector(`#action_dropdown-${leg} .binding-val`)?.textContent ?? '');
     const px = selling ? await ChainAPI.fetchUnderlyingPrice(symbol).catch(() => null) : null;
+    if (selling) await TaxContext.ready();
     for (const btn of list.querySelectorAll(STRIKE_OPT)) {
       const strike = parseFloat(btn.textContent);
       const row = byStrike.get(strike);
       if (!row) continue;
-      const stats = px ? R.optionStats({ type, strike, price: row.bid, underlying: px, expiry, iv: row.iv, delta: row.delta }) : null;
+      const stats = px ? TaxContext.apply(R.optionStats({ type, strike, price: row.bid, underlying: px, expiry, iv: row.iv, delta: row.delta })) : null;
       mark(btn, row.volume, row.openInterest, maxVolume, stats);
     }
   }

@@ -103,10 +103,10 @@
   function yieldOf(cell) {
     if (cell.side !== 'sell' || underlyingPx === null) return null;
     const row = rowLookup.get(`${pxFor}|${cell.expiry}|${cell.type}`)?.get(cell.strike);
-    return R.optionStats({
+    return TaxContext.apply(R.optionStats({
       type: cell.type, strike: cell.strike, price: cell.price, underlying: underlyingPx,
       expiry: cell.expiry, iv: row?.iv ?? null, delta: row?.delta ?? null
-    });
+    }));
   }
 
   /** Loads chain rows (IV, delta) for every sell-cell expiry/type currently on screen. */
@@ -266,6 +266,7 @@
   async function updateYieldBadges() {
     if (!settings.chainEnabled) return;
     await ensurePrice();
+    await TaxContext.ready();
     if (underlyingPx === null) return;
     const hurdle = settings.borrowRate / 100;
     const buttons = [...document.querySelectorAll(CELL_SELECTOR)];
@@ -283,10 +284,10 @@
         }
         continue;
       }
-      btn.setAttribute('data-fmc-yield', R.formatYield(y.annual));
+      btn.setAttribute('data-fmc-yield', `${R.formatYield(y.annual)}${y.afterTax ? ' AT' : ''}`);
       // Hover tooltip with the full picture — unless an exact/estimate tooltip already owns the title.
       if (!btn.classList.contains(CLS.CELL)) {
-        btn.setAttribute('title', `If extrinsic captured: ${R.formatStats(y)} (hurdle ${settings.borrowRate}%/yr) ${y.annual >= hurdle ? '✓' : '✗'}\nHover for the margin impact.`);
+        btn.setAttribute('title', `If extrinsic captured: ${R.formatStats(y)} (hurdle ${settings.borrowRate}%/yr) ${y.annual >= hurdle ? '✓' : '✗'}${y.afterTax ? `\nAfter tax at ${TaxContext.label()} — premium from short options is short-term income, even on LEAPS.` : ''}\nHover for the margin impact.`);
       }
       btn.classList.add('fmc-yield-badge');
       btn.classList.toggle('fmc-yield-hit', y.annual >= hurdle);
@@ -378,6 +379,7 @@
     await C.loadSettings();
     // A fresh baseline invalidates everything derived from the old one.
     C.onNewBase(() => { samples.clear(); exactCache.clear(); });
+    TaxContext.onChange(() => { clearYieldBadges(); scheduleYield(); });
     if (settings.chainEnabled) enable();
     C.onSettings((next, prev) => {
       // Quantity / threshold changes make cached results stale.

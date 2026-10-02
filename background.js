@@ -2,7 +2,7 @@
 // API calls stay in content scripts (same-origin cookies); background coordinates.
 'use strict';
 
-importScripts('/lib/constants.js');
+importScripts('/lib/constants.js', '/lib/tax-rates.js', '/lib/mmf-model.js');
 
 (() => {
   const LOG_PREFIX = '[FMC-BG]';
@@ -174,6 +174,161 @@ importScripts('/lib/constants.js');
     return { ok: true };
   }
 
+  // --- Money-market yields (Fidelity fund screener) ---
+  const MMF_TTL_MS = 15 * 60 * 1000;
+  let mmfCache = null; // { ts, data }
+
+  /**
+   * Fetches the screener's money-market list: 7-day yield, category and minimums per fund.
+   * Cached for 15 minutes (yields change daily). Cross-origin, so it runs here rather than in a
+   * content script.
+   * @returns {Promise<Object>} The screener's raw response.
+   */
+  async function fetchMmfYields() {
+    if (mmfCache && Date.now() - mmfCache.ts < MMF_TTL_MS) return mmfCache.data;
+    const resp = await fetch(FMC_CONSTANTS.API.MMF_SCREENER_ENDPOINT, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify({
+        searchFilter: {
+          includeLeveragedAndInverseFunds: 'N', openToNewInvestors: 'OPEN', investmentTypeCode: 'MFN',
+          assetClass: 'MM', category: 'TM,TF,XT', fidelityFundOnly: 'F'
+        },
+        sortBy: 'averageAnnualReturnsYear3', sortOrder: 'DESC', currentPageNumber: 1,
+        businessChannel: 'RETAIL', noOfRowsPerPage: 100,
+        subjectAreaCode: 'fundInformation,dailyNAV,fundFeatures'
+      })
+    });
+    if (!resp.ok) throw new Error(`Fund screener HTTP ${resp.status}`);
+    const data = await resp.json();
+    if (!Array.isArray(data?.funds)) throw new Error('Unexpected fund screener response');
+    mmfCache = { ts: Date.now(), data };
+    return data;
+  }
+
+  // --- Tax rates (IRS brackets + Tax Foundation state rates), cached 30 days ---
+  const TAX_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+  /**
+   * Live federal brackets and the requested state's flat rate, parsed from public pages.
+   * Returns `{ irs, stateRates, ts }`; either part may be null if its page changed shape (the
+   * caller then falls back to configured values). The result is cached in chrome.storage.local.
+   * @param {string} state - Two-letter state code.
+   */
+  async function fetchTaxRates(state) {
+    const key = FMC_CONSTANTS.STORAGE_KEY_TAX_CACHE;
+    const stored = (await chrome.storage.local.get(key))[key];
+    if (stored && Date.now() - stored.ts < TAX_TTL_MS && (!state || state in (stored.stateRates ?? {}))) return stored;
+    const page = async (url) => {
+      try {
+        const r = await fetch(url, { headers: { accept: 'text/html' } });
+        return r.ok ? TaxRates.toText(await r.text()) : null;
+      } catch { return null; }
+    };
+    const [irsText, stateText] = await Promise.all([page(FMC_CONSTANTS.API.IRS_BRACKETS_URL), page(FMC_CONSTANTS.API.STATE_RATES_URL)]);
+    const result = {
+      ts: Date.now(),
+      irs: irsText ? TaxRates.parseIrsBrackets(irsText) : (stored?.irs ?? null),
+      stateRates: { ...(stored?.stateRates ?? {}) }
+    };
+    if (state) result.stateRates[state] = stateText ? TaxRates.parseStateRate(stateText, state) : (stored?.stateRates?.[state] ?? null);
+    await chrome.storage.local.set({ [key]: result });
+    return result;
+  }
+
+  // --- Daily best-after-tax money-market check ---
+  const FMC_SETTINGS_KEY = FMC_CONSTANTS.STORAGE_KEY_SETTINGS;
+  const FIDELITY_POSITIONS_URL = 'https://digital.fidelity.com/ftgw/digital/portfolio/positions';
+  const money = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
+
+  /** Tax configuration from the user's synced settings (same resolution rules as TaxContext). */
+  function taxConfig(s) {
+    const n = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
+    return {
+      filing: s.taxFiling || 'single', income: n(s.taxIncome) ?? 150000,
+      state: String(s.taxState || 'NC').toUpperCase(),
+      federalOverride: n(s.taxFederalOverride), stateOverride: n(s.taxStateOverride),
+      federalFallback: 24, stateFallback: 4.25
+    };
+  }
+
+  /**
+   * Recomputes the best after-tax money-market fund for each account whose balances we last saw
+   * (within a week) and notifies when the recommendation changed since the last check. Runs at most
+   * once per calendar day (the result is cached); `force` bypasses that.
+   * Never touches Fidelity pages: yields come from the public fund screener, balances from the
+   * snapshot the content scripts keep in chrome.storage.local.
+   * @param {boolean} [force=false]
+   * @returns {Promise<Object|null>} The day's result, or null when disabled.
+   */
+  async function runMmfDailyCheck(force = false) {
+    const settings = (await chrome.storage.sync.get(FMC_SETTINGS_KEY))[FMC_SETTINGS_KEY] ?? {};
+    if (settings.mmfEnabled === false) return null;
+    const dailyKey = FMC_CONSTANTS.STORAGE_KEY_MMF_DAILY;
+    const last = (await chrome.storage.local.get(dailyKey))[dailyKey] ?? null;
+    const today = new Date().toLocaleDateString('en-CA');
+    if (!force && last?.date === today) return last;
+
+    const funds = MmfModel.parseFunds(await fetchMmfYields());
+    const cfg = taxConfig(settings);
+    const live = await fetchTaxRates(cfg.state).catch(() => null);
+    const resolved = TaxRates.resolve({ config: cfg, live });
+    const rates = { federal: resolved.federal, state: resolved.state, stateCode: cfg.state };
+
+    // Best fund anyone can buy with no minimum — useful context even without balance snapshots.
+    const open = funds.filter(f => f.minInitial === 0 && f.minBalance === 0)
+      .map(f => ({ ticker: f.ticker, afterTax: MmfModel.afterTax(f, rates) }))
+      .filter(f => f.afterTax !== null).sort((a, b) => b.afterTax - a.afterTax)[0] ?? null;
+
+    const snapshots = (await chrome.storage.local.get(FMC_CONSTANTS.STORAGE_KEY_MMF_HOLDINGS))[FMC_CONSTANTS.STORAGE_KEY_MMF_HOLDINGS] ?? {};
+    const accounts = {};
+    for (const [acct, snap] of Object.entries(snapshots)) {
+      if (Date.now() - snap.ts > FMC_CONSTANTS.MMF_HOLDINGS_MAX_AGE_MS || !Object.keys(snap.holdings ?? {}).length) continue;
+      const plan = MmfModel.plan({ funds, holdings: snap.holdings, rates });
+      accounts[acct] = plan.target
+        ? { target: plan.target.ticker, afterTax: plan.target.afterTax, amountIn: plan.amountIn, annualGain: plan.annualGain, from: plan.moves.map(m => m.from) }
+        : { target: null };
+    }
+    const result = { date: today, ts: Date.now(), rates, best: open, accounts };
+    await chrome.storage.local.set({ [dailyKey]: result });
+
+    // Notify only for a CHANGED recommendation that actually has something to move.
+    const changed = Object.entries(accounts).filter(([acct, a]) => a.target && last?.accounts?.[acct]?.target !== a.target);
+    if (changed.length) {
+      const [acct, a] = changed[0];
+      const masked = `…${acct.slice(-4)}`;
+      chrome.notifications.create('fmc-mmf-better', {
+        type: 'basic',
+        iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
+        title: 'Better money-market yield available',
+        message: `${a.target} now leads at ${a.afterTax.toFixed(2)}% after tax (account ${masked}). Moving ${money(a.amountIn)} from ${a.from.join(', ')} could add about ${money(a.annualGain)}/yr. Open Fidelity to move it.`,
+        priority: 1
+      });
+      setBadge({}, '$', '#2e7d32');
+    }
+    log(`MMF daily check: best open ${open?.ticker} ${open?.afterTax?.toFixed(2)}%, changed accounts: ${changed.length}`);
+    return result;
+  }
+
+  chrome.notifications.onClicked.addListener((id) => {
+    if (id !== 'fmc-mmf-better') return;
+    chrome.tabs.create({ url: FIDELITY_POSITIONS_URL });
+    chrome.notifications.clear(id);
+    setBadge({}, '', null);
+  });
+
+  // Once a day via chrome.alarms (survives worker restarts); also catch up on startup when a day was missed.
+  (async () => {
+    try {
+      const name = FMC_CONSTANTS.MMF_DAILY_ALARM;
+      if (!(await chrome.alarms.get(name))) await chrome.alarms.create(name, { delayInMinutes: 5, periodInMinutes: 24 * 60 });
+      runMmfDailyCheck().catch(e => warn('MMF daily check failed:', e.message));
+    } catch (e) { warn('Could not set up MMF daily alarm:', e.message); }
+  })();
+  chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm?.name === FMC_CONSTANTS.MMF_DAILY_ALARM) runMmfDailyCheck().catch(e => warn('MMF daily check failed:', e.message));
+  });
+
   // --- Message router ---
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!msg?._fmc) return false;
@@ -227,6 +382,15 @@ importScripts('/lib/constants.js');
         case FMC_CONSTANTS.MESSAGE_TYPES.HEARTBEAT:
           sendResponse({ ok: true });
           return false;
+
+        case FMC_CONSTANTS.MESSAGE_TYPES.FETCH_MMF_YIELDS:
+          // Asynchronous: keep the message port open until the fetch settles.
+          fetchMmfYields().then(sendResponse, (e) => sendResponse({ error: e?.message ?? 'fetch failed' }));
+          return true;
+
+        case FMC_CONSTANTS.MESSAGE_TYPES.FETCH_TAX_RATES:
+          fetchTaxRates(String(msg.payload?.state ?? '')).then(sendResponse, (e) => sendResponse({ error: e?.message ?? 'fetch failed' }));
+          return true;
 
         default:
           warn('Unhandled _fmc message type:', msg.type);

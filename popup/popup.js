@@ -161,6 +161,43 @@
     return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
   }
 
+  // Tax / money-market settings — data-driven so the form, load and save stay in step.
+  // kind: 'check' (boolean), 'text' (upper-cased string), 'select', 'number', 'optNumber' (blank → null)
+  const TAX_FIELDS = Object.freeze([
+    { id: 'setting-yield-after-tax', key: 'yieldAfterTax', kind: 'check' },
+    { id: 'setting-mmf-enabled', key: 'mmfEnabled', kind: 'check' },
+    { id: 'setting-tax-state', key: 'taxState', kind: 'text' },
+    { id: 'setting-tax-filing', key: 'taxFiling', kind: 'select' },
+    { id: 'setting-tax-income', key: 'taxIncome', kind: 'number' },
+    { id: 'setting-tax-fed-override', key: 'taxFederalOverride', kind: 'optNumber' },
+    { id: 'setting-tax-state-override', key: 'taxStateOverride', kind: 'optNumber' }
+  ]);
+
+  function loadTaxFields(s) {
+    for (const f of TAX_FIELDS) {
+      const el = document.getElementById(f.id);
+      if (!el) continue;
+      const v = s[f.key];
+      if (f.kind === 'check') el.checked = f.key === 'mmfEnabled' ? v !== false : v === true;
+      else el.value = v === null || v === undefined ? '' : String(v);
+    }
+  }
+
+  function readTaxFields() {
+    const out = {};
+    for (const f of TAX_FIELDS) {
+      const el = document.getElementById(f.id);
+      if (!el) { out[f.key] = DEFAULT_SETTINGS[f.key]; continue; }
+      const n = Number(el.value);
+      if (f.kind === 'check') out[f.key] = el.checked;
+      else if (f.kind === 'text') out[f.key] = /^[A-Za-z]{2}$/.test(el.value.trim()) ? el.value.trim().toUpperCase() : DEFAULT_SETTINGS[f.key];
+      else if (f.kind === 'select') out[f.key] = el.value || DEFAULT_SETTINGS[f.key];
+      else if (f.kind === 'number') out[f.key] = Number.isFinite(n) && n >= 0 ? n : DEFAULT_SETTINGS[f.key];
+      else out[f.key] = el.value.trim() !== '' && Number.isFinite(n) && n >= 0 ? n : null;
+    }
+    return out;
+  }
+
   /**
    * Reads settings from `chrome.storage.sync` and populates the settings form.
    * Falls back to {@link DEFAULT_SETTINGS} for any missing or invalid values.
@@ -188,6 +225,7 @@
       }
       const { chainEnabled: chainEnabledEl, minWithdrawable: minWEl, chainQty: chainQtyEl } = getSettingsEls();
       if (chainEnabledEl) chainEnabledEl.checked = s.chainEnabled !== false;
+      loadTaxFields(s);
       const { borrowRate: borrowRateEl } = getSettingsEls();
       if (borrowRateEl) borrowRateEl.value = clampChainNumber(s.borrowRate, 0, FMC_CONSTANTS.CHAIN_LIMITS.BORROW_RATE_MAX, DEFAULT_SETTINGS.borrowRate);
       const { rollEnabled: rollEnabledEl } = getSettingsEls();
@@ -235,6 +273,7 @@
     const borrowRate = clampChainNumber(borrowRateEl?.value, 0, FMC_CONSTANTS.CHAIN_LIMITS.BORROW_RATE_MAX, DEFAULT_SETTINGS.borrowRate);
     if (borrowRateEl && String(borrowRate) !== borrowRateEl.value) borrowRateEl.value = borrowRate;
     const settings = {
+      ...readTaxFields(),
       borrowRate,
       chainEnabled: chainEnabledEl ? chainEnabledEl.checked : DEFAULT_SETTINGS.chainEnabled,
       rollEnabled: getSettingsEls().rollEnabled ? getSettingsEls().rollEnabled.checked : DEFAULT_SETTINGS.rollEnabled,
@@ -322,6 +361,7 @@
     // Settings change handlers — use getSettingsEls() so IDs stay in one place
     const { enabled: enabledEl, threshold: thresholdEl, debounce: debounceEl,
       chainEnabled: chainEnabledEl, rollEnabled: rollEnabledEl, minWithdrawable: minWEl, chainQty: chainQtyEl } = getSettingsEls();
+    for (const f of TAX_FIELDS) document.getElementById(f.id)?.addEventListener('change', saveSettings);
     for (const el of [enabledEl, thresholdEl, debounceEl, chainEnabledEl, rollEnabledEl, minWEl, chainQtyEl, getSettingsEls().borrowRate]) {
       el?.addEventListener('change', saveSettings);
     }
