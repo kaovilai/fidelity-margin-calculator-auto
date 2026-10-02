@@ -148,7 +148,7 @@
     if (base && base.account === account && Date.now() - base.ts < BASE_TTL_MS) return base;
     if (basePromise) return basePromise;
     basePromise = (async () => {
-      const { priceList, baselineData } = await PositionsAPI.fetchStatus(account);
+      const { priceList, baselineData, holdings } = await PositionsAPI.fetchStatus(account);
       const bal = readBalance(baselineData);
       if (!priceList.length || !bal) {
         throw Object.assign(new Error('No positions or balance found for this account'), { type: ERROR_TYPES.CLIENT_ERROR });
@@ -156,7 +156,7 @@
       // New baseline invalidates everything derived from the old one.
       samples.clear();
       exactCache.clear();
-      base = { account, priceList, baselineData, bal, ts: Date.now() };
+      base = { account, priceList, baselineData, holdings: holdings ?? {}, bal, ts: Date.now() };
       return base;
     })().finally(() => { basePromise = null; });
     return basePromise;
@@ -173,13 +173,35 @@
     return m;
   }
 
-  function exactKey(underlying, cell) {
-    return `${underlying}|${cell.expiry}|${cell.type}|${cell.side}|${cell.strike}|${cell.price}|${settings.chainQty}`;
+  /**
+   * Decides what order a hovered cell represents. Buying a contract you are short, or selling
+   * one you hold long, closes it (BC/SC, capped at the quantity held); anything else opens (BO/SO).
+   * @param {string} underlying
+   * @param {Object} cell - Output of ChainEstimate.parseLabel.
+   * @returns {{action: string, qty: number, close: boolean}}
+   */
+  function orderFor(underlying, cell) {
+    const wanted = settings.chainQty;
+    const held = base?.holdings?.[E.optionSymbol(underlying, cell).slice(1)] ?? 0;
+    if (cell.side === 'buy' && held < 0) return { action: 'BC', qty: Math.min(wanted, -held), close: true };
+    if (cell.side === 'sell' && held > 0) return { action: 'SC', qty: Math.min(wanted, held), close: true };
+    return { action: cell.side === 'sell' ? 'SO' : 'BO', qty: wanted, close: false };
   }
 
-  function describe(cell, qty, r, kind) {
+  /** Estimate groups keep opening and closing orders apart — their requirement curves differ. */
+  function groupOf(underlying, cell, order) {
+    return E.groupKey(underlying, order.close ? { ...cell, side: `${cell.side}-close` } : cell);
+  }
+
+  function exactKey(underlying, cell, order) {
+    return `${underlying}|${cell.expiry}|${cell.type}|${order.action}|${cell.strike}|${cell.price}|${order.qty}`;
+  }
+
+  const ACTION_TEXT = Object.freeze({ SO: 'Sell to open', BO: 'Buy to open', SC: 'Sell to close', BC: 'Buy to close' });
+
+  function describe(cell, order, r, kind) {
     const lines = [
-      `${cell.side === 'sell' ? 'Sell' : 'Buy'} ${qty}× ${cell.expiry} $${cell.strike} ${cell.type} @ ${fmt(cell.price)} — ${kind}`,
+      `${ACTION_TEXT[order.action]} ${order.qty}× ${cell.expiry} $${cell.strike} ${cell.type} @ ${fmt(cell.price)} — ${kind}`,
       `Cash withdrawable after: ${fmt(r.avl)} (min ${fmt(settings.minWithdrawable)})`,
       `Margin ${r.credit >= 0 ? 'credit' : 'debit'} after: ${fmt(r.credit)}`,
       `House ${r.house >= 0 ? 'surplus' : 'call'}: ${fmt(r.house)}`,
@@ -209,24 +231,28 @@
   /** Paints every visible cell in the group of `refCell` from exact results, else estimates. */
   function repaintGroup(underlying, refCell) {
     if (!base) return;
-    const key = E.groupKey(underlying, refCell);
+    const key = groupOf(underlying, refCell, orderFor(underlying, refCell));
     const pts = [...(samples.get(key)?.values() ?? [])];
-    const qty = settings.chainQty;
     for (const btn of document.querySelectorAll(CELL_SELECTOR)) {
       const cell = cellOf(btn);
-      if (!cell || E.groupKey(underlying, cell) !== key) continue;
-      const exact = exactCache.get(exactKey(underlying, cell));
+      if (!cell) continue;
+      const order = orderFor(underlying, cell);
+      if (groupOf(underlying, cell, order) !== key) continue;
+      const exact = exactCache.get(exactKey(underlying, cell, order));
       if (exact) {
-        mark(btn, { ...exact.result, tip: describe(cell, qty, exact.result, 'exact') }, 'exact', false);
+        mark(btn, { ...exact.result, tip: describe(cell, order, exact.result, 'exact') }, 'exact', false);
         continue;
       }
-      const est = E.estimateCell(base.bal, cell, qty, pts, settings.minWithdrawable);
+      // Closing orders are specific to the strikes you hold — never estimated.
+      if (order.close) { clearMark(btn); continue; }
+      const est = E.estimateCell(base.bal, cell, order.qty, pts, settings.minWithdrawable);
       if (!est) { clearMark(btn); continue; }
+      const qty = order.qty;
       const r = { ...est, premium: E.signedPremium(cell, qty) };
       const note = est.verify
         ? `estimate from ${pts.length} strike(s) — close to your limit, hover to calculate exactly`
         : `estimate from ${pts.length} strike(s) — hover to calculate exactly`;
-      mark(btn, { ...r, tip: describe(cell, qty, r, note) }, 'est', est.verify);
+      mark(btn, { ...r, tip: describe(cell, order, r, note) }, 'est', est.verify);
     }
   }
 
@@ -235,9 +261,6 @@
     const cell = cellOf(btn);
     const underlying = getUnderlying();
     if (!cell || !underlying) return;
-    const key = exactKey(underlying, cell);
-    if (exactCache.has(key) && Date.now() - exactCache.get(key).ts < EXACT_TTL_MS) return;
-
     setPill('Margin hints: calculating…', 'busy');
     try {
       const account = await getAccount();
@@ -246,12 +269,15 @@
         return;
       }
       const b = await ensureBase(account);
+      const order = orderFor(underlying, cell);
+      const key = exactKey(underlying, cell, order);
+      if (exactCache.has(key) && Date.now() - exactCache.get(key).ts < EXACT_TTL_MS) { idlePill(); return; }
       await RateLimiter.acquire();
-      const qty = settings.chainQty;
+      const qty = order.qty;
       const orders = [{
         orderSymbol: E.optionSymbol(underlying, cell),
         orderType: 'O',
-        orderAction: cell.side === 'sell' ? 'SO' : 'BO',
+        orderAction: order.action,
         orderQty: qty,
         price: cell.price
       }];
@@ -268,8 +294,8 @@
       };
       result.state = E.classify(result, settings.minWithdrawable);
       exactCache.set(key, { result, ts: Date.now() });
-      if (impact.houseBalanceDelta !== null) {
-        sampleMap(E.groupKey(underlying, cell)).set(cell.strike, {
+      if (impact.houseBalanceDelta !== null && !order.close) {
+        sampleMap(groupOf(underlying, cell, order)).set(cell.strike, {
           strike: cell.strike,
           eff: E.effectiveRequirement(premium, impact.houseBalanceDelta)
         });
@@ -314,7 +340,7 @@
       for (const btn of document.querySelectorAll(CELL_SELECTOR)) {
         const cell = cellOf(btn);
         if (!cell) continue;
-        const key = E.groupKey(underlying, cell);
+        const key = groupOf(underlying, cell, orderFor(underlying, cell));
         if (done.has(key) || !samples.has(key)) continue;
         done.add(key);
         repaintGroup(underlying, cell);
