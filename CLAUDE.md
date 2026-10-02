@@ -15,39 +15,37 @@ To test changes, click the reload button on the extension card in `chrome://exte
 
 ## API
 
-**Endpoint:** `POST https://digital.fidelity.com/ftgw/digital/margincalcex/api/graphql?op=GetTradeCalculator`
+Fidelity moved the margin calculator to `/ftgw/digital/margin-calculator/` with a REST API under `/ftgw/digital/api-margin-calculator/api/` (the old `margincalcex` GraphQL endpoints are no longer used). Auth is same-origin cookies. Requests need `Referer: https://digital.fidelity.com/ftgw/digital/margin-calculator/` (set via `declarativeNetRequest` in `rules.json`).
 
-Auth is handled by same-origin cookies (no separate auth needed). The GraphQL query and response shapes are documented in `sample-curl-from-browser.txt.sample` (request) and `curl-resp.sample` (response).
+**Positions + current balance:** `POST .../api/current-status/v1`
+```json
+{"accountNum":"Z…","executeOpenOrdersInd":null,"executeHpoTxnsInd":false,"balancesOnlyInd":false,"rbrAddonsInd":true}
+```
+Response `data.getCurrentStatus.marginCalcResp` has `balance` (current state), `positions[]` (`symbol`, `cusip`, `longShortInd`, `price`, `currencyInd`, ...), `optPairs`, `underlyingSecurities`. Per-unit prices are already provided (no mktVal/qty derivation needed).
 
-Key response fields for margin impact: `balance.marginCreditDebit` (positive=credit, negative=debit/interest), `balance.avlToTradeWithoutMarginImpact`, `balance.coreCash`, `balance.marginBuyingPower`.
+**Projected margin:** `POST .../api/trade-calculator/v1`
+```json
+{"accountNum":"Z…","executeOpenOrdersInd":false,"priceSourceInd":"S","executeHpoTxnsInd":true,"balancesOnlyInd":false,"rbrAddonsInd":true,
+ "tradeOrders":{"orders":[{"orderSymbol":"-APLD261016P24","orderType":"O","orderAction":"SO","orderQty":1,"price":1.26}]},
+ "priceList":[{"symbol":"FDRXX","cusip":"316067107","priceInd":"initial","longShortInd":"LONG","price":1,"isCurrency":false}]}
+```
+Response `data.getTradeCalculator.marginCalcResp.balance` — same shape as before.
 
-**Cash withdrawable without margin** = projected `avlToTradeWithoutMarginImpact`. This is the amount user can withdraw post-trade without incurring margin interest.
+Key balance fields: `marginCreditDebit` (positive=credit, negative=debit/interest), `avlToTradeWithoutMarginImpact` (cash withdrawable without margin interest), `marginBuyingPower`, `houseBalance` (negative = house call), `totalOptionRequirements`, `totalSecurityRequirements`.
 
-### API Requirements (confirmed via testing)
+### Request requirements
 
-- **Orders**: REQUIRED — empty `orders: []` always returns 400 LWC_ERROR. No "baseline" call possible.
-- **PriceList**: REQUIRED — empty `priceList: []` returns 400. Must include current positions with accurate prices.
-- **Query shape**: Server whitelists the full GraphQL query. Simplified queries are rejected.
-- **Page context**: NOT required — API works from any `digital.fidelity.com` page, not just the margin calculator.
-- **Referrer**: Must be `https://digital.fidelity.com/ftgw/digital/margincalcex/` (set via `declarativeNetRequest` rules).
+- **orders**: required (empty `orders: []` is rejected). `orderSymbol` keeps the leading `-` for options; `orderAction` e.g. `SO` (sell to open).
+- **priceList**: required. Build it from `current-status` positions, **skipping positions with no `symbol`** (T-bills carry only a CUSIP) — this mirrors what Fidelity's own page sends. Option symbols in the `priceList` have no leading `-` (`F271217P10`).
+- **Page context**: API works from any `digital.fidelity.com` page.
 
-### Positions / PriceList
+### Architecture
 
-Positions are fetched from the portfolio GraphQL API (`/ftgw/digital/portfolio/api/graphql?ref_at=portsum`, operation `GetPositions`) and converted to priceList format.
+1. `current-status/v1` → `priceList` + current `balance` (cached 5 min, one request).
+2. When a trade is detected: `trade-calculator/v1` with the user's order + `priceList`.
+3. Panel shows projected margin credit/debit with an exact delta vs the current balance (from step 1), plus extra figures derived from responses already fetched (margin requirement, house surplus/call, order premium) — no additional requests.
 
-**Price derivation from portfolio API** (critical — wrong prices = wildly wrong margin calculations):
-- Equities/mutual funds: `price = mktVal / qty`
-- Options: `price = mktVal / (qty * 100)` (contract multiplier)
-- Bonds/T-bills: `price = (mktVal / qty) * 100` (per $100 face value)
-- `longShortInd`: positive qty = LONG, negative = SHORT
-- Option symbols: strip leading `-` (portfolio uses `-AAPL...`, priceList uses `AAPL...`)
-
-### Architecture: Single-Call (no baseline)
-
-Since empty orders = 400, the extension uses a single-call approach:
-1. Fetch positions from portfolio API → build priceList (cached 5 min)
-2. When trade detected: call margin calc with user's order + priceList
-3. Show projected margin state; delta computed from previous cached result
+A non-JSON `text/html` 2xx response (e.g. "Fidelity.com is Temporarily Unavailable") is treated as a retryable API error.
 
 ## DOM Integration
 
@@ -77,24 +75,18 @@ Use Playwright MCP tools for iterative API testing against live Fidelity session
 ```js
 // In browser_evaluate:
 async () => {
-  // 1. Get positions from portfolio API
-  const posResp = await fetch('/ftgw/digital/portfolio/api/graphql?ref_at=portsum', {
-    method: 'POST',
-    headers: {'content-type': 'application/json', 'accept': '*/*'},
-    credentials: 'include',
-    body: JSON.stringify({
-      operationName: 'GetPositions',
-      variables: {acctList: [{acctNum: 'ACCT_NUM', acctType: 'Brokerage', acctSubType: 'Brokerage', preferenceDetail: false}]},
-      query: POSITIONS_QUERY  // see lib/positions.js for full query
-    })
+  // 1. Get positions + current balance
+  const st = await fetch('/ftgw/digital/api-margin-calculator/api/current-status/v1', {
+    method: 'POST', headers: {'content-type': 'application/json', 'accept': '*/*'}, credentials: 'include',
+    body: JSON.stringify({accountNum: 'ACCT_NUM', executeOpenOrdersInd: null, executeHpoTxnsInd: false, balancesOnlyInd: false, rbrAddonsInd: true})
   });
-  // 2. Parse positions → build priceList (see lib/positions.js for conversion logic)
-  // 3. Call margin calc with order + priceList
-  const resp = await fetch('/ftgw/digital/margincalcex/api/graphql?op=GetTradeCalculator', {
+  const positions = (await st.json()).data.getCurrentStatus.marginCalcResp.positions;
+  // 2. Build priceList (see lib/positions.js — skip positions with no symbol)
+  // 3. Call margin calc with order + priceList (marginBody per the API section above)
+  const resp = await fetch('/ftgw/digital/api-margin-calculator/api/trade-calculator/v1', {
     method: 'POST',
-    headers: {'accept':'*/*','content-type':'application/json','apollographql-client-version':'0.0.0'},
+    headers: {'accept':'*/*','content-type':'application/json'},
     credentials: 'include',
-    referrer: 'https://digital.fidelity.com/ftgw/digital/margincalcex/',
     body: JSON.stringify(marginBody)
   });
   const data = await resp.json();
@@ -134,7 +126,7 @@ async (page) => {
 - Portfolio page never reaches `networkidle` — use `waitUntil: 'load'` + `waitForTimeout(8000)`
 - When inspecting large API responses, slice output: `JSON.stringify(data).slice(0, 5000)` to avoid truncation
 - Session expires — if 401/403/redirect to login, user must re-login in Playwright browser
-- Verify results against Fidelity's own Margin Calculator page (`/ftgw/digital/margincalcex/`) to validate accuracy
+- Verify results against Fidelity's own Margin Calculator page (`/ftgw/digital/margin-calculator/`) to validate accuracy
 
 ## Reference Files
 

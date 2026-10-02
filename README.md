@@ -18,10 +18,11 @@ You have to manually navigate to the Margin Calculator page, re-enter the trade 
 
 1. **Detects trade context** — monitors Fidelity trade ticket pages and the dedicated order page for trade input
 2. **Extracts trade details** — reads the symbol, action (buy/sell), quantity, price, and order type from the DOM
-3. **Calls Margin Calculator API** — uses the same GraphQL endpoint (`/ftgw/digital/margincalcex/api/graphql?op=GetTradeCalculator`) that Fidelity's own Margin Calculator page uses
+3. **Calls Margin Calculator API** — uses the same endpoints (`/ftgw/digital/api-margin-calculator/api/current-status/v1` and `.../trade-calculator/v1`) that Fidelity's own Margin Calculator page uses
 4. **Displays results inline** — injects a panel next to the Max Gain / Max Loss / Break Even row showing:
    - Projected `marginCreditDebit` after trade
-   - Delta from current margin credit/debit
+   - Delta from current margin credit/debit (exact, vs. the account's current balance)
+   - Margin requirement, house surplus/call, and order premium (derived from data already fetched)
    - Whether the trade causes margin debit (interest-bearing)
    - Wiggle room: how much more you can trade before hitting margin debit
    - Cash available to withdraw without using margin after trade settles
@@ -36,7 +37,7 @@ The request reuses the browser's existing session cookies (same-origin), so no s
 | Trade Ticket (popup) | `digital.fidelity.com/ftgw/digital/options-research/*` | `#trade-container-shell` visible |
 | Trade Ticket (popup) | `digital.fidelity.com/ftgw/digital/portfolio/summary*` | `#trade-container-shell` visible |
 | Options Trade (full page) | `digital.fidelity.com/ftgw/digital/trade-options*` | `body.option-trade-ticket` |
-| Margin Calculator | `digital.fidelity.com/ftgw/digital/margincalcex/*` | Dedicated page |
+| Margin Calculator | `digital.fidelity.com/ftgw/digital/margin-calculator/*` | Dedicated page |
 
 The floating trade ticket popup (`#trade-container-shell`) can appear on many Fidelity pages — portfolio summary, option chain, research, etc. The content script should match broadly on `digital.fidelity.com/ftgw/digital/*` rather than specific paths.
 
@@ -44,7 +45,7 @@ The floating trade ticket popup (`#trade-container-shell`) can appear on many Fi
 
 **Endpoint:**
 ```
-POST https://digital.fidelity.com/ftgw/digital/margincalcex/api/graphql?op=GetTradeCalculator
+POST https://digital.fidelity.com/ftgw/digital/api-margin-calculator/api/trade-calculator/v1
 ```
 
 **Key Request Fields:**

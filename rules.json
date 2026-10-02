@@ -8,12 +8,12 @@
         {
           "header": "Referer",
           "operation": "set",
-          "value": "https://digital.fidelity.com/ftgw/digital/margincalcex/"
+          "value": "https://digital.fidelity.com/ftgw/digital/margin-calculator/"
         }
       ]
     },
     "condition": {
-      "urlFilter": "|https://digital.fidelity.com/ftgw/digital/margincalcex/api/graphql",
+      "urlFilter": "|https://digital.fidelity.com/ftgw/digital/api-margin-calculator/api/",
       "resourceTypes": ["xmlhttprequest"]
     }
   }

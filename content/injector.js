@@ -47,6 +47,15 @@ const MarginInjector = (() => {
     BUYING_POWER_LABEL:      'fmc-buying-power-label',
     BUYING_POWER_SUBLABEL:   'fmc-buying-power-sublabel',
     DELTA:                   'fmc-delta',
+    REQUIREMENT:             'fmc-requirement',
+    REQUIREMENT_LABEL:       'fmc-requirement-label',
+    REQUIREMENT_SUBLABEL:    'fmc-requirement-sublabel',
+    HOUSE:                   'fmc-house',
+    HOUSE_LABEL:             'fmc-house-label',
+    HOUSE_SUBLABEL:          'fmc-house-sublabel',
+    PREMIUM:                 'fmc-premium',
+    PREMIUM_LABEL:           'fmc-premium-label',
+    PREMIUM_SUBLABEL:        'fmc-premium-sublabel',
     LOADING:                 'fmc-loading',
     ERROR:                   'fmc-error',
     ERROR_TEXT:              'fmc-error-text',
@@ -231,6 +240,23 @@ const MarginInjector = (() => {
       )
     );
 
+    // Second row — extra figures derived from data we already fetch (current-state balance,
+    // projected balance, and the order itself): margin requirement, house surplus/call, premium.
+    const reqLabelEl = mkEl('span', { className: 'fmc-label', id: EL_ID.REQUIREMENT_LABEL, textContent: PT.REQUIREMENT });
+    const reqEl = mkEl('span', { className: 'fmc-value', id: EL_ID.REQUIREMENT, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.REQUIREMENT_LABEL, 'aria-describedby': EL_ID.REQUIREMENT_SUBLABEL, textContent: '--' });
+    const reqSubEl = mkEl('span', { className: 'fmc-sublabel', id: EL_ID.REQUIREMENT_SUBLABEL });
+    const houseLabelEl = mkEl('span', { className: 'fmc-label', id: EL_ID.HOUSE_LABEL, textContent: PT.HOUSE_SURPLUS });
+    const houseEl = mkEl('span', { className: 'fmc-value', id: EL_ID.HOUSE, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.HOUSE_LABEL, 'aria-describedby': EL_ID.HOUSE_SUBLABEL, textContent: '--' });
+    const houseSubEl = mkEl('span', { className: 'fmc-sublabel', id: EL_ID.HOUSE_SUBLABEL });
+    const premiumLabelEl = mkEl('span', { className: 'fmc-label', id: EL_ID.PREMIUM_LABEL, textContent: PT.PREMIUM_CREDIT });
+    const premiumEl = mkEl('span', { className: 'fmc-value', id: EL_ID.PREMIUM, 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-labelledby': EL_ID.PREMIUM_LABEL, 'aria-describedby': EL_ID.PREMIUM_SUBLABEL, textContent: '--' });
+    const premiumSubEl = mkEl('span', { className: 'fmc-sublabel', id: EL_ID.PREMIUM_SUBLABEL, textContent: PT.PREMIUM_SUBLABEL });
+    const extraBody = mkEl('div', { className: 'fmc-panel-body fmc-panel-body-extra' },
+      mkEl('div', { className: 'fmc-col', role: 'group', 'aria-labelledby': EL_ID.REQUIREMENT_LABEL }, reqLabelEl, reqEl, reqSubEl),
+      mkEl('div', { className: 'fmc-col', role: 'group', 'aria-labelledby': EL_ID.HOUSE_LABEL }, houseLabelEl, houseEl, houseSubEl),
+      mkEl('div', { className: 'fmc-col fmc-col-last', role: 'group', 'aria-labelledby': EL_ID.PREMIUM_LABEL }, premiumLabelEl, premiumEl, premiumSubEl)
+    );
+
     // Loading indicator
     const loading = mkEl('div', { className: 'fmc-panel-loading', id: EL_ID.LOADING, role: 'status' },
       mkEl('span', { className: 'fmc-spinner', 'aria-hidden': 'true' }),
@@ -267,6 +293,7 @@ const MarginInjector = (() => {
     );
 
     panel.appendChild(body);
+    panel.appendChild(extraBody);
     panel.appendChild(loading);
     panel.appendChild(errorRow);
     panel.appendChild(debugLogDiv);
@@ -276,6 +303,10 @@ const MarginInjector = (() => {
     // do not need to call querySelector on every invocation.
     panelRefs.set(panel, {
       body,
+      extraBody,
+      requirement: reqEl, requirementLabel: reqLabelEl, requirementSub: reqSubEl,
+      house: houseEl, houseLabel: houseLabelEl, houseSub: houseSubEl,
+      premium: premiumEl, premiumLabel: premiumLabelEl,
       loading,
       error: errorRow,
       errorText:         errorTextEl,
@@ -333,6 +364,8 @@ const MarginInjector = (() => {
       errorText: null, retryBtn: null,
       creditDebit: null, creditDebitLabel: null,
       delta: null, cash: null, buyingPower: null,
+      extraBody: null, requirement: null, requirementLabel: null, requirementSub: null,
+      house: null, houseLabel: null, houseSub: null, premium: null, premiumLabel: null,
       debugLog: null, debugBtn: null
     };
   }
@@ -461,6 +494,26 @@ const MarginInjector = (() => {
   }
 
   /**
+   * Fills a delta sublabel element ("+$50.00 from current"), colour-coded by direction.
+   * @param {HTMLElement|null} el - Sublabel element.
+   * @param {number|null} delta - Change from current, or null when no baseline is available.
+   * @param {string} suffix - Text appended after the formatted delta.
+   * @param {boolean} higherIsWorse - When true an increase is shown as negative (e.g. requirements).
+   */
+  function setDeltaSublabel(el, delta, suffix, higherIsWorse) {
+    if (!el) return;
+    if (delta === null || !Number.isFinite(delta)) {
+      el.textContent = PT.DELTA_NO_BASELINE;
+      el.className = 'fmc-sublabel';
+      return;
+    }
+    el.textContent = `${formatDelta(delta)} ${suffix}`;
+    const good = higherIsWorse ? delta < 0 : delta > 0;
+    const bad = higherIsWorse ? delta > 0 : delta < 0;
+    el.className = ['fmc-sublabel', bad ? CSS.NEGATIVE : good ? CSS.POSITIVE : null].filter(Boolean).join(' ');
+  }
+
+  /**
    * Updates the panel with calculated margin impact data.
    * Hides the loading indicator and error row, and populates all three data columns.
    * No-op if the panel is not currently injected.
@@ -479,6 +532,8 @@ const MarginInjector = (() => {
 
     // display/opacity of body, loading spinner, and error row are driven by
     // data-fmc-state CSS rules — no inline style manipulation needed here.
+    const { extraBody, requirement: reqEl, requirementSub: reqSubEl, house: houseEl, houseLabel: houseLabelEl, houseSub: houseSubEl, premium: premiumEl, premiumLabel: premiumLabelEl } = getPanelElements(panel);
+    extraBody?.removeAttribute('aria-hidden');
     const { body, errorText: errorTextEl, creditDebit: creditDebitEl, creditDebitLabel, delta: deltaEl, cash: cashEl, buyingPower: bpEl, debugLog: debugLogEl, debugBtn: debugBtnEl } = getPanelElements(panel);
     body?.removeAttribute('aria-hidden');
     // Clear stale error text — mirrors the same guard in showLoading(). When the
@@ -526,6 +581,29 @@ const MarginInjector = (() => {
       bpEl.textContent = formatCurrency(impact.projectedBuyingPower);
       bpEl.className = signClass(impact.projectedBuyingPower);
     }
+
+    // Row 2, column 1: total margin requirement (higher = worse, so an increase is negative)
+    if (reqEl) {
+      reqEl.textContent = formatCurrency(impact.requirement);
+      reqEl.className = `fmc-value ${CSS.NEUTRAL}`;
+    }
+    setDeltaSublabel(reqSubEl, impact.requirementDelta, PT.REQUIREMENT_SUFFIX, true);
+
+    // Row 2, column 2: house surplus (>= 0) or house call (< 0)
+    if (houseLabelEl) houseLabelEl.textContent = impact.houseBalance < 0 ? PT.HOUSE_CALL : PT.HOUSE_SURPLUS;
+    if (houseEl) {
+      houseEl.textContent = formatCurrency(impact.houseBalance);
+      houseEl.className = signClass(impact.houseBalance);
+    }
+    setDeltaSublabel(houseSubEl, impact.houseBalanceDelta, PT.DELTA_SUFFIX, false);
+
+    // Row 2, column 3: order premium, derived from the order itself
+    if (premiumEl) {
+      const premium = impact.premium;
+      premiumEl.textContent = premium === null ? '--' : formatCurrency(Math.abs(premium));
+      premiumEl.className = premium === null ? `fmc-value ${CSS.NEUTRAL}` : signClass(premium);
+    }
+    if (premiumLabelEl) premiumLabelEl.textContent = impact.premium !== null && impact.premium < 0 ? PT.PREMIUM_DEBIT : PT.PREMIUM_CREDIT;
   }
 
   /**

@@ -62,6 +62,12 @@
   gap: 0;
 }
 
+.fmc-panel-body-extra {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--fmc-border);
+}
+
 .fmc-col {
   flex: 1;
   display: flex;
@@ -140,6 +146,10 @@
   opacity: 0.5;
 }
 .fmc-margin-panel[data-fmc-state="error"] .fmc-panel-body {
+  display: none;
+}
+/* Extra-figures row is shown only with a result */
+.fmc-margin-panel:not([data-fmc-state="result"]) .fmc-panel-body-extra {
   display: none;
 }
 

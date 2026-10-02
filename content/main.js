@@ -519,7 +519,11 @@
 
       // Fetch priceList from portfolio API (cached)
       const priceListKey = `${CACHE_KEYS.PRICELIST}${accountNum}`;
-      let priceList = await getCached(priceListKey);
+      // Cached value is `{ priceList, baselineData }`; baselineData is the account's current
+      // balance from the same response, used as the exact "current" side of the delta.
+      const cachedStatus = await getCached(priceListKey);
+      let priceList = cachedStatus?.priceList ?? null;
+      let baselineData = cachedStatus?.baselineData ?? null;
       if (requestId !== currentRequest) return;
       // Guard: a cached empty priceList (from a previous call that found no positions) is
       // truthy (![] is false), so without this check we'd fall through to the margin API
@@ -532,7 +536,7 @@
       if (!priceList) {
         log('Fetching positions for', accountNum);
         try {
-          priceList = await PositionsAPI.fetchPriceList(accountNum);
+          ({ priceList, baselineData } = await PositionsAPI.fetchStatus(accountNum));
         } catch (posErr) {
           if (requestId !== currentRequest) return;
           log('Error:', posErr);
@@ -550,9 +554,10 @@
         // write is fire-and-forget.
         // Empty priceList uses a short TTL so the user can retry quickly while still
         // avoiding repeated API calls on every form mutation for accounts with no positions.
+        const statusValue = { priceList, baselineData };
         const cacheOp = priceList.length > 0
-          ? setCache(priceListKey, priceList, PRICELIST_TTL)
-          : setCache(priceListKey, priceList, PRICELIST_EMPTY_TTL);
+          ? setCache(priceListKey, statusValue, PRICELIST_TTL)
+          : setCache(priceListKey, statusValue, PRICELIST_EMPTY_TTL);
         if (requestId !== currentRequest) return; // stale — background write continues
         await cacheOp;
         if (requestId !== currentRequest) return;
@@ -586,8 +591,9 @@
         if (requestId !== currentRequest) return;
       }
 
-      // Compute impact — use lastResult as baseline for delta if available
-      const impact = MarginCalc.computeImpact(projectedData, lastResult);
+      // Compute impact — diff against the account's current balance (free from the positions
+      // call); fall back to the previous projection if that baseline is unavailable.
+      const impact = MarginCalc.computeImpact(projectedData, baselineData ?? lastResult, orders);
       if (!impact) {
         // Use showErrorInPanel rather than MarginInjector.showError directly — Angular
         // may have removed the panel during the preceding awaits.
