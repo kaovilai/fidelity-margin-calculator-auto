@@ -49,7 +49,11 @@
     btn.classList.add('fmc-vol-opt');
     btn.classList.toggle('fmc-vol-hit', !!stats && stats.annual >= hurdle);
     btn.dataset.fmcVol = `vol ${compact(volume)} · OI ${compact(openInterest)}${stats ? ` · ${R.formatStats(stats)}` : ''}`;
-    const pct = maxVolume > 0 && Number.isFinite(volume) ? Math.max(0, Math.min(100, (volume / maxVolume) * 100)) : 0;
+    // Square-root scale with a floor: strikes trade very unevenly, so a linear bar makes anything
+    // below the busiest strike almost invisible.
+    const pct = maxVolume > 0 && Number.isFinite(volume) && volume > 0
+      ? Math.min(100, Math.max(6, Math.sqrt(volume / maxVolume) * 100)) : 0;
+    btn.classList.toggle('fmc-vol-has', pct > 0);
     btn.style.setProperty('--fmc-vol-pct', `${pct.toFixed(1)}%`);
   }
 
@@ -139,7 +143,7 @@
     observer = null;
     clearTimeout(scanTimer);
     for (const b of document.querySelectorAll('.fmc-vol-opt')) {
-      b.classList.remove('fmc-vol-opt');
+      b.classList.remove('fmc-vol-opt', 'fmc-vol-has', 'fmc-vol-hit');
       delete b.dataset.fmcVol;
       b.style.removeProperty('--fmc-vol-pct');
     }

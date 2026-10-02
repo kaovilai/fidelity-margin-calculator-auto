@@ -301,8 +301,12 @@
   // --- Events ---
   function onOver(ev) {
     if (!settings.chainEnabled) return;
-    // While a roll source is selected the roll assistant owns hover (two-leg calculations).
-    if (typeof RollMode !== 'undefined' && RollMode.active()) return;
+    // The roll assistant owns hover for cells that are roll targets (two-leg calculations);
+    // every other cell keeps the single-leg hints.
+    if (typeof RollMode !== 'undefined' && ev.target instanceof Element) {
+      const target = ev.target.closest(CELL_SELECTOR);
+      if (target && RollMode.handles(target)) return;
+    }
     const btn = ev.target instanceof Element ? ev.target.closest(CELL_SELECTOR) : null;
     if (!btn || btn === hoverBtn || !cellOf(btn)) return;
     clearTimeout(hoverTimer);
