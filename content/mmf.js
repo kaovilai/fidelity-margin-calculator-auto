@@ -219,6 +219,11 @@
         tradeBtn.click();
         if (!await waitFor(() => visible(document.querySelector('#trade-container-shell')), 6000)) return { ok: false, message: 'The trade ticket did not open.' };
       }
+      // A finished order leaves the ticket on its confirmation screen ("Order received" / "Enter new
+      // order"), which has no form — start a fresh order first.
+      const newOrder = [...document.querySelectorAll('#trade-container-shell button')].find(x => visible(x) && /^\s*Enter new order\s*$/i.test(x.innerText));
+      if (newOrder) { realClick(newOrder); await sleepMs(2500); }
+
       // 2. Mutual Funds → Exchange.
       if (!visible(document.querySelector('#float_trade_MF'))) {
         const typeBtn = await waitFor(() => document.querySelector('#dest-dropdownlist-button-trade'), 4000);
