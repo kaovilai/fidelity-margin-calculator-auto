@@ -71,8 +71,33 @@
     return /[A-Z]\d{8}/.exec(center?.innerText ?? '')?.[0] ?? null;
   }
 
+  const FAB_ID = 'fmc-mmf-fab';
+
+  /** Account number for the always-visible button: the URL hash (#Z25418273) or the last-used account. */
+  async function pageAccount() {
+    const fromHash = /[A-Z]\d{8}/.exec(location.hash)?.[0];
+    if (fromHash) return fromHash;
+    try {
+      const r = await chrome.storage.local.get([FMC_CONSTANTS.STORAGE_KEY_CHAIN_ACCOUNT, FMC_CONSTANTS.STORAGE_KEY_STATUS]);
+      return r[FMC_CONSTANTS.STORAGE_KEY_STATUS]?.accountNum ?? r[FMC_CONSTANTS.STORAGE_KEY_CHAIN_ACCOUNT] ?? null;
+    } catch { return null; }
+  }
+
+  /**
+   * An always-visible "Optimize cash" button. Row buttons only exist for money-market rows that are
+   * rendered (the grid is virtualized) and the core fund usually has no row at all, so this makes the
+   * optimizer reachable regardless of scrolling.
+   */
+  function ensureFab() {
+    if (document.getElementById(FAB_ID)) return;
+    const fab = el('button', { id: FAB_ID, type: 'button', className: BTN_CLASS, textContent: 'Optimize cash', title: 'Find the best after-tax money-market fund for this account (read-only until you click Fill ticket)' });
+    fab.addEventListener('click', async () => open(null, await pageAccount()));
+    document.body.append(fab);
+  }
+
   function scan() {
     if (!enabled) return;
+    ensureFab();
     const live = new Set();
     for (const { row, cell, ticker } of mmfCells()) {
       const wrapper = cell.querySelector('.ag-cell-wrapper') ?? cell;
@@ -86,7 +111,7 @@
       }
       live.add(btn);
     }
-    for (const b of document.querySelectorAll(`.${BTN_CLASS}`)) if (!live.has(b)) b.remove();
+    for (const b of document.querySelectorAll(`.${BTN_CLASS}:not(#${FAB_ID})`)) if (!live.has(b)) b.remove();
   }
 
   function schedule() {

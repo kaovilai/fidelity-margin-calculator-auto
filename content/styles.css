@@ -553,3 +553,15 @@
 }
 #fmc-mmf-panel .fmc-mmf-fill { margin-left: 8px; padding: 0 8px; border: 1px solid #2e7d32; border-radius: 4px; background: #2e7d32; color: #fff; font: 600 11px/18px system-ui, sans-serif; cursor: pointer; }
 #fmc-mmf-panel .fmc-mmf-fill:disabled { opacity: 0.6; cursor: default; }
+
+/* Always-visible optimizer entry point */
+#fmc-mmf-fab {
+  position: fixed;
+  left: 16px;
+  bottom: 64px;
+  z-index: 2147482000;
+  margin: 0;
+  padding: 4px 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background: #fff;
+}
