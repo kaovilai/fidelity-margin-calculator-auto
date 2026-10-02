@@ -72,6 +72,24 @@
           </select>
         </div>
         <p id="hint-debounce" class="setting-hint">How long to wait after a form change before recalculating. Increase if calculations trigger too often.</p>
+        <div class="setting-row">
+          <label class="setting-label" for="setting-chain-enabled">Option chain hints</label>
+          <label class="switch">
+            <input type="checkbox" id="setting-chain-enabled" checked aria-describedby="hint-chain-enabled">
+            <span class="slider" aria-hidden="true"></span>
+          </label>
+        </div>
+        <p id="hint-chain-enabled" class="setting-hint">On the option chain page, hover a bid/ask to see whether that trade would cause margin debit or leave less cash withdrawable than you want. Other strikes are estimated.</p>
+        <div class="setting-row">
+          <label class="setting-label" for="setting-min-withdrawable">Min withdrawable ($)</label>
+          <input type="number" id="setting-min-withdrawable" class="setting-input" value="0" min="0" max="10000000" step="100" autocomplete="off" aria-describedby="hint-min-withdrawable">
+        </div>
+        <p id="hint-min-withdrawable" class="setting-hint">Chain hints turn amber when the trade would leave less than this much cash withdrawable without margin.</p>
+        <div class="setting-row">
+          <label class="setting-label" for="setting-chain-qty">Chain quantity</label>
+          <input type="number" id="setting-chain-qty" class="setting-input" value="1" min="1" max="1000" step="1" autocomplete="off" aria-describedby="hint-chain-qty">
+        </div>
+        <p id="hint-chain-qty" class="setting-hint">Contracts assumed for each hovered strike.</p>
         </div>
       </div>
     </section>

@@ -29,6 +29,16 @@ You have to manually navigate to the Margin Calculator page, re-enter the trade 
 
 The request reuses the browser's existing session cookies (same-origin), so no separate authentication is needed.
 
+## Option Chain Hints
+
+On the option chain page (`/ftgw/digital/exp-options-research/option-chain`), hover a **bid or ask** and the cell is outlined by what the trade would do — **without opening an order ticket**:
+
+- **Green** — fine: no margin debit and at least your minimum withdrawable cash remains
+- **Amber** — would leave less withdrawable cash than your *Min withdrawable* setting
+- **Red** — would put you into margin debit (negative cash balance) or trigger a house call
+
+The hovered cell is calculated exactly (one `trade-calculator/v1` call). Other strikes of the same expiry, type and side are **estimated** from the strikes already calculated and drawn with a dashed outline (dotted + tinted when the result is close to your limit — hover it to verify). The tooltip shows the projected cash withdrawable, margin credit/debit, house surplus/call and premium. Premium and margin credit are exact for every strike (they follow directly from the quoted price); the house balance / withdrawable cash estimate interpolates the margin requirement between calculated strikes. Settings (popup): *Option chain hints*, *Min withdrawable*, *Chain quantity*.
+
 ## Target Pages
 
 | Page | URL Pattern | Detection |

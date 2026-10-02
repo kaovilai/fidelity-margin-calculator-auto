@@ -33,10 +33,12 @@
         "lib/positions.js",
         "lib/margin-api.js",
         "lib/margin-calc.js",
+        "lib/chain-estimate.js",
         "lib/rate-limiter.js",
         "content/detector.js",
         "content/injector.js",
-        "content/main.js"
+        "content/main.js",
+        "content/chain.js"
       ],
       "css": ["content/styles.css"],
       "run_at": "document_idle"
