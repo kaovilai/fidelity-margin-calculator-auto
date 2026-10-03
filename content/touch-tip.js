@@ -12,9 +12,16 @@ const FMCTouch = (() => {
   let swallowEl = null;
   let passClick = null;
   let touchUntil = 0;
+  // True only for the click that belongs to the touch currently in progress.
+  // Cleared by that click, or on the next turn if the browser ate the click (a scroll).
+  let pendingTouchClick = false;
   let tipAnchor = null;
 
   function noteTouch() { touchUntil = Date.now() + HOVER_SUPPRESS_MS; }
+  function armTouchClick() {
+    pendingTouchClick = true;
+    setTimeout(() => { pendingTouchClick = false; }, 0);
+  }
   function fromTouchPointer(ev) {
     return ev.isPrimary !== false && (ev.pointerType === 'touch' || ev.pointerType === 'pen');
   }
@@ -104,6 +111,7 @@ const FMCTouch = (() => {
   function onPointerUp(ev) {
     if (!fromTouchPointer(ev) || ev.button !== 0) return;
     noteTouch();
+    armTouchClick();
     const hit = claim(ev);
     if (!hit) return;
     if (begin(hit) === 'preview') {
@@ -113,6 +121,8 @@ const FMCTouch = (() => {
   }
 
   function onClick(ev) {
+    const touchClick = pendingTouchClick || ev.sourceCapabilities?.firesTouchEvents === true;
+    pendingTouchClick = false;
     if (passClick || swallowEl) {
       const swallow = swallowEl;
       swallowEl = null;
@@ -126,8 +136,9 @@ const FMCTouch = (() => {
       }
       return;
     }
-    // A touch click that never delivered a pointerup (or a delayed click).
-    if (!(ev.sourceCapabilities?.firesTouchEvents) && !suppressHover()) return;
+    // A touch click that never delivered a pointerup. A mouse click must not land here,
+    // even when it follows a tap within the hover-suppress window.
+    if (!touchClick) return;
     const hit = claim(ev);
     if (!hit) return;
     if (begin(hit) === 'preview') {
