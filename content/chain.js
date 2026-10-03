@@ -1,7 +1,8 @@
-// Option-chain annotator — on Fidelity's option chain page, hover a bid/ask to learn whether
-// that trade would cause margin debit or leave less withdrawable cash than you want, without
-// opening an order ticket. The hovered cell is calculated exactly (one trade-calculator call);
+// Option-chain annotator — on Fidelity's option chain page, hover or tap a bid/ask to learn
+// whether that trade would cause margin debit or leave less withdrawable cash than you want,
+// without opening an order ticket. That cell is calculated exactly (one trade-calculator call);
 // other strikes of the same expiry/type/side are estimated from the strikes already calculated.
+// A finger has no hover: the first tap previews, and a second tap opens Fidelity's order.
 'use strict';
 (() => {
   // Only on the option chain / Trader+ pages (ChainCore is null elsewhere); the trade-ticket
@@ -38,6 +39,7 @@
   let hoverBtn = null;
   let observer = null;
   let repaintTimer = null;
+  let unwatch = null;
 
   // --- Status pill ---
   function setPill(text, kind) {
@@ -54,7 +56,7 @@
   }
 
   function idlePill() {
-    setPill(`Margin hints: hover a bid/ask · ${settings.chainQty}× · min withdrawable ${fmt(settings.minWithdrawable)}`, 'info');
+    setPill(`Margin hints: hover or tap a bid/ask · ${settings.chainQty}× · min withdrawable ${fmt(settings.minWithdrawable)}`, 'info');
   }
 
   // --- Cells ---
@@ -183,8 +185,8 @@
       const qty = order.qty;
       const r = { ...est, premium: E.signedPremium(cell, qty) };
       const note = est.verify
-        ? `estimate from ${pts.length} strike(s) — close to your limit, hover to calculate exactly`
-        : `estimate from ${pts.length} strike(s) — hover to calculate exactly`;
+        ? `estimate from ${pts.length} strike(s) — close to your limit, hover or tap to calculate exactly`
+        : `estimate from ${pts.length} strike(s) — hover or tap to calculate exactly`;
       mark(btn, { ...r, tip: describe(cell, order, r, note) }, 'est', est.verify);
     }
   }
@@ -193,18 +195,27 @@
   async function calculate(btn) {
     const cell = cellOf(btn);
     const underlying = getUnderlying();
-    if (!cell || !underlying) return;
+    if (!cell || !underlying) {
+      publishTip(btn, 'Could not read this contract.');
+      return;
+    }
     setPill('Margin hints: calculating…', 'busy');
     try {
       const account = await getAccount();
       if (!account) {
-        setPill('Margin hints: could not determine your account — open a trade ticket once', 'warn');
+        const message = 'Could not determine your account — open a trade ticket once';
+        publishTip(btn, message);
+        setPill(`Margin hints: ${message}`, 'warn');
         return;
       }
       await ensureBase(account);
       const order = orderFor(underlying, cell);
       const key = exactKey(underlying, cell, order);
-      if (exactCache.has(key) && Date.now() - exactCache.get(key).ts < EXACT_TTL_MS) { idlePill(); return; }
+      if (exactCache.has(key) && Date.now() - exactCache.get(key).ts < EXACT_TTL_MS) {
+        publishTip(btn, describe(cell, order, exactCache.get(key).result, 'exact'));
+        idlePill();
+        return;
+      }
       const qty = order.qty;
       const orders = [{
         orderSymbol: E.optionSymbol(underlying, cell),
@@ -231,13 +242,23 @@
         });
       }
       repaintGroup(underlying, cell);
+      publishTip(btn, describe(cell, order, result, 'exact'));
       idlePill();
     } catch (err) {
       if (err?.cancelled) { idlePill(); return; }
       log('calculation failed:', err);
       const expired = err?.type === ERROR_TYPES.SESSION_EXPIRED;
-      setPill(expired ? 'Margin hints: Fidelity session expired — refresh the page' : `Margin hints: ${err?.message || 'calculation failed'}`, 'error');
+      const message = expired ? 'Fidelity session expired — refresh the page' : (err?.message || 'calculation failed');
+      publishTip(btn, message);
+      setPill(`Margin hints: ${message}`, 'error');
     }
+  }
+
+  /** On a touch preview, the native title tooltip never appears — show the same text in a tap card. */
+  function publishTip(btn, text) {
+    if (FMCTouch.armedEl() !== btn) return;
+    FMCTouch.show(btn, text);
+    FMCTouch.extendArm();
   }
 
   // --- Yield badges (no API calls per cell: only the underlying price is fetched) ---
@@ -287,7 +308,7 @@
       btn.setAttribute('data-fmc-yield', `${R.formatYield(y.annual)}${y.afterTax ? ' AT' : ''}`);
       // Hover tooltip with the full picture — unless an exact/estimate tooltip already owns the title.
       if (!btn.classList.contains(CLS.CELL)) {
-        btn.setAttribute('title', `If extrinsic captured: ${R.formatStats(y)} (hurdle ${settings.borrowRate}%/yr) ${y.annual >= hurdle ? '✓' : '✗'}${y.afterTax ? `\nAfter tax at ${TaxContext.label()} — premium from short options is short-term income, even on LEAPS.` : ''}\nHover for the margin impact.`);
+        btn.setAttribute('title', `If extrinsic captured: ${R.formatStats(y)} (hurdle ${settings.borrowRate}%/yr) ${y.annual >= hurdle ? '✓' : '✗'}${y.afterTax ? `\nAfter tax at ${TaxContext.label()} — premium from short options is short-term income, even on LEAPS.` : ''}\nHover or tap for the margin impact.`);
       }
       btn.classList.add('fmc-yield-badge');
       btn.classList.toggle('fmc-yield-hit', y.annual >= hurdle);
@@ -302,6 +323,7 @@
 
   // --- Events ---
   function onOver(ev) {
+    if (ev.pointerType === 'touch' || FMCTouch.suppressHover()) return;
     if (!settings.chainEnabled) return;
     // The roll assistant owns hover for cells that are roll targets (two-leg calculations);
     // every other cell keeps the single-leg hints.
@@ -319,6 +341,7 @@
   }
 
   function onOut(ev) {
+    if (ev.pointerType === 'touch' || FMCTouch.suppressHover()) return;
     if (!hoverBtn) return;
     const to = ev.relatedTarget instanceof Element ? ev.relatedTarget.closest(CELL_SELECTOR) : null;
     if (to === hoverBtn) return;
@@ -350,8 +373,18 @@
   }
 
   function enable() {
-    document.addEventListener('mouseover', onOver, true);
-    document.addEventListener('mouseout', onOut, true);
+    document.addEventListener('pointerover', onOver, true);
+    document.addEventListener('pointerout', onOut, true);
+    unwatch = FMCTouch.watch({
+      selector: CELL_SELECTOR,
+      owner: (btn) => settings.chainEnabled && !!cellOf(btn) && !(typeof RollMode !== 'undefined' && RollMode.handles(btn)),
+      onPreview: (btn) => {
+        clearTimeout(hoverTimer);
+        hoverBtn = btn;
+        FMCTouch.show(btn, 'Calculating margin…');
+        calculate(btn).catch(err => log('tap error:', err));
+      }
+    });
     observer = new MutationObserver((muts) => {
       // Ignore our own class/title writes; react only to nodes being added.
       if (muts.some(m => m.type === 'childList' && m.addedNodes.length > 0 && m.target.id !== PILL_ID)) { scheduleRepaint(); scheduleYield(); }
@@ -362,8 +395,11 @@
   }
 
   function disable() {
-    document.removeEventListener('mouseover', onOver, true);
-    document.removeEventListener('mouseout', onOut, true);
+    document.removeEventListener('pointerover', onOver, true);
+    document.removeEventListener('pointerout', onOut, true);
+    unwatch?.();
+    unwatch = null;
+    FMCTouch.hide();
     observer?.disconnect();
     observer = null;
     clearTimeout(hoverTimer);

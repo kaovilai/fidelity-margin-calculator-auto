@@ -2,7 +2,8 @@
 // and it finds rolls (close the held contract, open a new one) from live quotes: a "neutral
 // frontier" per expiry (how far you can roll down-and-out — or up-and-out for calls — without
 // paying money in), plus the best credits out / up / down. Net credit badges appear on the matching
-// chain cells, and hovering a cell or checking a candidate runs one exact two-leg margin calculation.
+// chain cells, and hovering or tapping a cell — or checking a candidate — runs one exact
+// two-leg margin calculation. A finger has no hover: the first tap previews, the second opens the order.
 // Active on the option chain page and Fidelity Trader+ Web (ChainCore is null elsewhere).
 'use strict';
 // Global (lexical) so content/chain.js can stand down its single-leg hover hints while rolling.
@@ -45,6 +46,7 @@ const RollMode = (() => {
   let loadSeq = 0;
   let hoverTimer = null;
   let hoverEl = null;
+  let unwatch = null;
   let observer = null;
   let badgeTimer = null;
   let pollTimer = null;
@@ -375,7 +377,10 @@ const RollMode = (() => {
 
   async function hoverCheck(btn) {
     const rc = rollCell(btn);
-    if (!rc || !btn.isConnected) return;
+    if (!rc || !btn.isConnected) {
+      if (FMCTouch.armedEl() === btn) FMCTouch.show(btn, 'This contract is not a roll target.');
+      return;
+    }
     const src = state.source;
     try {
       const account = await getAccount();
@@ -388,21 +393,25 @@ const RollMode = (() => {
       if (btn.dataset.fmcRollTitle === undefined) btn.dataset.fmcRollTitle = btn.getAttribute('title') ?? '';
       btn.classList.remove(...CELL_CLASSES);
       btn.classList.add('fmc-chain-cell', `fmc-chain-${r.state}`, 'fmc-chain-exact');
-      btn.setAttribute('title', [
+      const tip = [
         `Roll ${R.describeOption(src.opt)} → ${R.describeOption({ ...rc.cell, strike: rc.cell.strike })} — exact`,
         `Close ${fmt(rc.closePx)} · open ${fmt(rc.cell.price)} · net ${signed(rc.net)}`,
         `Cash withdrawable after: ${fmt(r.avl)} (min ${fmt(settings.minWithdrawable)})`,
         `Margin ${r.credit >= 0 ? 'credit' : 'debit'} after: ${fmt(r.credit)}`,
         `House ${r.house >= 0 ? 'surplus' : 'call'}: ${fmt(r.house)}`,
         rc.stats ? `New leg if extrinsic captured: ${R.formatStats(rc.stats)} (hurdle ${settings.borrowRate}%/yr) ${rc.stats.annual >= settings.borrowRate / 100 ? '✓' : '✗'}` : null
-      ].filter(Boolean).join('\n'));
+      ].filter(Boolean).join('\n');
+      btn.setAttribute('title', tip);
+      if (FMCTouch.armedEl() === btn) { FMCTouch.show(btn, tip); FMCTouch.extendArm(); }
       state.marked.add(btn);
     } catch (err) {
       log('hover check failed:', err);
+      if (FMCTouch.armedEl() === btn) FMCTouch.show(btn, err?.message || 'Roll check failed');
     }
   }
 
   function onOver(ev) {
+    if (ev.pointerType === 'touch' || FMCTouch.suppressHover()) return;
     if (!active()) return;
     const btn = ev.target instanceof Element ? ev.target.closest(CELL_SELECTOR) : null;
     if (!btn || btn === hoverEl || !rollCell(btn)) return;
@@ -412,6 +421,7 @@ const RollMode = (() => {
   }
 
   function onOut(ev) {
+    if (ev.pointerType === 'touch' || FMCTouch.suppressHover()) return;
     if (!hoverEl) return;
     const to = ev.relatedTarget instanceof Element ? ev.relatedTarget.closest(CELL_SELECTOR) : null;
     if (to === hoverEl) return;
@@ -421,8 +431,18 @@ const RollMode = (() => {
 
   // --- Lifecycle ---
   function start() {
-    document.addEventListener('mouseover', onOver, true);
-    document.addEventListener('mouseout', onOut, true);
+    document.addEventListener('pointerover', onOver, true);
+    document.addEventListener('pointerout', onOut, true);
+    unwatch = FMCTouch.watch({
+      selector: CELL_SELECTOR,
+      owner: (btn) => active() && rollCell(btn) !== null,
+      onPreview: (btn) => {
+        clearTimeout(hoverTimer);
+        hoverEl = btn;
+        FMCTouch.show(btn, 'Checking this roll…');
+        hoverCheck(btn);
+      }
+    });
     observer = new MutationObserver((muts) => {
       if (muts.some(m => m.type === 'childList' && m.addedNodes.length > 0 && !m.target.closest?.(`#${PANEL_ID}`))) scheduleBadges();
     });
@@ -435,8 +455,11 @@ const RollMode = (() => {
   }
 
   function stop() {
-    document.removeEventListener('mouseover', onOver, true);
-    document.removeEventListener('mouseout', onOut, true);
+    document.removeEventListener('pointerover', onOver, true);
+    document.removeEventListener('pointerout', onOut, true);
+    unwatch?.();
+    unwatch = null;
+    FMCTouch.hide();
     observer?.disconnect();
     clearInterval(pollTimer);
     clearTimeout(hoverTimer);

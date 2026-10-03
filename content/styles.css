@@ -218,7 +218,8 @@
   cursor: pointer;
   font-family: inherit;
 }
-.fmc-panel-btn:hover {
+.fmc-panel-btn:hover,
+.fmc-panel-btn:active {
   background: var(--fmc-hover-bg);
   border-color: var(--fmc-secondary);
 }
@@ -517,7 +518,8 @@
   font: 600 11px/18px system-ui, -apple-system, 'Segoe UI', sans-serif;
   cursor: pointer;
 }
-.fmc-mmf-btn:hover { background: #2e7d32; color: #fff; }
+.fmc-mmf-btn:hover,
+.fmc-mmf-btn:active { background: #2e7d32; color: #fff; }
 #fmc-mmf-panel {
   position: fixed;
   top: 90px;
@@ -564,4 +566,94 @@
   padding: 4px 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   background: #fff;
+}
+
+/* Tap preview for chain cells — the native title tooltip does not appear on touch. */
+#fmc-touch-tip {
+  position: fixed;
+  z-index: 2147483001;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 16px));
+  max-height: min(50vh, 280px);
+  overflow: auto;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(33, 33, 33, 0.94);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+  font: 13px/1.35 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  white-space: pre-line;
+  touch-action: manipulation;
+  -webkit-overflow-scrolling: touch;
+}
+#fmc-touch-tip .fmc-touch-tip-foot {
+  margin-top: 6px;
+  color: #c5d4e8;
+  font-size: 11px;
+}
+
+/* Pressed feedback — :hover never runs for a finger. */
+.fmc-panel-btn:active,
+.fmc-mmf-btn:active,
+#fmc-mmf-panel .fmc-mmf-fill:active,
+#fmc-roll-panel .fmc-roll-btn:active,
+#fmc-roll-panel .fmc-roll-toggle:active,
+#fmc-mmf-panel .fmc-mmf-close:active {
+  filter: brightness(0.92);
+}
+
+@media (max-width: 720px) {
+  /* Fixed panels are sized for a desktop corner; on a phone they run off the screen
+     and the controls on the clipped edge cannot be tapped. */
+  #fmc-chain-pill {
+    top: max(8px, env(safe-area-inset-top));
+    bottom: auto;
+    left: 8px;
+    right: 8px;
+    max-width: none;
+  }
+  #fmc-roll-panel,
+  #fmc-mmf-panel {
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: min(60vh, 520px);
+    bottom: max(8px, env(safe-area-inset-bottom));
+    overscroll-behavior: contain;
+  }
+  #fmc-mmf-panel { top: auto; }
+  #fmc-mmf-fab {
+    top: max(8px, env(safe-area-inset-top));
+    bottom: auto;
+    left: max(8px, env(safe-area-inset-left));
+  }
+  #fmc-mmf-panel .fmc-mmf-row { white-space: normal; }
+  .fmc-panel-body { flex-wrap: wrap; row-gap: 8px; }
+  .fmc-col { flex: 1 1 30%; min-width: 0; }
+}
+
+@media (pointer: coarse) {
+  .fmc-panel-btn,
+  .fmc-mmf-btn,
+  #fmc-mmf-fab,
+  #fmc-mmf-panel .fmc-mmf-fill,
+  #fmc-mmf-panel .fmc-mmf-close,
+  #fmc-roll-panel .fmc-roll-btn,
+  #fmc-roll-panel .fmc-roll-toggle {
+    touch-action: manipulation;
+    min-height: 44px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  #fmc-roll-panel .fmc-roll-controls select,
+  #fmc-roll-panel .fmc-roll-controls input,
+  #fmc-mmf-panel .fmc-mmf-reserve input {
+    font-size: 16px; /* keeps iOS from zooming the page on focus */
+    min-height: 44px;
+  }
+  /* Badges hang 7px outside the cell; a tap on that sliver hits the row underneath.
+     Pull them back inside the cell so the finger lands on the contract. */
+  .fmc-roll-badge::after,
+  .fmc-yield-badge::before { bottom: 0; }
 }

@@ -360,7 +360,8 @@ input:focus-visible + .slider {
   cursor: pointer;
   font-family: inherit;
 }
-.btn-refresh:hover {
+.btn-refresh:hover,
+.btn-refresh:active {
   background: var(--fmc-hover-bg);
   border-color: var(--fmc-secondary);
 }
@@ -374,9 +375,28 @@ input:focus-visible + .slider {
   opacity: 0.45;
   cursor: not-allowed;
 }
-.btn-refresh:disabled:hover {
+.btn-refresh:disabled:hover,
+.btn-refresh:disabled:active {
   background: var(--fmc-bg);
   border-color: var(--fmc-input-border);
+}
+
+/* Finger-sized controls. The popup is a narrow desktop window on a mouse, and a
+   touch Chromebook hits these with a finger — 20px toggles are easy to miss. */
+@media (pointer: coarse) {
+  .section-header,
+  .setting-row { min-height: 44px; }
+  .switch { width: 48px; height: 28px; }
+  .slider:before { height: 22px; width: 22px; }
+  input:checked + .slider:before { transform: translateX(22px); }
+  .setting-input,
+  .setting-select,
+  .btn-refresh {
+    min-height: 44px;
+    font-size: 16px;
+    touch-action: manipulation;
+  }
+  .setting-input { width: 96px; }
 }
 
 /* Refresh status text shown below the Force Recalculate button */
