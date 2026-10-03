@@ -47,6 +47,8 @@
         "content/detector.js",
         "content/injector.js",
         "content/main.js",
+        "lib/touch-tap.js",
+        "content/touch-tip.js",
         "content/chain-core.js",
         "content/chain.js",
         "content/roll.js",
