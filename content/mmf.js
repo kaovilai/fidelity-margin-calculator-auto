@@ -22,6 +22,7 @@
   let scanTimer = null;
   let panel = null;
   const view = { ticker: null, account: null, reserve: 0, reserveEdited: false };
+  let fillBusy = false;
 
   const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
   const fmt = (n) => (Number.isFinite(n) ? currency.format(n) : '--');
@@ -212,30 +213,42 @@
     // Floor to whole cents with a tiny epsilon: 2334.99 * 100 is 233498.99999999997 in floating point.
     const amount = (Math.floor(dollars * 100 + 1e-6) / 100).toFixed(2);
     try {
-      // 1. Make sure the floating ticket is open.
-      if (!visible(document.querySelector('#trade-container-shell'))) {
-        const tradeBtn = [...document.querySelectorAll('nav[aria-label="Action bar"] button, [aria-label="Action bar"] button')].find(b => /^\s*Trade\s*$/i.test(b.innerText));
-        if (!tradeBtn) return { ok: false, message: "Couldn't find Fidelity's Trade button — open the ticket yourself and try again." };
-        tradeBtn.click();
-        if (!await waitFor(() => visible(document.querySelector('#trade-container-shell')), 6000)) return { ok: false, message: 'The trade ticket did not open.' };
+      // 1. Always start from a FRESH ticket. A finished order leaves the ticket on its confirmation
+      //    screen ("Order received" / "Enter new order") with no Action dropdown, and an earlier fill
+      //    leaves a half-filled form — so close it and reopen it every time.
+      const shellEl = () => document.querySelector('#trade-container-shell');
+      // The shell element stays in the DOM when closed; it only has content while a ticket is open.
+      const ticketOpen = () => visible(shellEl()) && (shellEl()?.innerText ?? '').trim().length > 0;
+      if (ticketOpen()) {
+        const closeBtn = [...shellEl().querySelectorAll('button')].find(x => /Close window/i.test(x.getAttribute('aria-label') || x.title || x.innerText || ''));
+        if (closeBtn) { realClick(closeBtn); await waitFor(() => !ticketOpen(), 4000); await sleepMs(600); }
       }
-      // A finished order leaves the ticket on its confirmation screen ("Order received" / "Enter new
-      // order"), which has no form — start a fresh order first.
-      const newOrder = [...document.querySelectorAll('#trade-container-shell button')].find(x => visible(x) && /^\s*Enter new order\s*$/i.test(x.innerText));
-      if (newOrder) { realClick(newOrder); await sleepMs(2500); }
+      const tradeBtn = [...document.querySelectorAll('nav[aria-label="Action bar"] button, [aria-label="Action bar"] button')].find(x => /^\s*Trade\s*$/i.test(x.innerText));
+      if (!tradeBtn) return { ok: false, message: "Couldn't find Fidelity's Trade button — open the ticket yourself and try again." };
+      tradeBtn.click();
+      if (!await waitFor(() => ticketOpen(), 6000)) return { ok: false, message: 'The trade ticket did not open.' };
 
-      // 2. Mutual Funds → Exchange.
-      if (!visible(document.querySelector('#float_trade_MF'))) {
-        const typeBtn = await waitFor(() => document.querySelector('#dest-dropdownlist-button-trade'), 4000);
+      // 2. Mutual Funds → Exchange. Decide by the TRADE dropdown's own label, not by whether a (possibly
+      //    stale, about-to-be-replaced) mutual-fund form is visible, and let a reopened ticket settle first.
+      await sleepMs(1800);
+      const tradeTypeBtn = () => [...(shellEl()?.querySelectorAll('button') ?? [])].find(x => visible(x) && /^TRADE\b/i.test(x.innerText.trim()));
+      const onMutualFunds = () => /Mutual Funds/i.test(tradeTypeBtn()?.innerText ?? '') && visible(document.querySelector('#float_trade_MF'));
+      if (!onMutualFunds()) {
+        const typeBtn = await waitFor(tradeTypeBtn, 4000);
         if (!typeBtn || !await pickDropdown(typeBtn, /^Mutual Funds$/i)) return { ok: false, message: "Couldn't switch the ticket to Mutual Funds." };
-        if (!await waitFor(() => visible(document.querySelector('#float_trade_MF')), 5000)) return { ok: false, message: 'The mutual fund ticket did not appear.' };
+        if (!await waitFor(onMutualFunds, 6000)) return { ok: false, message: 'The mutual fund ticket did not appear.' };
+        await sleepMs(800);
       }
       let root = document.querySelector('#float_trade_MF'); // re-read after a ticket reset (the form can be re-created)
       const buttons = () => [...root.querySelectorAll('button')].filter(visible);
       const findAction = () => buttons().find(b => /^(ACTION\s*)?(Action|Buy|Sell|Exchange|Buy Recurring)\b/i.test(b.innerText.trim()) && !/TRADE|ACCOUNT/i.test(b.innerText));
       const actionBtn = await waitFor(findAction, 6000);
       if (!actionBtn) return { ok: false, message: "Couldn't find the Action dropdown." };
-      if (!/Exchange/i.test(actionBtn.innerText) && !await pickDropdown(actionBtn, /^Exchange$/i)) return { ok: false, message: "Couldn't select Exchange." };
+      await sleepMs(1200); // a freshly (re)opened form is still settling; re-query the button below
+      let picked = /Exchange/i.test((findAction() ?? actionBtn).innerText);
+      if (!picked) picked = await pickDropdown(findAction() ?? actionBtn, /^Exchange$/i);
+      if (!picked) { await sleepMs(1200); const retry = findAction(); picked = !!retry && await pickDropdown(retry, /^Exchange$/i); }
+      if (!picked) return { ok: false, message: "Couldn't select Exchange." };
       if (!await waitFor(() => root.querySelector('input[id="mf-ticket-dest-symbol-Fund to Sell"]'), 5000)) return { ok: false, message: 'The Exchange form did not appear.' };
 
       // 3. Account must already match — never guess which account to trade in.
@@ -387,11 +400,17 @@
         const fillBtn = el('button', { type: 'button', className: 'fmc-mmf-fill', textContent: 'Fill ticket', title: `Fill Fidelity's exchange ticket: sell ${fmt(m.dollars)} of ${m.from}, buy ${plan.target.ticker}. You review and submit.` });
         const status = el('div', { className: 'fmc-mmf-note' });
         fillBtn.addEventListener('click', async () => {
-          fillBtn.disabled = true; status.textContent = 'Filling…';
-          const r = await fillExchangeTicket({ account: view.account, from: m.from, to: plan.target.ticker, dollars: m.dollars });
+          // One fill at a time: two interleaved runs would close/reopen the ticket under each other.
+          if (fillBusy) { status.textContent = 'Another ticket fill is still running — wait for it to finish.'; return; }
+          fillBusy = true;
+          const allFill = [...document.querySelectorAll('.fmc-mmf-fill')];
+          for (const b of allFill) b.disabled = true;
+          status.className = 'fmc-mmf-note'; status.textContent = 'Filling…';
+          let r;
+          try { r = await fillExchangeTicket({ account: view.account, from: m.from, to: plan.target.ticker, dollars: m.dollars }); }
+          finally { fillBusy = false; for (const b of allFill) b.disabled = false; }
           status.textContent = r.message;
           status.className = `fmc-mmf-note ${r.ok ? 'fmc-mmf-good' : 'fmc-mmf-bad'}`;
-          fillBtn.disabled = false;
         });
         rec.append(el('div', { className: 'fmc-mmf-row' }, el('span', { textContent: `  from ${m.from}` }), el('span', { textContent: fmt(m.dollars) }), fillBtn), status);
       }
