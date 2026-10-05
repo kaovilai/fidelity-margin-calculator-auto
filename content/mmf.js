@@ -134,7 +134,8 @@
     if (!account) { out.error = 'Could not determine the account for this row.'; return out; }
     await TaxContext.ready();
     const [status, fundsResp] = await Promise.all([PositionsAPI.fetchStatus(account), ask(MESSAGE_TYPES.FETCH_MMF_YIELDS)]);
-    if (fundsResp.error) { out.error = `Could not load money-market yields (${fundsResp.error}).`; return out; }
+    if (fundsResp.error) { out.error = fundsResp.error; out.retryable = true; return out; }
+    out.stale = fundsResp.stale ? { since: fundsResp.staleSince, reason: fundsResp.staleReason } : null;
     const funds = M.parseFunds(fundsResp);
     const holdings = mmfHoldings(status.holdings);
     const total = Object.values(holdings).reduce((sum, d) => sum + d, 0);
@@ -365,9 +366,20 @@
     close.addEventListener('click', closePanel);
     panel.append(el('div', { className: 'fmc-mmf-head' }, el('strong', { textContent: `Optimize cash${view.account ? ` — ${view.account}` : ''}` }), close));
     if (res.loading) { panel.append(el('div', { className: 'fmc-mmf-note', textContent: 'Loading yields, tax rates and balances…' })); return; }
-    if (res.error) { panel.append(el('div', { className: 'fmc-mmf-note fmc-mmf-bad', textContent: res.error })); return; }
+    if (res.error) {
+      panel.append(el('div', { className: 'fmc-mmf-note fmc-mmf-bad', textContent: /^[A-Z]/.test(res.error) && /\.$|—/.test(res.error) ? res.error : `Could not load money-market data: ${res.error}` }));
+      if (res.retryable) {
+        const retry = el('button', { type: 'button', className: 'fmc-mmf-fill', textContent: 'Try again' });
+        retry.addEventListener('click', () => open(view.ticker, view.account));
+        panel.append(el('div', { className: 'fmc-mmf-sec' }, retry));
+      }
+      return;
+    }
 
     const r = res.rates;
+    if (res.stale) {
+      panel.append(el('div', { className: 'fmc-mmf-note fmc-mmf-bad', textContent: `Fidelity's fund screener is having trouble, so these yields are from ${new Date(res.stale.since).toLocaleString()} and may be out of date. Check again shortly before moving money.` }));
+    }
     const taxErr = TaxContext.lastError();
     panel.append(el('div', { className: 'fmc-mmf-note', textContent: `After-tax at ${r.federal}% federal (${r.federalSource}) + ${r.state}% ${r.stateCode} (${r.stateSource}). Yields are 7-day, from Fidelity's fund screener.${taxErr ? ` Live tax rates unavailable (${taxErr}).` : ''}` }));
 

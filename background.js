@@ -2,7 +2,7 @@
 // API calls stay in content scripts (same-origin cookies); background coordinates.
 'use strict';
 
-importScripts('/lib/constants.js', '/lib/tax-rates.js', '/lib/mmf-model.js');
+importScripts('/lib/constants.js', '/lib/fetch-utils.js', '/lib/retry.js', '/lib/tax-rates.js', '/lib/mmf-model.js');
 
 (() => {
   const LOG_PREFIX = '[FMC-BG]';
@@ -174,6 +174,39 @@ importScripts('/lib/constants.js', '/lib/tax-rates.js', '/lib/mmf-model.js');
     return { ok: true };
   }
 
+  // --- Resilient fetch for the background worker's cross-origin sources ---
+  const BG_RETRYABLE = new Set(FMC_CONSTANTS.RETRYABLE_ERROR_TYPES);
+
+  /**
+   * `fetch` with retry + backoff for transient failures (network errors, 408/429/5xx, honouring
+   * Retry-After). Non-transient HTTP errors are thrown immediately. Errors carry a plain-language
+   * message (never the response body) and a `type` from FMC_CONSTANTS.ERROR_TYPES.
+   * @param {string} url
+   * @param {RequestInit} init
+   * @param {string} service - What is being fetched, for messages ("Fidelity's fund screener").
+   * @returns {Promise<Response>} A successful (2xx) response.
+   */
+  function fetchWithRetry(url, init, service) {
+    const attempt = async () => {
+      let resp;
+      try {
+        resp = await fetch(url, init);
+      } catch (e) {
+        throw Object.assign(new Error(`Network error reaching ${service} — check your connection.`), { type: FMC_CONSTANTS.ERROR_TYPES.NETWORK_ERROR });
+      }
+      if (resp.ok) return resp;
+      const transient = isRetryableHttpStatus(resp.status);
+      const err = Object.assign(
+        new Error(friendlyHttpMessage(resp.status, service) ?? `${service} returned HTTP ${resp.status}`),
+        { type: transient ? FMC_CONSTANTS.ERROR_TYPES.API_ERROR : FMC_CONSTANTS.ERROR_TYPES.CLIENT_ERROR }
+      );
+      const retryAfterMs = parseRetryAfterMs(resp.headers.get('Retry-After'), FMC_CONSTANTS.MAX_RETRY_AFTER_MS);
+      if (retryAfterMs > 0) err.retryAfterMs = retryAfterMs;
+      throw err;
+    };
+    return Retry.withBackoff(attempt, BG_RETRYABLE);
+  }
+
   // --- Money-market yields (Fidelity fund screener) ---
   const MMF_TTL_MS = 15 * 60 * 1000;
   let mmfCache = null; // { ts, data }
@@ -186,24 +219,35 @@ importScripts('/lib/constants.js', '/lib/tax-rates.js', '/lib/mmf-model.js');
    */
   async function fetchMmfYields() {
     if (mmfCache && Date.now() - mmfCache.ts < MMF_TTL_MS) return mmfCache.data;
-    const resp = await fetch(FMC_CONSTANTS.API.MMF_SCREENER_ENDPOINT, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', accept: 'application/json' },
-      body: JSON.stringify({
-        searchFilter: {
-          includeLeveragedAndInverseFunds: 'N', openToNewInvestors: 'OPEN', investmentTypeCode: 'MFN',
-          assetClass: 'MM', category: 'TM,TF,XT', fidelityFundOnly: 'F'
-        },
-        sortBy: 'averageAnnualReturnsYear3', sortOrder: 'DESC', currentPageNumber: 1,
-        businessChannel: 'RETAIL', noOfRowsPerPage: 100,
-        subjectAreaCode: 'fundInformation,dailyNAV,fundFeatures'
-      })
-    });
-    if (!resp.ok) throw new Error(`Fund screener HTTP ${resp.status}`);
-    const data = await resp.json();
-    if (!Array.isArray(data?.funds)) throw new Error('Unexpected fund screener response');
-    mmfCache = { ts: Date.now(), data };
-    return data;
+    const storeKey = FMC_CONSTANTS.STORAGE_KEY_MMF_CACHE;
+    try {
+      const resp = await fetchWithRetry(FMC_CONSTANTS.API.MMF_SCREENER_ENDPOINT, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({
+          searchFilter: {
+            includeLeveragedAndInverseFunds: 'N', openToNewInvestors: 'OPEN', investmentTypeCode: 'MFN',
+            assetClass: 'MM', category: 'TM,TF,XT', fidelityFundOnly: 'F'
+          },
+          sortBy: 'averageAnnualReturnsYear3', sortOrder: 'DESC', currentPageNumber: 1,
+          businessChannel: 'RETAIL', noOfRowsPerPage: 100,
+          subjectAreaCode: 'fundInformation,dailyNAV,fundFeatures'
+        })
+      }, "Fidelity's fund screener");
+      const data = await resp.json().catch(() => null);
+      if (!Array.isArray(data?.funds)) throw Object.assign(new Error("Fidelity's fund screener returned an unexpected response — try again in a minute."), { type: FMC_CONSTANTS.ERROR_TYPES.PARSE_ERROR });
+      mmfCache = { ts: Date.now(), data };
+      chrome.storage.local.set({ [storeKey]: { ts: Date.now(), data } }).catch(() => {});
+      return data;
+    } catch (err) {
+      // Fidelity is erroring: serve the last good list (this session's or the persisted one), flagged.
+      const saved = mmfCache ?? (await chrome.storage.local.get(storeKey))[storeKey] ?? null;
+      if (saved && Date.now() - saved.ts < FMC_CONSTANTS.MMF_STALE_MAX_MS) {
+        warn('Fund screener failed, serving stale yields:', err.message);
+        return { ...saved.data, stale: true, staleSince: saved.ts, staleReason: err.message };
+      }
+      throw err;
+    }
   }
 
   // --- Tax rates (IRS brackets + Tax Foundation state rates), cached 30 days ---
@@ -225,9 +269,9 @@ importScripts('/lib/constants.js', '/lib/tax-rates.js', '/lib/mmf-model.js');
     if (stored && (!state || state in (stored.stateRates ?? {})) && age < (complete ? TAX_TTL_MS : TAX_RETRY_MS)) return stored;
     const page = async (url) => {
       try {
-        const r = await fetch(url, { headers: { accept: 'text/html' } });
-        return r.ok ? TaxRates.toText(await r.text()) : null;
-      } catch { return null; }
+        const r = await fetchWithRetry(url, { headers: { accept: 'text/html' } }, 'the tax-rate source');
+        return TaxRates.toText(await r.text());
+      } catch (e) { warn('Tax-rate page failed (using cached/fallback rates):', e.message); return null; }
     };
     const [irsText, stateText] = await Promise.all([page(FMC_CONSTANTS.API.IRS_BRACKETS_URL), page(FMC_CONSTANTS.API.STATE_RATES_URL)]);
     const result = {
@@ -273,7 +317,13 @@ importScripts('/lib/constants.js', '/lib/tax-rates.js', '/lib/mmf-model.js');
     const today = new Date().toLocaleDateString('en-CA');
     if (!force && last?.date === today) return last;
 
-    const funds = MmfModel.parseFunds(await fetchMmfYields());
+    const yields = await fetchMmfYields();
+    if (yields.stale) {
+      // Fidelity is erroring — don't count a day on old yields toward the alert streak; retry next run.
+      warn('MMF daily check skipped: only stale yields available');
+      return last;
+    }
+    const funds = MmfModel.parseFunds(yields);
     const cfg = taxConfig(settings);
     const live = await fetchTaxRates(cfg.state).catch(() => null);
     const resolved = TaxRates.resolve({ config: cfg, live });

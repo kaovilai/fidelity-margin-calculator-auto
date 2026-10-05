@@ -36,6 +36,7 @@ const RollMode = (() => {
     sourceQuote: null,
     px: null,             // underlying price (for yield)
     rows: new Map(),      // ISO expiry → chain rows for the source's option type
+    warning: null,        // non-fatal notice (stale quotes / a failed refresh that kept older results)
     cands: [],
     frontier: [],
     top: { out: [], up: [], down: [] },
@@ -105,8 +106,11 @@ const RollMode = (() => {
     if (!src) return;
     await TaxContext.ready();
     const seq = ++loadSeq;
+    const sameSourceBefore = state.cands.length > 0 && state.lastSourceSym === src.sym;
     state.loading = true;
     state.error = null;
+    state.warning = null;
+    ChainAPI.consumeStale();
     state.checks.clear();
     clearBadges();
     render();
@@ -122,11 +126,19 @@ const RollMode = (() => {
       if (!sourceRow) throw new Error('No quote for the held option');
       state.sourceQuote = { bid: sourceRow.bid, ask: sourceRow.ask };
       applyRows(rowsByExpiry);
+      state.lastSourceSym = src.sym;
+      if (ChainAPI.consumeStale()) state.warning = "Fidelity's option data is having trouble, so these quotes may be a few minutes old.";
     } catch (err) {
       if (seq !== loadSeq) return;
       log('roll search failed:', err);
-      state.error = err?.message || 'Roll search failed';
-      state.cands = []; state.frontier = []; state.top = { out: [], up: [], down: [] };
+      const msg = err?.message || 'Roll search failed';
+      if (sameSourceBefore) {
+        // Keep what the user was looking at; just say the refresh failed.
+        state.warning = `Couldn't refresh quotes: ${msg} Showing the previous results.`;
+      } else {
+        state.error = msg;
+        state.cands = []; state.frontier = []; state.top = { out: [], up: [], down: [] };
+      }
     } finally {
       if (seq === loadSeq) { state.loading = false; render(); scheduleBadges(); }
     }
@@ -271,6 +283,7 @@ const RollMode = (() => {
     if (state.error) { panel.append(el('div', { className: 'fmc-roll-status fmc-roll-err', textContent: state.error })); return; }
     if (state.loading || !state.sourceQuote) { panel.append(el('div', { className: 'fmc-roll-status', textContent: 'Loading chains…' })); return; }
 
+    if (state.warning) panel.append(el('div', { className: 'fmc-roll-status fmc-roll-err', textContent: state.warning }));
     const closePx = R.closePrice(state.sourceQuote, short, state.mode);
     panel.append(el('div', { className: 'fmc-roll-status', textContent:
       `${short ? 'Buy to close' : 'Sell to close'} ${Math.abs(src.shares)}× @ ${fmt(closePx)} (bid ${fmt(state.sourceQuote.bid)} / ask ${fmt(state.sourceQuote.ask)})` }));
