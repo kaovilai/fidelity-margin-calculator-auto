@@ -13,6 +13,15 @@ No build tooling — plain JavaScript, loaded as an unpacked Chrome extension:
 
 To test changes, click the reload button on the extension card in `chrome://extensions`.
 
+## Privacy: never commit account numbers
+
+This repository is **public**. Never write real brokerage account numbers (or other personal identifiers) into code, comments, docs, tests, sample files, commit messages, PR descriptions or issue comments. Use a placeholder such as `ZXXXXXXXX` or `<account>`. Real values belong only in the user's browser session, `chrome.storage`, or gitignored files (e.g. `.claude/settings.local.json`).
+
+- **Enforced by a PreToolUse hook** (`.claude/settings.json` → `.claude/hooks/block-account-numbers.py`): it blocks (exit 2) `Write`/`Edit`/`MultiEdit`/`NotebookEdit`, GitHub MCP tools, and Bash `git commit` / `git push` when the text being **added** matches a Fidelity-style account number (`Z`/`Y`/`X` + 8 digits) or a 9-digit number near the word "account"/"acct". It checks the new content, the commit message, the staged diff (plus the unstaged diff for `commit -a`) and unpushed commits; removing a number is always allowed.
+- Verify it with `python3 .claude/hooks/block-account-numbers.py --self-test`. Add regexes for harmless look-alikes (test fixtures) to `.claude/account-number-allowlist.txt` — one per line, `#` for comments.
+- When describing the account in prose/UI text, say "the account" or use a placeholder; account numbers read from Fidelity pages at runtime must never be logged into committed files.
+- **If one ever leaks**: rewrite history (`git filter-repo --replace-text`, force-push `main` only with the user's explicit go-ahead), delete any branch still holding the old commits (bots such as the Cursor Agent can branch off an old `main`), then ask GitHub Support to purge cached commits and PR refs — see the `github-purge-cached-commits` skill (Virtual Agent at `help.github.com/support/contact`, then extend the ticket). Existing clones/forks keep the data.
+
 ## API
 
 Fidelity moved the margin calculator to `/ftgw/digital/margin-calculator/` with a REST API under `/ftgw/digital/api-margin-calculator/api/` (the old `margincalcex` GraphQL endpoints are no longer used). Auth is same-origin cookies. Requests need `Referer: https://digital.fidelity.com/ftgw/digital/margin-calculator/` (set via `declarativeNetRequest` in `rules.json`).
