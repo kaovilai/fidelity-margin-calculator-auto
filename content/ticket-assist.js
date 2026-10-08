@@ -13,9 +13,6 @@
   const STRIKE_OPT = 'button.ott-strike-option-button';
   const EXP_OPT = 'button.ott-expiration-option-button';
   const EXPIRY_FETCH_CONCURRENCY = 4;
-  // Each expiry is one chain request; volume matters most for the nearest dates, so only the first
-  // few are annotated (keeps the request count bounded when the dropdown opens).
-  const EXPIRY_FETCH_LIMIT = 8;
   const MON = { jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06', jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12' };
 
   let enabled = true;
@@ -42,8 +39,14 @@
     const symbol = (document.querySelector('#symbol_search')?.value ?? '').trim().toUpperCase().match(/^[A-Z][A-Z0-9.]*/)?.[0];
     const isCall = document.getElementById(`call-put-${leg}-call`);
     const isPut = document.getElementById(`call-put-${leg}-put`);
-    const type = (isCall?.getAttribute('aria-checked') === 'true' || isCall?.checked) ? 'call'
+    const radioType = (isCall?.getAttribute('aria-checked') === 'true' || isCall?.checked) ? 'call'
       : (isPut?.getAttribute('aria-checked') === 'true' || isPut?.checked) ? 'put' : null;
+    // The Roll ticket has no call/put radios — the type only appears in the expiration label
+    // ("Put Expiration") and in each expiration option ("Oct 09, 2026 Put").
+    const type = radioType ?? /\b(call|put)\b/i.exec(
+      document.querySelector(`#exp_dropdown_label-${leg}`)?.textContent
+      ?? document.querySelector(`#expirations_list-${leg} button[role="option"]`)?.textContent ?? ''
+    )?.[1].toLowerCase() ?? null;
     const expiry = isoFromTicket(document.querySelector(`#exp_dropdown-${leg} .binding-val`)?.textContent);
     return { symbol, type, expiry };
   }
@@ -92,31 +95,48 @@
     list.dataset.fmcVolKey = key;
     const known = new Map((await ChainAPI.fetchExpirations(symbol)).map(e => [e.date, e]));
     const totals = new Map(); // button → { volume, openInterest }
-    const buttons = [...list.querySelectorAll(EXP_OPT)].slice(0, EXPIRY_FETCH_LIMIT);
     const repaint = () => {
       const max = Math.max(0, ...[...totals.values()].map(t => t.volume));
       for (const [btn, t] of totals) mark(btn, t.volume, t.openInterest, max);
     };
-    // A bounded worker pool: each expiry is one chain request (cached briefly by ChainAPI).
-    let next = 0;
-    const worker = async () => {
-      while (next < buttons.length) {
-        const btn = buttons[next++];
-        const exp = known.get(isoFromTicket(btn.textContent));
-        if (!exp || !btn.isConnected) continue;
-        try {
-          const rows = R.chainRows(await ChainAPI.fetchChain(symbol, exp), type);
-          totals.set(btn, {
-            volume: rows.reduce((s, r) => s + (r.volume ?? 0), 0),
-            openInterest: rows.reduce((s, r) => s + (r.openInterest ?? 0), 0)
-          });
-          repaint();
-        } catch (err) {
-          log('expiry volume failed:', err.message);
-        }
+    const load = async btn => {
+      const exp = known.get(isoFromTicket(btn.textContent));
+      if (!exp || !btn.isConnected) return;
+      try {
+        const rows = R.chainRows(await ChainAPI.fetchChain(symbol, exp), type);
+        totals.set(btn, {
+          volume: rows.reduce((s, r) => s + (r.volume ?? 0), 0),
+          openInterest: rows.reduce((s, r) => s + (r.openInterest ?? 0), 0)
+        });
+        repaint();
+      } catch (err) {
+        requested.delete(btn); // allow a retry the next time it scrolls into view
+        log('expiry volume failed:', err.message);
       }
     };
-    await Promise.all(Array.from({ length: EXPIRY_FETCH_CONCURRENCY }, worker));
+    // Lazy: each expiry is one chain request, so only options that scroll into view are fetched,
+    // through a small worker pool (ChainAPI caches responses briefly).
+    const requested = new Set();
+    const visible = new Set();
+    const queue = [];
+    let active = 0;
+    const pump = () => {
+      while (active < EXPIRY_FETCH_CONCURRENCY && queue.length) {
+        const btn = queue.shift();
+        if (!visible.has(btn)) { requested.delete(btn); continue; } // scrolled past before its turn
+        active++;
+        load(btn).finally(() => { active--; pump(); });
+      }
+    };
+    const io = new IntersectionObserver(entries => {
+      for (const e of entries) {
+        if (!e.isIntersecting) { visible.delete(e.target); continue; }
+        visible.add(e.target);
+        if (!requested.has(e.target)) { requested.add(e.target); queue.push(e.target); }
+      }
+      pump();
+    });
+    for (const btn of list.querySelectorAll(EXP_OPT)) io.observe(btn);
   }
 
   function scan() {
