@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Toolkit for Fidelity">
+  <title>Toolkit for Fidelity</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3f9b2f"/>
+      <stop offset="1" stop-color="#276b1b"/>
+    </linearGradient>
+  </defs>
+  <!-- badge -->
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#bg)"/>
+  <!-- gauge track: 240° sweep over the top -->
+  <path d="M34.56 85 A34 34 0 1 1 93.44 85" fill="none" stroke="#ffffff" stroke-width="13" stroke-linecap="round"/>
+  <!-- warning zone at the end of the sweep -->
+  <path d="M93.44 51 A34 34 0 0 1 93.44 85" fill="none" stroke="#ffb300" stroke-width="13" stroke-linecap="round"/>
+  <!-- needle and hub -->
+  <path d="M64 68 L78.5 43" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="64" cy="68" r="9.5" fill="#ffffff"/>
+  <circle cx="64" cy="68" r="3.5" fill="#276b1b"/>
+</svg>
