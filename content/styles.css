@@ -502,7 +502,7 @@
 .fmc-yield-miss::before { background: #78808c; }
 
 /* Roll hint line in the trade-ticket panel */
-.fmc-margin-panel .fmc-roll-note { margin-top: 6px; padding-top: 5px; border-top: 1px dashed var(--fmc-border); font-size: 12px; text-align: center; }
+.fmc-margin-panel .fmc-roll-note { white-space: pre-line; margin-top: 6px; padding-top: 5px; border-top: 1px dashed var(--fmc-border); font-size: 12px; text-align: center; }
 .fmc-margin-panel .fmc-roll-note[hidden],
 .fmc-margin-panel:not([data-fmc-state="result"]) .fmc-roll-note { display: none; }
 

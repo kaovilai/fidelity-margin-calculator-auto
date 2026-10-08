@@ -621,7 +621,7 @@
         MarginInjector.updatePanel(impact);
         // Extra read-only chain requests honour the same settings as the chain features.
         if (settings.chainEnabled !== false) {
-          showPremiumStats(orders, requestId).catch(err => log('premium stats failed:', err.message));
+          showPremiumStats(orders, requestId, impact).catch(err => log('premium stats failed:', err.message));
         } else {
           MarginInjector.setPremiumNote(null);
         }
@@ -652,9 +652,10 @@
    * price and the leg's IV/delta — a quote and one chain request, both briefly cached.
    * @param {Array<Object>} orders - Orders sent to the margin API.
    * @param {number} requestId - Staleness guard.
+   * @param {Object} [impact] - Computed margin impact; its requirement increase is the collateral the position ties up.
    * @returns {Promise<void>}
    */
-  async function showPremiumStats(orders, requestId) {
+  async function showPremiumStats(orders, requestId, impact) {
     // Multi-leg tickets carry one net limit price on every leg, so per-leg stats would be wrong.
     const open = orders.length === 1 ? orders.find(o => o.orderAction === 'SO' && RollModel.parseOcc(o.orderSymbol)) : null;
     if (!open) { MarginInjector.setPremiumNote(null); return; }
@@ -675,7 +676,13 @@
     }));
     if (!stats) { MarginInjector.setPremiumNote(null); return; }
     const hit = stats.annual >= (Number(settings.borrowRate) || 0) / 100;
-    MarginInjector.setPremiumNote(`${RollModel.formatStats(stats)} ${hit ? '✓' : ''}`.trim(), hit);
+    // Premium over the extra margin requirement the order adds (verified equal to the collateral for a
+    // naked short put) — the return on what is actually tied up, not on the strike notional.
+    const onMargin = RollModel.collateralYield({
+      credit: open.price * 100 * open.orderQty, collateral: impact?.requirementDelta, days: stats.days
+    });
+    const marginText = onMargin ? ` · ${RollModel.formatCollateralYield(onMargin)} on margin` : '';
+    MarginInjector.setPremiumNote(`${RollModel.formatStats(stats)}${marginText} ${hit ? '✓' : ''}`.trim(), hit);
   }
 
   /**
@@ -717,7 +724,43 @@
     const where = R.describeOption({ expiry: tgt.expiry, strike: 0, type: tgt.type }).replace(/ \$0 /, ' ');
     const best = front.best ? `$${front.best.strike} (${money(front.best.net)})` : 'none at ≥ $0';
     const beyond = front.beyond ? ` · next $${front.beyond.strike} (${money(front.beyond.net)})` : '';
-    MarginInjector.setRollNote(`Premium-neutral ${where}: ${best}${beyond}`);
+    const neutral = `Premium-neutral ${where}: ${best}${beyond}`;
+    // Yield on collateral: what this roll pays for the extra time it buys, on the cash that secures
+    // the new short leg (strike × 100 for a put; the underlying's value for a call).
+    let collateral = null;
+    try {
+      const targetRow = R.chainRows(chainTgt, tgt.type).find(r => r.strike === tgt.strike);
+      collateral = await rollCollateralNote({ orders, closing, opening, src, tgt, sourceQuote, targetRow, shares });
+    } catch (err) { log('collateral yield failed:', err.message); }
+    if (requestId !== currentRequest) return;
+    MarginInjector.setRollNote(collateral ? `${collateral}\n${neutral}` : neutral);
+  }
+
+  /**
+   * "Roll credit $135 over 21d → 0.19% (3.4%/yr) on $70,000 collateral" for a short roll. The credit
+   * is the ticket's Net Amount when it is a credit, else the chain midpoints' difference.
+   * Null for debit rolls, long positions, or a roll that adds no time.
+   */
+  async function rollCollateralNote({ orders, closing, opening, src, tgt, sourceQuote, targetRow, shares }) {
+    const R = RollModel;
+    if (shares >= 0 || opening.orderAction !== 'SO') return null;
+    const days = Math.round((Date.parse(`${tgt.expiry}T00:00:00Z`) - Date.parse(`${src.expiry}T00:00:00Z`)) / 86400000);
+    const qty = opening.orderQty;
+    const label = (document.querySelector('#ordertype-dropdown .binding-val')?.textContent ?? '').toLowerCase();
+    const mid = (r) => (r && r.bid > 0 && r.ask > 0 ? (r.bid + r.ask) / 2 : null);
+    const net = Number(orders[0]?.price) > 0 && /credit|debit/.test(label)
+      ? (label.includes('debit') ? -1 : 1) * Number(orders[0].price)
+      : (mid(targetRow) != null && mid(sourceQuote) != null ? mid(targetRow) - mid(sourceQuote) : null);
+    if (net == null) return null;
+    const credit = net * 100 * qty;
+    let collateral = tgt.strike * 100 * qty;
+    if (tgt.type === 'call') {
+      const px = await ChainAPI.fetchUnderlyingPrice(tgt.underlying);
+      collateral = px * 100 * qty;
+    }
+    const y = R.collateralYield({ credit, collateral, days });
+    if (!y) return null;
+    return `Roll credit $${Math.round(credit).toLocaleString('en-US')} over ${days}d → ${R.formatCollateralYield(y)} on $${Math.round(collateral).toLocaleString('en-US')} collateral`;
   }
 
   /**
