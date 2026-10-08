@@ -57,6 +57,8 @@ The hovered cell is calculated exactly (one `trade-calculator/v1` call). Colour 
 
 **Market-priced orders.** The Roll button pre-fills a *market* closing order (price 0), which the margin calculator rejects (`1030 HYPOTHETICAL TRADE PRICE IS 0`). The extension prices each such leg first — a position you hold uses its current mark, and the roll's new leg uses the option chain's bid/ask midpoint — and if Fidelity still returns no balance it shows Fidelity's own message instead of a generic "no data" error.
 
+**Net-priced multi-leg orders.** A multi-leg ticket with a *Net Credit* / *Net Debit* order type has one Net Amount for the whole order, not a price per leg. The extension prices each leg from the market and shifts the opening leg so the legs net to exactly your Net Amount, so the margin credit changes by the true net premium (a $1.35 net credit moves it by +$135) and the panel's *Premium Received* shows that net premium.
+
 ## Money-Market Optimizer
 
 On the positions page the optimizer is reachable from several places (all open the same panel):

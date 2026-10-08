@@ -559,6 +559,12 @@ const TradeDetector = (() => {
       return [];
     }
 
+    // A multi-leg ticket with a Net Credit/Net Debit order type carries ONE net amount for the whole
+    // order, not a price per leg. Keep it (signed: + credit, − debit) so the margin API can price the
+    // legs consistently instead of using the net amount as every leg's price.
+    const netType = params.legs.length > 1 ? /net\s+(credit|debit)/i.exec(params.orderType ?? '') : null;
+    const netPrice = netType && orderPrice > 0 ? (netType[1].toLowerCase() === 'credit' ? 1 : -1) * orderPrice : undefined;
+
     return params.legs.flatMap(leg => {
       const orderAction = mapAction(leg.action);
       const qty = parseQuantity(leg.quantity);
@@ -574,7 +580,7 @@ const TradeDetector = (() => {
       );
       if (!orderSymbol) return [];
 
-      return [{ orderSymbol, orderType: ORDER_TYPE.OPTIONS, orderAction, orderQty: qty, price: orderPrice }];
+      return [{ orderSymbol, orderType: ORDER_TYPE.OPTIONS, orderAction, orderQty: qty, price: orderPrice, ...(netPrice !== undefined && { netPrice }) }];
     });
   }
 

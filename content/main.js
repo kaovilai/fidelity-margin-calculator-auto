@@ -368,7 +368,7 @@
    */
   function hashOrders(orders) {
     return orders
-      .map(o => `${o.orderSymbol}|${o.orderType}|${o.orderAction}|${o.orderQty}|${o.price}`)
+      .map(o => `${o.orderSymbol}|${o.orderType}|${o.orderAction}|${o.orderQty}|${o.price}|${o.netPrice ?? ""}`)
       .sort()
       .join(';;');
   }
