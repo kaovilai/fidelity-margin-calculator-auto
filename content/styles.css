@@ -508,16 +508,32 @@
 
 /* ---- Money-market optimizer (content/mmf.js) ---- */
 .fmc-mmf-btn {
+  /* Compact outlined tag, styled after Fidelity's own "AR" (auto roll) badge beside the symbol. */
   margin-left: 6px;
-  padding: 0 7px;
-  border: 1px solid #2e7d32;
-  border-radius: 10px;
+  padding: 0 4px;
+  border: 2px solid #368727;
+  border-radius: 4px;
   background: #fff;
-  color: #2e7d32;
-  font: 600 11px/18px system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: #368727;
+  font: 700 12px/16px Arial, sans-serif;
+  vertical-align: middle;
   cursor: pointer;
 }
-.fmc-mmf-btn:hover { background: #2e7d32; color: #fff; }
+.fmc-mmf-btn:hover { background: #368727; color: #fff; }
+/* In Fidelity's position drawers the button must look like their own pill buttons (Trade / Change core position). */
+.fmc-mmf-btn.fmc-mmf-btn--drawer,
+.fmc-mmf-btn.fmc-mmf-btn--drawer:hover {
+  box-sizing: border-box;
+  height: 40px;
+  margin-left: 12px;
+  padding: 0 16px;
+  border: 1px solid #368727;
+  border-radius: 24px;
+  background: #368727;
+  color: #fff;
+  font: 700 14px/16px Arial, sans-serif;
+}
+.fmc-mmf-btn.fmc-mmf-btn--drawer:hover { background: #2c6d20; border-color: #2c6d20; }
 #fmc-mmf-panel {
   position: fixed;
   top: 90px;
@@ -549,7 +565,6 @@
 @media (prefers-color-scheme: dark) {
   #fmc-mmf-panel { background: #1f2328; color: #e6e6e6; border-color: #3a3f47; }
   #fmc-mmf-panel .fmc-mmf-note { color: #aab; }
-  .fmc-mmf-btn { background: #1f2328; }
 }
 #fmc-mmf-panel .fmc-mmf-fill { margin-left: 8px; padding: 0 8px; border: 1px solid #2e7d32; border-radius: 4px; background: #2e7d32; color: #fff; font: 600 11px/18px system-ui, sans-serif; cursor: pointer; }
 #fmc-mmf-panel .fmc-mmf-fill:disabled { opacity: 0.6; cursor: default; }
@@ -562,6 +577,7 @@
   z-index: 2147482000;
   margin: 0;
   padding: 4px 12px;
+  border-radius: 14px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   background: #fff;
 }

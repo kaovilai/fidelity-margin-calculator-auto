@@ -59,8 +59,11 @@
     const out = [];
     for (const row of document.querySelectorAll('.ag-pinned-left-cols-container [role="row"]')) {
       const cell = row.querySelector('[col-id="sym"]');
-      const ticker = cell?.innerText?.trim().split(/\s+/)[0];
+      const text = cell?.innerText?.trim() ?? '';
+      const ticker = text.split(/\s+/)[0];
       if (cell && ticker && M.MMF_TICKER_RE.test(ticker)) out.push({ row, cell, ticker });
+      // The core fund's own row ("Cash — HELD IN MONEY MARKET") has no ticker; it opens the account-wide view.
+      else if (cell && /^Cash\b/.test(text) && /HELD IN MONEY MARKET/i.test(text)) out.push({ row, cell, ticker: 'CASH' });
     }
     return out;
   }
@@ -101,14 +104,33 @@
     ensureFab();
     const live = new Set();
     for (const { row, cell, ticker } of mmfCells()) {
-      const wrapper = cell.querySelector('.ag-cell-wrapper') ?? cell;
+      // Same slot Fidelity uses for its "AR" (auto roll) badge; appending to the cell wrapper instead
+      // wraps the button below the row's content, where the cell clips it.
+      const wrapper = cell.querySelector('.posweb-cell-symbol-icon_container') ?? cell.querySelector('.ag-cell-wrapper') ?? cell;
       let btn = wrapper.querySelector(`.${BTN_CLASS}`);
       if (btn && btn.dataset.ticker !== ticker) { btn.remove(); btn = null; } // ag-grid recycled the row
       if (!btn) {
-        btn = el('button', { type: 'button', className: BTN_CLASS, textContent: 'Optimize', title: 'Find the best after-tax money-market fund for this balance (read-only)' });
+        btn = el('button', { type: 'button', className: BTN_CLASS, textContent: 'OPT', title: 'Optimize cash: find the best after-tax money-market fund for this balance (read-only)' });
+        btn.setAttribute('aria-label', 'Optimize cash');
         btn.dataset.ticker = ticker;
-        btn.addEventListener('click', (ev) => { ev.stopPropagation(); open(ticker, accountFor(row)); });
+        btn.addEventListener('click', async (ev) => { ev.stopPropagation(); open(ticker === 'CASH' ? null : ticker, accountFor(row) ?? await pageAccount()); });
         wrapper.append(btn);
+      }
+      live.add(btn);
+    }
+    // The expanded detail drawer of a money-market position ("Change core position" for the core
+    // fund, "Trade" for the others) — put the optimizer right next to those controls.
+    for (const header of document.querySelectorAll('.posweb-drawer-header')) {
+      if (!/MONEY MARKET/i.test(header.innerText ?? '') || !header.getClientRects().length) continue;
+      const bar = header.querySelector('.posweb-header-buttons');
+      if (!bar) continue;
+      let btn = bar.querySelector(`.${BTN_CLASS}[data-drawer="1"]`);
+      if (!btn) {
+        const ticker = /\(([A-Z]{3,5})\)/.exec(header.innerText)?.[1] ?? null;
+        btn = el('button', { type: 'button', className: `${BTN_CLASS} fmc-mmf-btn--drawer`, textContent: 'Optimize cash', title: 'Find the best after-tax money-market fund for this account (read-only until you click Fill ticket)' });
+        btn.dataset.drawer = '1';
+        btn.addEventListener('click', async (ev) => { ev.stopPropagation(); open(ticker, await pageAccount()); });
+        bar.append(btn);
       }
       live.add(btn);
     }
