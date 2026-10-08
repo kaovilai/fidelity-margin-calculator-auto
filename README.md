@@ -1,9 +1,19 @@
-# Fidelity Margin Calculator Auto
+# Toolkit for Fidelity
 
-Chrome extension that overlays margin impact information on Fidelity trade pages. When you're entering a trade, it automatically calculates whether the trade will result in a margin debit or credit, and how much room you have before incurring margin interest.
+An unofficial Chrome extension that adds margin, options and cash tools to Fidelity's web pages. When you're entering a trade it shows whether the trade will result in a margin debit or credit and how much room you have before incurring margin interest; it also helps with option chains and rolls, and finds the best after-tax money-market fund for your cash. *Not affiliated with or endorsed by Fidelity Investments — see the disclaimer below.*
 
 <img width="1094" height="395" alt="image" src="https://github.com/user-attachments/assets/30045ce1-9308-4e96-bde8-e165a2d5a0da" />
 
+
+## Features
+
+- **Margin panel on the trade ticket** — projected margin credit/debit, exact delta, cash withdrawable without margin interest, requirement, house surplus/call and premium, for equities and options (single and multi-leg), on every page that shows a ticket.
+- **Option chain hints** — hover a bid/ask to see the margin outcome (green / amber / red) without opening a ticket; yield badges on sell cells.
+- **Roll assistant** — finds premium-neutral and best-credit rolls for options you hold (chain page and Trader+ Web), also reachable from Fidelity's own **Roll** button on the positions page.
+- **Ticket dropdown annotations** — volume, open interest and yield stats inside the strike and expiration dropdowns (including the Roll ticket).
+- **Money-market optimizer** — best *after-tax* money-market fund for your balance, a fill-the-ticket helper, and a daily alert.
+- **After-tax yields** — optional federal + state tax applied to option yields and money-market yields.
+- **Resilient to Fidelity outages** — retries, last-good data and plain-language messages instead of raw errors.
 
 ## Problem
 
@@ -43,17 +53,47 @@ The hovered cell is calculated exactly (one `trade-calculator/v1` call). Colour 
 
 **Roll assistant.** On the chain page and **Trader+ Web**, if you hold options on the symbol, a panel lets you pick one and finds rolls from live quotes: the *neutral frontier* per expiry (how far you can roll down-and-out — up-and-out for calls — while the roll still nets ≥ your target, default $0), plus the best credits out / up / down, each with return / annualized return / profit probability and an exact two-leg margin **Check**. Chain cells show the roll's net credit and yield while a source is selected.
 
-**Trade ticket.** The strike and expiration dropdowns show each option's volume and open interest (with a proportional bar) and, for sell-to-open, the yield stats; when the ticket holds a roll, the margin panel names the premium-neutral strike for the chosen expiry.
+**Trade ticket.** The strike and expiration dropdowns show each option's volume and open interest (with a proportional bar) and, for sell-to-open, the yield stats. Expiration volumes are loaded **lazily** — one chain request per option, fetched as it scrolls into view — so long expiry lists stay cheap. This also works in the **Roll** ticket (opened from Fidelity's Roll button on the positions page), whose call/put type is read from the "Put Expiration" label. When the ticket holds a roll, the margin panel names the premium-neutral strike for the chosen expiry.
+
+**Market-priced orders.** The Roll button pre-fills a *market* closing order (price 0), which the margin calculator rejects (`1030 HYPOTHETICAL TRADE PRICE IS 0`). The extension substitutes the position's current mark for any zero-price order, and if Fidelity still returns no balance it shows Fidelity's own message instead of a generic "no data" error.
 
 ## Money-Market Optimizer
 
-On the positions page, an **Optimize** button appears next to each money-market position. It reads Fidelity's current money-market list (7-day yield, category, minimum investment/balance) from the public fund screener, computes **after-tax** yields for your tax situation, and suggests the best fund your balance actually qualifies for — funds whose minimums you can't meet are listed with the reason. A move is only suggested when it beats the current balance by at least the *Min yield gap* setting (default 0.10 points).
+On the positions page the optimizer is reachable from several places (all open the same panel):
+- a compact green **OPT** tag (styled after Fidelity's own "AR" auto-roll badge) next to each money-market position **and the Cash (core) row**;
+- an **Optimize cash** button beside **Trade** / **Change core position** in a money-market position's expanded detail drawer;
+- an always-visible **Optimize cash** button at the bottom-left of the page (the grid is virtualized and the core fund often has no row on screen).
 
-- **Tax rates** come from live sources (IRS brackets by filing status and income; the state's flat rate) cached for 30 days, with overrides in the popup. Defaults: single, $150k, NC.
-- **Fidelity counts all Fidelity money-market funds in "Cash Available to Withdraw"**, so exchanging between them doesn't reduce it (collected funds only).
-- **Fill ticket** opens Fidelity's mutual-fund ticket and enters the fields for one move — an *Exchange* for non-core funds, or a *Buy* of the target paid from core cash when the source is the core (sweep) fund, which Fidelity doesn't allow to be exchanged. It **never clicks Preview Order or submits**; you review and submit.
-- A once-a-day background check recomputes the best fund from your last-seen balances and sends a notification only when a new leader has held the minimum gap for 3 consecutive checks (once per leader).
+It reads Fidelity's current money-market list (7-day yield, category, minimum investment/balance) from the public fund screener, computes **after-tax** yields for your tax situation, and suggests the best fund your balance actually qualifies for — funds whose minimums you can't meet are listed with the reason. A move is only suggested when it beats the current balance by at least the *Min yield gap* setting (default 0.10 points).
+
+- **Tax rates** come from live sources (IRS brackets by filing status and income; the state's flat rate) cached for 30 days, with overrides in the popup. Defaults: single, $150k, NC. A failed lookup is retried after 6 hours rather than cached.
+- **Fidelity counts all Fidelity money-market funds in "Cash Available to Withdraw"**, so exchanging between them doesn't reduce it (collected funds only). The margin calculator rejects money-market funds as orders, so exchanges can't be what-if tested.
+- **Fill ticket** opens Fidelity's mutual-fund ticket and enters the fields for one move — an *Exchange* for non-core funds, or a *Buy* of the target paid from core cash when the source is the core (sweep) fund, which Fidelity doesn't allow to be exchanged. It starts from a fresh ticket each time, handles one fill at a time, and **never clicks Preview Order or submits**; you review and submit.
+- A once-a-day background check recomputes the best fund from your last-seen balances and sends a notification only when a new leader has held the minimum gap for 3 consecutive checks (once per leader). Days where Fidelity was down (stale data) don't count toward the streak.
 - The same *Option yields after tax* setting shows option yields net of federal + state tax (short-option premium is short-term income, even on LEAPS) so they compare with a margin rate elsewhere.
+
+## Reliability
+
+Every Fidelity call (margin, positions, option chain/quotes/expirations, and the background fund-screener / IRS / Tax Foundation fetches) retries 5xx / 408 / 429 / network failures with exponential backoff, honouring `Retry-After`. When Fidelity keeps failing:
+- chain data is served from a short-lived last-good cache (up to 30 min) and flagged as stale, with a cooldown so hovering doesn't hammer a failing endpoint;
+- the fund list is persisted (2 days) and shown as stale;
+- panels show a plain-language message (never the raw response body) with a *Try again* control, and the roll panel keeps its previous results.
+
+Fidelity's "Temporarily Unavailable" HTML page (served with HTTP 200) is treated as a retryable error. A **Debug** link in the panel shows the extension's log, including Fidelity's error codes.
+
+## Settings
+
+Open the extension popup. Defaults in parentheses.
+
+| Setting | Effect |
+|---------|--------|
+| Enabled (on) / Warning threshold ($500) / Debounce | Margin panel on the trade ticket |
+| Option chain hints (on) / Min withdrawable ($0) / Chain quantity (1) | Chain hover outlines and tooltips |
+| Roll assistant (on) | Roll panel and roll hints |
+| Hurdle yield (4.88 %/yr) | Yield badges turn green above this (e.g. your margin rate) |
+| Option yields after tax (off) | Show option yields net of federal + state tax |
+| Money-market optimizer (on) / Min yield gap (0.10) | OPT tags, buttons, daily alert |
+| State / Filing status / Taxable income / Federal & state rate overrides | Tax situation (default NC, single, $150k) |
 
 ## Target Pages
 
@@ -153,61 +193,35 @@ The extension works on three page contexts. Options form field IDs are shared ac
 
 ```
 fidelity-margin-calculator-auto/
-├── manifest.json              # Chrome extension manifest v3
-├── background.js              # Service worker: manages state, handles API calls
+├── manifest.json              # MV3 manifest (CSP connect-src limited to 3 public hosts)
+├── background.js              # Service worker: fund screener / tax fetches with retry, daily alarm, notifications
+├── rules.json                 # declarativeNetRequest: Referer header for the margin calculator API
 ├── content/
-│   ├── detector.js            # Detects trade ticket presence and extracts trade details
-│   ├── injector.js            # Injects margin info panel into the page DOM
-│   └── styles.css             # Styles for injected panel (matches Fidelity's design)
+│   ├── detector.js            # Detects the trade ticket and extracts trade details
+│   ├── injector.js            # Margin panel (incl. premium and roll notes)
+│   ├── main.js                # Orchestrates ticket → positions → trade-calculator → panel
+│   ├── chain-core.js          # Shared chain/Trader+ page plumbing
+│   ├── chain.js               # Option chain hover hints and yield badges
+│   ├── roll.js                # Roll assistant panel
+│   ├── ticket-assist.js       # Volume/OI/yield annotations in ticket dropdowns
+│   ├── mmf.js                 # Money-market optimizer UI and ticket fill helper
+│   └── styles.css
 ├── lib/
-│   ├── margin-api.js          # trade-calculator request builder and API caller
-│   └── margin-calc.js         # Interprets API response, computes wiggle room
-├── popup/
-│   ├── popup.html             # Extension popup (settings, status)
-│   └── popup.js               # Popup logic
-├── icons/                     # Extension icons
-├── curl-resp.sample           # Sample API response (reference)
-└── sample-curl-from-browser.txt.sample  # Sample curl command (reference)
+│   ├── constants.js           # Settings defaults, API paths, error types
+│   ├── positions.js           # current-status → priceList + current balance
+│   ├── margin-api.js          # trade-calculator client (mark-price substitution, Fidelity messages)
+│   ├── margin-calc.js         # Interprets the response, computes impact
+│   ├── chain-api.js           # Option expirations / chain / quotes with retry + stale cache
+│   ├── chain-estimate.js      # Margin-requirement interpolation across strikes
+│   ├── roll-model.js          # Roll pricing, neutral frontier, return / probability stats
+│   ├── mmf-model.js           # After-tax money-market ranking and plan
+│   ├── tax-rates.js, tax-context.js  # Live IRS / state rates and the after-tax helper
+│   ├── fetch-utils.js, retry.js, rate-limiter.js, api-error.js, debug.js
+├── popup/                     # Extension popup (settings, status)
+├── .claude/                   # Project hooks (account-number guard)
+├── icons/
+├── curl-resp.sample, sample-curl-from-browser.txt.sample, *.html.sample  # Reference captures
 ```
-
-## Implementation Plan
-
-### Phase 1: Extension Skeleton + API Integration
-1. Create `manifest.json` (Manifest V3) with content script matching Fidelity domains
-2. Implement `margin-api.js` — build the trade-calculator JSON request from trade parameters, call API using `fetch` (same-origin cookies auto-attached)
-3. Implement `margin-calc.js` — parse response, extract balance fields, compute:
-   - Current vs projected margin credit/debit
-   - Wiggle room = projected `avlToTradeWithoutMarginImpact`, or how far into debit if `marginCreditDebit` < 0
-   - Whether trade triggers margin interest
-   - Cash available to withdraw without margin = projected `avlToTradeWithoutMarginImpact`
-
-### Phase 2: Trade Ticket Detection
-4. Implement `detector.js` — MutationObserver on Fidelity pages to detect:
-   - Trade ticket modal opening
-   - Order form field changes (symbol, qty, price, action)
-   - Account selector value
-5. Extract trade parameters from DOM elements
-6. Debounce detection to avoid excessive API calls
-
-### Phase 3: UI Injection
-7. Implement `injector.js` — find the Max Gain / Max Loss / Break Even section (`#mxregin`) in DOM
-8. Create and inject margin info panel with:
-   - Green/red indicator for credit/debit status
-   - Projected margin credit/debit amount
-   - Cash available to withdraw without margin post-settlement
-   - Wiggle room before margin interest
-   - Loading/error states
-9. Style to match Fidelity's existing UI (`styles.css`)
-
-### Phase 4: Background Service Worker
-10. `background.js` — coordinate between content scripts, manage caching
-11. Cache recent margin calc results to reduce API calls
-12. Handle account switching
-
-### Phase 5: Polish
-13. Extension popup for settings (enable/disable, thresholds)
-14. Error handling for expired sessions, API failures
-15. Rate limiting to avoid hammering the API
 
 ## Development
 
@@ -218,12 +232,17 @@ fidelity-margin-calculator-auto/
 # 3. Click "Load unpacked" and select this directory
 ```
 
+There is no build step. After editing, click the reload button on the extension card, then refresh the Fidelity tab.
+
+**Never commit account numbers.** This repository is public. A PreToolUse hook (`.claude/hooks/block-account-numbers.py`, configured in `.claude/settings.json`) blocks Claude Code edits, GitHub pushes and `git commit` / `git push` that add anything shaped like a Fidelity account number; use a placeholder such as `ZXXXXXXXX`. Check it with `python3 .claude/hooks/block-account-numbers.py --self-test`.
+
 ## Security Notes
 
-- Extension only runs on `digital.fidelity.com`
-- No data leaves the browser — all requests go to Fidelity's own API
-- No credentials stored — uses existing browser session cookies
-- No external servers or analytics
+- Content scripts only run on `digital.fidelity.com`; all account requests go to Fidelity's own API.
+- The background worker also contacts three public, read-only sources — `fundresearch.fidelity.com` (money-market yields), `www.irs.gov` and `taxfoundation.org` (tax brackets) — and the manifest CSP allows only those hosts. No account numbers, balances or positions are ever sent to them.
+- No credentials stored — uses existing browser session cookies. Settings and cached rates live in `chrome.storage`.
+- No external servers or analytics.
+- The extension never places, previews or submits orders. The money-market **Fill ticket** only enters form fields.
 
 ## Disclaimer and Terms of Service Compliance
 
@@ -237,11 +256,11 @@ Fidelity's Terms of Use prohibit "Third-Party Access Tools" providing "high-spee
 
 2. **No data exfiltration.** All API requests go to Fidelity's own servers, and all responses stay within the browser. No data is sent to external servers, analytics services, or third parties.
 
-3. **User-initiated, human-rate access.** The extension only makes API calls when the user actively opens a trade ticket and enters parameters. With debouncing, caching and a client-side rate limiter, it generates traffic in the range of a user working in Fidelity's own Margin Calculator page. Per trade setup that is one positions/balance call (cached for 5 minutes) plus one margin calculation, and — only if the optional chain features are enabled — a few read-only quote/chain requests (cached ~45 seconds). Chain hovers, roll checks and dropdown annotations are each user-initiated and capped (for example only the nearest 8 expirations are annotated); there is no background polling beyond a 2-second local symbol check.
+3. **User-initiated, human-rate access.** The extension only makes API calls when the user actively opens a trade ticket and enters parameters. With debouncing, caching and a client-side rate limiter, it generates traffic in the range of a user working in Fidelity's own Margin Calculator page. Per trade setup that is one positions/balance call (cached for 5 minutes) plus one margin calculation, and — only if the optional chain features are enabled — a few read-only quote/chain requests (cached ~45 seconds). Chain hovers, roll checks and dropdown annotations are each user-initiated and capped (for example expiration volumes load only for the options you scroll to); there is no background polling beyond a 2-second local symbol check.
 
 4. **Same information, different location.** The extension surfaces margin impact data that is already available to the user on Fidelity's own Margin Calculator page. It does not expose new data or capabilities — it makes existing information more convenient to access in context.
 
-5. **Read-only operation.** The extension never places trades, modifies account settings, or takes any action on behalf of the user. It only retrieves and displays margin calculation results.
+5. **Read-only operation.** The extension never places trades, modifies account settings, or takes any action on behalf of the user. It only retrieves and displays margin calculation results; the optional money-market helper pre-fills Fidelity's ticket fields but never submits.
 
 6. **Precedent.** Multiple Chrome extensions that interact with Fidelity pages exist on the Chrome Web Store (including extensions that automate trade execution across accounts), without reported enforcement action against users.
 
