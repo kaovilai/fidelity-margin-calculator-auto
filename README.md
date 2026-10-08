@@ -55,7 +55,7 @@ The hovered cell is calculated exactly (one `trade-calculator/v1` call). Colour 
 
 **Trade ticket.** The strike and expiration dropdowns show each option's volume and open interest (with a proportional bar) and, for sell-to-open, the yield stats. Expiration volumes are loaded **lazily** — one chain request per option, fetched as it scrolls into view — so long expiry lists stay cheap. This also works in the **Roll** ticket (opened from Fidelity's Roll button on the positions page), whose call/put type is read from the "Put Expiration" label. When the ticket holds a roll, the margin panel names the premium-neutral strike for the chosen expiry.
 
-**Market-priced orders.** The Roll button pre-fills a *market* closing order (price 0), which the margin calculator rejects (`1030 HYPOTHETICAL TRADE PRICE IS 0`). The extension substitutes the position's current mark for any zero-price order, and if Fidelity still returns no balance it shows Fidelity's own message instead of a generic "no data" error.
+**Market-priced orders.** The Roll button pre-fills a *market* closing order (price 0), which the margin calculator rejects (`1030 HYPOTHETICAL TRADE PRICE IS 0`). The extension prices each such leg first — a position you hold uses its current mark, and the roll's new leg uses the option chain's bid/ask midpoint — and if Fidelity still returns no balance it shows Fidelity's own message instead of a generic "no data" error.
 
 ## Money-Market Optimizer
 
